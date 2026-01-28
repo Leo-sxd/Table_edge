@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简约多功能面板</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/Table_edge/style.css">
+<!-- 高德地图API - 使用JS API Loader加载 -->
+<script type="text/javascript">
+    window._AMapSecurityConfig = {
+        securityJsCode: "8fd12b82c18d08935bd8d829dcdb9135",
+    };
+</script>
+<script src="https://webapi.amap.com/loader.js"></script>
+</head>
+<body>
+    <!-- 背景图片选择区 -->
+    <div class="bg-selector" id="bg-selector">
+        <button id="change-bg-btn" title="更换背景">
+            <i class="fas fa-image"></i>
+        </button>
+        <div class="bg-options" id="bg-options">
+            <div class="bg-option" data-bg="nature1"></div>
+            <div class="bg-option" data-bg="nature2"></div>
+            <div class="bg-option" data-bg="nature3"></div>
+            <div class="bg-option" data-bg="custom" id="custom-bg-btn">
+                <i class="fas fa-upload"></i>
+            </div>
+        </div>
+        <input type="file" id="bg-upload" accept="image/*" style="display: none;">
+    </div>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 头部时间显示区域 -->
+        <header class="header">
+            <div class="date-time">
+                <h1 id="current-time">00:00:00</h1>
+                <p id="current-date">2026年1月28日 星期三</p>
+                <p id="current-location" class="location-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span id="location-text">正在获取位置...</span>
+                </p>
+            </div>
+            <div class="weather-info">
+                <div class="weather-icon">
+                    <i id="weather-icon" class="fas fa-sun"></i>
+                </div>
+                <div class="weather-details">
+                    <span id="temperature" class="temp">--°C</span>
+                    <span id="weather-description" class="weather-desc">--</span>
+                    <span id="city-name" class="location">位置获取中</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 左侧：待办事项 -->
+            <section class="todo-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-tasks"></i> 待办事项</h2>
+                    <button id="add-todo-btn" class="add-btn" title="添加待办事项">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="todo-container">
+                    <!-- 待办事项输入区域 -->
+                    <div class="todo-input-area" id="todo-input-area">
+                        <div class="todo-form">
+                            <input type="text" id="todo-input" placeholder="添加新的待办事项...">
+                            <div class="time-selection">
+                                <div class="time-input-group">
+                                    <label for="start-time"><i class="far fa-clock"></i> 开始时间</label>
+                                    <input type="datetime-local" id="start-time">
+                                </div>
+                                <div class="time-input-group">
+                                    <label for="end-time"><i class="fas fa-flag-checkered"></i> 截止时间</label>
+                                    <input type="datetime-local" id="end-time">
+                                </div>
+                            </div>
+                            <div class="todo-form-buttons">
+                                <button id="todo-submit" class="submit-btn">添加</button>
+                                <button id="todo-cancel" class="cancel-btn">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="todo-filter">
+                        <button class="filter-btn active" data-filter="all">全部 (0)</button>
+                        <button class="filter-btn" data-filter="pending">未完成 (0)</button>
+                        <button class="filter-btn" data-filter="completed">已完成 (0)</button>
+                        <button class="filter-btn" data-filter="urgent">紧急 (0)</button>
+                    </div>
+                    <ul id="todo-list">
+                        <!-- 待办事项将通过JS动态添加 -->
+                    </ul>
+                </div>
+            </section>
+            
+            <!-- 中间：地图区域 -->
+            <section class="map-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-map-marked-alt"></i> 高德地图</h2>
+                    <div class="map-controls">
+                        <button id="locate-me" class="map-btn" title="定位我的位置">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                        <button id="traffic-toggle" class="map-btn" title="实时路况">
+                            <i class="fas fa-car"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="map-container">
+                    <div id="map"></div>
+                    <div class="map-search-box">
+                        <input type="text" id="map-search-input" placeholder="搜索地点...">
+                        <button id="map-search-btn"><i class="fas fa-search"></i></button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 右侧：智能助手 -->
+            <section class="assistant-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-robot"></i> Deepseek AI</h2>
+                    <div class="assistant-status">
+                        <span class="status-dot" id="assistant-status-dot"></span>
+                        <span class="status-text" id="assistant-status-text">离线</span>
+                    </div>
+                </div>
+                <div class="assistant-container">
+                    <!-- API密钥输入区域 -->
+                    <div class="api-key-section">
+                        <div class="api-input-group">
+                            <input type="password" id="deepseek-api-key" placeholder="输入Deepseek API密钥" value="">
+                            <button id="save-api-key" class="small-btn">保存</button>
+                        </div>
+                        <div class="api-hint">
+                            <small>密钥仅保存在本地，请前往 <a href="https://platform.deepseek.com/" target="_blank">Deepseek官网</a> 获取</small>
+                        </div>
+                    </div>
+                    
+                    <div class="assistant-messages" id="assistant-messages">
+                        <div class="message assistant-message">
+                            <div class="avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="content">
+                                <p>您好！我是Deepseek AI助手，请输入API密钥开始对话。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="assistant-input-area">
+                        <input type="text" id="assistant-input" placeholder="输入您的问题...">
+                        <button id="assistant-send" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- 底部状态栏 -->
+        <footer class="footer">
+            <p>简约多功能面板 &copy; 2026 | 最后更新: <span id="last-update-time"></span></p>
+        </footer>
+    </div>
+    
+    <script src="/Table_edge/script.js"></script>
+</body>
+</html>
