@@ -169,15 +169,27 @@
             </section>
         </main>
         
-        <!-- Bing搜索引擎面板 -->
-        <section class="bing-section">
-            <div class="section-header">
-                <h2><i class="fab fa-microsoft"></i> Bing 搜索</h2>
-            </div>
-            <div class="bing-container">
-                <iframe src="https://www.bing.com/search" width="100%" height="500"></iframe>
-            </div>
-        </section>
+<!-- 使用Bing的可嵌入搜索组件 -->
+<div id="bing_search_container" style="width: 100%; height: 600px;"></div>
+
+<script>
+// 使用Bing的Widget API
+(function() {
+    var bingSearchOptions = {
+        rootElement: "bing_search_container",
+        market: "zh-CN",
+        searchInput: true,
+        theme: "light"
+    };
+    
+    // 加载Bing搜索组件
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://www.bing.com/api/widget/1.0";
+    script.async = true;
+    document.body.appendChild(script);
+})();
+</script>
         
         <!-- 底部状态栏 -->
         <footer class="footer">
