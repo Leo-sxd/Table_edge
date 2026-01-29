@@ -36,7 +36,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const temperature = document.getElementById('temperature');
     const weatherDesc = document.getElementById('weather-description');
     const cityName = document.getElementById('city-name');
+    const districtName = document.getElementById('district-name');
     const weatherIcon = document.getElementById('weather-icon');
+    
+    // 存储当前位置信息
+    let currentPosition = { lat: 39.9042, lon: 116.4074 };
     
     // 获取地理位置和天气
     async function getGeolocationAndWeather() {
@@ -48,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
+                    currentPosition = { lat, lon };
                     
                     // 更新位置显示
                     locationText.textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
@@ -63,6 +68,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 获取天气信息
                     await getWeather(lat, lon);
                     
+                    // 使用高德地图逆地理编码获取城市和区域信息
+                    await getLocationInfoFromAMap(lon, lat);
+                    
                     // 初始化地图中心点
                     if (window.map) {
                         window.map.setCenter([lon, lat]);
@@ -74,9 +82,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 使用默认位置（北京）
                     const defaultLat = 39.9042;
                     const defaultLon = 116.4074;
+                    currentPosition = { lat: defaultLat, lon: defaultLon };
                     
                     locationText.textContent = `纬度: ${defaultLat.toFixed(2)}, 经度: ${defaultLon.toFixed(2)} (默认)`;
                     getWeather(defaultLat, defaultLon);
+                    
+                    // 使用默认位置获取城市信息
+                    getLocationInfoFromAMap(defaultLon, defaultLat);
                     
                     if (window.map) {
                         window.map.setCenter([defaultLon, defaultLat]);
@@ -92,6 +104,63 @@ document.addEventListener('DOMContentLoaded', function() {
             // 浏览器不支持地理定位
             locationText.textContent = '浏览器不支持地理定位';
             getWeather(39.9042, 116.4074); // 默认北京
+            getLocationInfoFromAMap(116.4074, 39.9042);
+        }
+    }
+    
+    // 使用高德地图逆地理编码获取城市和区域信息
+    async function getLocationInfoFromAMap(lng, lat) {
+        try {
+            // 等待AMap加载完成
+            if (typeof AMap === 'undefined') {
+                console.log('AMap未加载，等待中...');
+                setTimeout(() => getLocationInfoFromAMap(lng, lat), 1000);
+                return;
+            }
+            
+            // 加载逆地理编码插件
+            AMap.plugin(['AMap.Geocoder'], function() {
+                const geocoder = new AMap.Geocoder({
+                    radius: 1000,
+                    extensions: 'all'
+                });
+                
+                geocoder.getAddress([lng, lat], function(status, result) {
+                    if (status === 'complete' && result.regeocode) {
+                        const addressComponent = result.regeocode.addressComponent;
+                        const province = addressComponent.province || '';
+                        const city = addressComponent.city || addressComponent.province || '未知城市';
+                        const district = addressComponent.district || '';
+                        const street = addressComponent.street || '';
+                        const streetNumber = addressComponent.streetNumber || '';
+                        
+                        // 更新城市名称
+                        cityName.textContent = city;
+                        
+                        // 更新区域名称
+                        if (district) {
+                            districtName.textContent = district;
+                            districtName.style.display = 'block';
+                        } else {
+                            districtName.style.display = 'none';
+                        }
+                        
+                        // 更新位置显示
+                        const locationDetail = `${province} ${city} ${district} ${street}${streetNumber}`.trim();
+                        locationText.textContent = locationDetail || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        
+                        console.log('位置信息:', { province, city, district, street, streetNumber });
+                    } else {
+                        console.log('逆地理编码失败:', status, result);
+                        cityName.textContent = '位置获取失败';
+                        districtName.style.display = 'none';
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('获取位置信息失败:', error);
+            cityName.textContent = '位置获取失败';
+            districtName.style.display = 'none';
         }
     }
     
@@ -116,30 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 throw new Error('天气API请求失败');
-            }
-            
-            // 获取城市名称
-            try {
-                const nominatimResponse = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`
-                );
-                
-                if (nominatimResponse.ok) {
-                    const nominatimData = await nominatimResponse.json();
-                    if (nominatimData.address) {
-                        const city = nominatimData.address.city || 
-                                   nominatimData.address.town || 
-                                   nominatimData.address.village || 
-                                   nominatimData.address.county ||
-                                   nominatimData.address.state ||
-                                   '未知位置';
-                        cityName.textContent = city;
-                        // 更新位置显示
-                        locationText.textContent = `${city} (纬度: ${lat.toFixed(2)}, 经度: ${lon.toFixed(2)})`;
-                    }
-                }
-            } catch (nominatimError) {
-                console.log('Nominatim获取城市失败:', nominatimError);
             }
         } catch (error) {
             console.error('获取天气信息失败:', error);
@@ -585,17 +630,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const mapContainer = document.getElementById('map');
         if (mapContainer) {
             mapContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 30px; color: white;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%); border-radius: 10px; padding: 30px; color: white;">
                     <i class="fas fa-map-marked-alt" style="font-size: 64px; margin-bottom: 20px; opacity: 0.9;"></i>
                     <h3 style="margin-bottom: 15px; font-size: 1.5rem;">地图服务暂时不可用</h3>
                     <p style="text-align: center; margin-bottom: 20px; font-size: 1rem; opacity: 0.9;">${message}</p>
                     
-                    <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px); max-width: 500px; width: 100%;">
+                    <div style="background: rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px); max-width: 500px; width: 100%;">
                         <h4 style="margin-bottom: 15px; font-size: 1.1rem;">配置指南：</h4>
                         <ol style="text-align: left; margin-left: 20px; font-size: 0.9rem; line-height: 1.6;">
                             <li style="margin-bottom: 10px;">
                                 <strong>获取API密钥：</strong><br>
-                                访问 <a href="https://lbs.amap.com/" target="_blank" style="color: #4a6fa5; text-decoration: underline;">高德开放平台</a> →
+                                访问 <a href="https://lbs.amap.com/" target="_blank" style="color: #a8c5ff; text-decoration: underline;">高德开放平台</a> →
                                 注册账号 → 控制台 → 创建新应用 → 添加Key
                             </li>
                             <li style="margin-bottom: 10px;">
@@ -725,7 +770,7 @@ document.addEventListener('DOMContentLoaded', function() {
         AMapLoader.load({
             key: "9e661689052df99b5468cfbabfa35824", // 申请好的Web端开发者 Key，调用 load 时必填
             version: "2.0", //指定要加载的 JS API 的版本，缺省时默认为 1.4.15
-            plugins: ['AMap.PlaceSearch', 'AMap.TileLayer.Traffic'] // 需要使用的插件列表
+            plugins: ['AMap.PlaceSearch', 'AMap.TileLayer.Traffic', 'AMap.Geocoder'] // 需要使用的插件列表
         })
         .then((AMap) => {
             // 初始化地图 - 使用用户位置或默认位置
@@ -750,11 +795,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('高德地图初始化成功');
             
-            // 如果已有用户位置，添加标记
+            // 如果已有用户位置，添加标记并获取位置信息
             if (savedLocation) {
                 try {
                     const location = JSON.parse(savedLocation);
                     addUserMarker(location.lon || location.lng, location.lat);
+                    // 获取位置信息
+                    getLocationInfoFromAMap(location.lon || location.lng, location.lat);
                 } catch (e) {
                     console.error('添加用户标记失败:', e);
                 }
@@ -766,6 +813,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     navigator.geolocation.getCurrentPosition(function(position) {
                         const lng = position.coords.longitude;
                         const lat = position.coords.latitude;
+                        currentPosition = { lat, lon: lng };
                         
                         // 更新地图中心
                         window.map.setCenter([lng, lat]);
@@ -779,6 +827,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // 获取天气信息
                         getWeather(lat, lng);
+                        
+                        // 获取城市和区域信息
+                        getLocationInfoFromAMap(lng, lat);
                         
                         // 保存位置
                         localStorage.setItem('userLocation', JSON.stringify({
