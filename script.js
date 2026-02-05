@@ -255,47 +255,61 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     const bgPreviews = document.querySelectorAll('.bg-option:not([data-bg="custom"])');
-    bgPreviews.forEach(option => {
-        option.addEventListener('click', function() {
-            const bgType = this.getAttribute('data-bg');
-            const bgImages = {
-                'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-                'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-                'nature3': 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
-            };
-            
-            document.body.style.backgroundImage = `url(${bgImages[bgType]})`;
-            localStorage.setItem('selectedBackground', bgImages[bgType]);
-            bgSelector.classList.remove('expanded');
-        });
+// 修改背景切换函数，确保使用正确的CSS属性
+function changeBackgroundImage(imageUrl) {
+    document.body.style.backgroundImage = `url(${imageUrl})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundRepeat = 'no-repeat';
+    document.body.style.backgroundAttachment = 'fixed';
+    localStorage.setItem('selectedBackground', imageUrl);
+}
+
+bgPreviews.forEach(option => {
+    option.addEventListener('click', function() {
+        const bgType = this.getAttribute('data-bg');
+        const bgImages = {
+            'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+            'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+            'nature3': 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
+        };
+        
+        changeBackgroundImage(bgImages[bgType]);
+        bgSelector.classList.remove('expanded');
     });
+});
     
     // 自定义背景上传
     customBgBtn.addEventListener('click', function() {
         bgUpload.click();
     });
     
-    bgUpload.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                document.body.style.backgroundImage = `url(${event.target.result})`;
-                localStorage.setItem('selectedBackground', event.target.result);
-                bgSelector.classList.remove('expanded');
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+bgUpload.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            changeBackgroundImage(event.target.result);
+            bgSelector.classList.remove('expanded');
+        };
+        reader.readAsDataURL(file);
+    }
+});
     
     // 加载保存的背景
+// 修改加载保存的背景函数
+function loadSavedBackground() {
     const savedBackground = localStorage.getItem('selectedBackground');
     if (savedBackground) {
-        document.body.style.backgroundImage = `url(${savedBackground})`;
+        changeBackgroundImage(savedBackground);
     } else {
         // 设置默认背景
-        document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)';
+        changeBackgroundImage('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
     }
+}
+
+// 在DOM加载完成后调用
+loadSavedBackground();
     
     // ==================== 4. 待办事项功能 ====================
     const todoInput = document.getElementById('todo-input');

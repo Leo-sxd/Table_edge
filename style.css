@@ -6,7 +6,6 @@
     font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
 }
 
-/* 移除白色背景层 */
 body {
     background-color: #f8f9fa;
     color: #333;
@@ -15,7 +14,18 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    background-attachment: fixed; /* 新增：固定背景不随滚动 */
+    background-image: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'); /* 设置默认背景 */
     transition: background-image 0.5s ease;
+}
+
+/* 确保背景容器覆盖整个视口 */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
 }
 
 /* 移除伪元素白色遮罩层 */
@@ -118,18 +128,17 @@ body {
     padding: 20px;
 }
 
-/* 头部样式 */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     padding: 25px 30px;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.85) !important; /* 增加不透明度 */
     border-radius: 15px;
     margin-bottom: 30px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     border-left: 5px solid #4a6fa5;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px); /* 增强毛玻璃效果 */
     transition: all 0.3s ease;
 }
 
@@ -891,4 +900,32 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(161, 161, 161, 0.9);
+}
+/* 响应式背景优化 */
+@media (max-width: 768px) {
+    body {
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    
+    /* 移动设备上减少毛玻璃效果强度 */
+    .header, .todo-section, .map-section, .assistant-section, .bing-section, .footer {
+        backdrop-filter: blur(5px);
+    }
+}
+
+/* 确保背景图片在高分辨率显示器上也能清晰显示 */
+@media (min-width: 1920px) {
+    body {
+        background-size: cover;
+    }
+}
+
+/* 防止内容区域过长时背景被拉伸 */
+@media (min-height: 1000px) {
+    body {
+        background-size: cover;
+        background-position: center;
+    }
 }
