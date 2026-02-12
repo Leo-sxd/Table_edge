@@ -1,4 +1,4 @@
-﻿// script.js - 修复高德地图API加载问题
+// script.js - 修复高德地图API加载问题
 
 document.addEventListener('DOMContentLoaded', function() {
     // ==================== 1. 时间和日期更新 ====================
@@ -172,19 +172,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
             );
             
-            if (openMeteoResponse.ok) {
-                const openMeteoData = await openMeteoResponse.json();
-                if (openMeteoData.current) {
-                    const temp = Math.round(openMeteoData.current.temperature_2m);
-                    const weatherCode = openMeteoData.current.weather_code;
-                    
-                    temperature.textContent = `${temp}C`;
-                    const { description, icon } = getWeatherInfo(weatherCode);
-                    weatherDesc.textContent = description;
-                    weatherIcon.className = `fas ${icon}`;
-                }
-            } else {
+            if (!openMeteoResponse.ok) {
                 throw new Error('天气API请求失败');
+            }
+            
+            const openMeteoData = await openMeteoResponse.json();
+            if (openMeteoData.current) {
+                const temp = Math.round(openMeteoData.current.temperature_2m);
+                const weatherCode = openMeteoData.current.weather_code;
+                
+                temperature.textContent = `${temp}C`;
+                const { description, icon } = getWeatherInfo(weatherCode);
+                weatherDesc.textContent = description;
+                weatherIcon.className = `fas ${icon}`;
             }
         } catch (error) {
             console.error('获取天气信息失败:', error);
