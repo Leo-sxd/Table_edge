@@ -1,4 +1,4 @@
-// script.js - 修复高德地图API加载问题
+﻿// script.js - 修复高德地图API加载问题
 
 document.addEventListener('DOMContentLoaded', function() {
     // ==================== 1. 时间和日期更新 ====================
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const temp = Math.round(openMeteoData.current.temperature_2m);
                 const weatherCode = openMeteoData.current.weather_code;
                 
-                temperature.textContent = `${temp}C`;
+                temperature.textContent = `${temp}°C`;
                 const { description, icon } = getWeatherInfo(weatherCode);
                 weatherDesc.textContent = description;
                 weatherIcon.className = `fas ${icon}`;
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('获取天气信息失败:', error);
             // 使用模拟数据作为最终后备
-            temperature.textContent = '25C';
+            temperature.textContent = '25°C';
             weatherDesc.textContent = '晴朗';
             weatherIcon.className = 'fas fa-sun';
         }
