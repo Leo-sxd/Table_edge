@@ -11,10 +11,10 @@ body {
     color: #333;
     line-height: 1.6;
     min-height: 100vh;
-    background-size: cover;
+    background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed; /* 新增：固定背景不随滚动 */
+    background-attachment: fixed; /* 新增：固定背景不随滚�?*/
     background-image: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'); /* 设置默认背景 */
     transition: background-image 0.5s ease;
 }
@@ -31,7 +31,7 @@ html, body {
 /* 移除伪元素白色遮罩层 */
 /* body::before 已被移除 */
 
-/* 背景选择器 */
+/* 背景选择�?*/
 .bg-selector {
     position: fixed;
     top: 20px;
@@ -89,7 +89,7 @@ html, body {
     height: 40px;
     border-radius: 5px;
     cursor: pointer;
-    background-size: cover;
+    background-size: contain;
     background-position: center;
     border: 2px solid transparent;
     transition: all 0.2s ease;
@@ -121,7 +121,7 @@ html, body {
     font-size: 1.2rem;
 }
 
-/* 主容器 */
+/* 主容�?*/
 .container {
     max-width: 1400px;
     margin: 0 auto;
@@ -133,12 +133,12 @@ html, body {
     justify-content: space-between;
     align-items: flex-start;
     padding: 25px 30px;
-    background-color: rgba(255, 255, 255, 0.85) !important; /* 增加不透明度 */
+    background-color: rgba(255, 255, 255, 0.85) !important; /* 增加不透明�?*/
     border-radius: 15px;
     margin-bottom: 30px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     border-left: 5px solid #4a6fa5;
-    backdrop-filter: blur(10px); /* 增强毛玻璃效果 */
+    backdrop-filter: blur(10px); /* 增强毛玻璃效�?*/
     transition: all 0.3s ease;
 }
 
@@ -248,7 +248,7 @@ html, body {
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* 主内容区域 */
+/* 主内容区�?*/
 .main-content {
     display: grid;
     grid-template-columns: 1fr 1.5fr 1fr;
@@ -671,7 +671,7 @@ html, body {
 .assistant-container {
     display: flex;
     flex-direction: column;
-    height: 500px; /* 增加高度以适应API输入栏 */
+    height: 500px; /* 增加高度以适应API输入�?*/
 }
 
 /* API密钥输入区域 */
@@ -883,7 +883,7 @@ html, body {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* 滚动条样式 */
+/* 滚动条样�?*/
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -901,10 +901,10 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(161, 161, 161, 0.9);
 }
-/* 响应式背景优化 */
+/* 响应式背景优�?*/
 @media (max-width: 768px) {
     body {
-        background-size: cover;
+        background-size: contain;
         background-position: center;
         background-attachment: fixed;
     }
@@ -915,17 +915,17 @@ html, body {
     }
 }
 
-/* 确保背景图片在高分辨率显示器上也能清晰显示 */
+/* 确保背景图片在高分辨率显示器上也能清晰显�?*/
 @media (min-width: 1920px) {
     body {
-        background-size: cover;
+        background-size: contain;
     }
 }
 
 /* 防止内容区域过长时背景被拉伸 */
 @media (min-height: 1000px) {
     body {
-        background-size: cover;
+        background-size: contain;
         background-position: center;
     }
 }
