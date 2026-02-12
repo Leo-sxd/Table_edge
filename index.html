@@ -17,7 +17,7 @@
 <base target="_blank">
 </head>
 <body>
-    <!-- 背景图片选择区 -->
+    <!-- 背景图片选择�?-->
     <div class="bg-selector" id="bg-selector">
         <button id="change-bg-btn" title="更换背景">
             <i class="fas fa-image"></i>
@@ -33,39 +33,41 @@
         <input type="file" id="bg-upload" accept="image/*" style="display: none;">
     </div>
     
-    <!-- 主容器 -->
+    <!-- 主容�?-->
     <div class="container">
         <!-- 头部时间显示区域 -->
         <header class="header">
             <div class="date-time">
                 <h1 id="current-time">00:00:00</h1>
-                <p id="current-date">2026年1月28日 星期三</p>
+                <p id="current-date">2026��1��28�� ������</p>
                 <p id="current-location" class="location-info">
                     <i class="fas fa-map-marker-alt"></i>
-                    <span id="location-text">正在获取位置...</span>
+                    <span id="location-text">���ڻ�ȡλ��...</span>
                 </p>
             </div>
-            <div class="weather-info">
-                <div class="weather-icon">
-                    <i id="weather-icon" class="fas fa-sun"></i>
+            <div class="header-right">
+                <div class="weather-info">
+                    <div class="weather-icon">
+                        <i id="weather-icon" class="fas fa-sun"></i>
+                    </div>
+                    <div class="weather-details">
+                        <span id="temperature" class="temp">--C</span>
+                        <span id="weather-description" class="weather-desc">--</span>
+                        <span id="city-name" class="location">λ�û�ȡ��</span>
+                        <span id="district-name" class="district">--</span>
+                    </div>
                 </div>
-                <div class="weather-details">
-                    <span id="temperature" class="temp">--°C</span>
-                    <span id="weather-description" class="weather-desc">--</span>
-                    <span id="city-name" class="location">位置获取中</span>
-                    <span id="district-name" class="district">--</span>
-                </div>
+                <!-- ��ת��ť -->
+                <a href="https://leo-sxd.github.io/favorite_file.github.io/" target="_blank" class="jump-btn" title="�����ղ���վ">
+                    <i class="fas fa-external-link-alt"></i>
+                    <span>�ղ���վ</span>
+                </a>
             </div>
-            <!-- 跳转按钮 -->
-            <a href="https://leo-sxd.github.io/favorite_file.github.io/" target="_blank" class="jump-btn" title="访问收藏网站">
-                <i class="fas fa-external-link-alt"></i>
-                <span>收藏网站</span>
-            </a>
         </header>
         
-        <!-- 主内容区域 -->
+        <!-- 主内容区�?-->
         <main class="main-content">
-            <!-- 左侧：待办事项 -->
+            <!-- 左侧：待办事�?-->
             <section class="todo-section">
                 <div class="section-header">
                     <h2><i class="fas fa-tasks"></i> 待办事项</h2>
@@ -80,7 +82,7 @@
                             <input type="text" id="todo-input" placeholder="添加新的待办事项...">
                             <div class="time-selection">
                                 <div class="time-input-group">
-                                    <label for="start-time"><i class="far fa-clock"></i> 开始时间</label>
+                                    <label for="start-time"><i class="far fa-clock"></i> 开始时�?/label>
                                     <input type="datetime-local" id="start-time">
                                 </div>
                                 <div class="time-input-group">
@@ -96,17 +98,17 @@
                     </div>
                     <div class="todo-filter">
                         <button class="filter-btn active" data-filter="all">全部 (0)</button>
-                        <button class="filter-btn" data-filter="pending">未完成 (0)</button>
-                        <button class="filter-btn" data-filter="completed">已完成 (0)</button>
-                        <button class="filter-btn" data-filter="urgent">紧急 (0)</button>
+                        <button class="filter-btn" data-filter="pending">未完�?(0)</button>
+                        <button class="filter-btn" data-filter="completed">已完�?(0)</button>
+                        <button class="filter-btn" data-filter="urgent">紧�?(0)</button>
                     </div>
                     <ul id="todo-list">
-                        <!-- 待办事项将通过JS动态添加 -->
+                        <!-- 待办事项将通过JS动态添�?-->
                     </ul>
                 </div>
             </section>
             
-            <!-- 中间：地图区域 -->
+            <!-- 中间：地图区�?-->
             <section class="map-section">
                 <div class="section-header">
                     <h2><i class="fas fa-map-marked-alt"></i> 高德地图</h2>
@@ -128,7 +130,7 @@
                 </div>
             </section>
             
-            <!-- 右侧：智能助手 -->
+            <!-- 右侧：智能助�?-->
             <section class="assistant-section">
                 <div class="section-header">
                     <h2><i class="fas fa-robot"></i> Deepseek AI</h2>
@@ -155,7 +157,7 @@
                                 <i class="fas fa-robot"></i>
                             </div>
                             <div class="content">
-                                <p>您好！我是Deepseek AI助手，请输入API密钥开始对话。</p>
+                                <p>您好！我是Deepseek AI助手，请输入API密钥开始对话�?/p>
                             </div>
                         </div>
                     </div>
@@ -181,10 +183,13 @@
         
         <!-- 底部状态栏 -->
         <footer class="footer">
-            <p>简约多功能面板 &copy; 2026 | 最后更新: <span id="last-update-time"></span></p>
+            <p>简约多功能面板 &copy; 2026 | 最后更�? <span id="last-update-time"></span></p>
         </footer>
     </div>
     
     <script src="/Table_edge/script.js"></script>
 </body>
 </html>
+
+
+

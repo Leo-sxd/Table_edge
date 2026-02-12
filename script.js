@@ -1,27 +1,27 @@
-// script.js - 修复高德地图API加载问题
+﻿// script.js - 修复高德地图API加载问题
 
 document.addEventListener('DOMContentLoaded', function() {
-    // ==================== 1. 时间和日期更�?====================
+    // ==================== 1. 时间和日期更新 ====================
     function updateDateTime() {
         const now = new Date();
         
-        // 格式化时�?
+        // 格式化时间
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
         const timeString = `${hours}:${minutes}:${seconds}`;
         document.getElementById('current-time').textContent = timeString;
         
-        // 格式化日�?
+        // 格式化日期
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
-        const weekdays = ['星期�?, '星期一', '星期�?, '星期�?, '星期�?, '星期�?, '星期�?];
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
         const weekday = weekdays[now.getDay()];
-        const dateString = `${year}�?{month}�?{day}�?${weekday}`;
+        const dateString = `${year}年${month}月${day}日 ${weekday}`;
         document.getElementById('current-date').textContent = dateString;
         
-        // 更新最后更新时�?
+        // 更新最后更新时间
         document.getElementById('last-update-time').textContent = timeString;
         
         // 检查待办事项的时间
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDateTime();
     setInterval(updateDateTime, 1000);
     
-    // ==================== 2. 地理位置和天气信�?====================
+    // ==================== 2. 地理位置和天气信息 ====================
     const locationText = document.getElementById('location-text');
     const temperature = document.getElementById('temperature');
     const weatherDesc = document.getElementById('weather-description');
@@ -42,9 +42,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 存储当前位置信息
     let currentPosition = { lat: 39.9042, lon: 116.4074 };
     
-    // 获取地理位置和天�?
+    // 获取地理位置和天气
     async function getGeolocationAndWeather() {
-        // 首先尝试从本地存储获取位�?
+        // 首先尝试从本地存储获取位置
         const savedLocation = localStorage.getItem('userLocation');
         
         if (navigator.geolocation) {
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // 更新位置显示
                     locationText.textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-                    cityName.textContent = '位置获取�?;
+                    cityName.textContent = '位置获取中';
                     
                     // 保存位置
                     localStorage.setItem('userLocation', JSON.stringify({
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 (error) => {
-                    console.log('获取位置失败，使用默认位�?', error);
+                    console.log('获取位置失败，使用默认位置:', error);
                     // 使用默认位置（北京）
                     const defaultLat = 39.9042;
                     const defaultLon = 116.4074;
@@ -113,12 +113,12 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // 等待AMap加载完成
             if (typeof AMap === 'undefined') {
-                console.log('AMap未加载，等待�?..');
+                console.log('AMap未加载，等待中...');
                 setTimeout(() => getLocationInfoFromAMap(lng, lat), 1000);
                 return;
             }
             
-            // 加载逆地理编码插�?
+            // 加载逆地理编码插件
             AMap.plugin(['AMap.Geocoder'], function() {
                 const geocoder = new AMap.Geocoder({
                     radius: 1000,
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         console.log('位置信息:', { province, city, district, street, streetNumber });
                     } else {
-                        console.log('逆地理编码失�?', status, result);
+                        console.log('逆地理编码失败:', status, result);
                         cityName.textContent = '位置获取失败';
                         districtName.style.display = 'none';
                     }
@@ -164,10 +164,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 获取天气和城市信�?
+    // 获取天气和城市信息
     async function getWeather(lat, lon) {
         try {
-            // 使用Open-Meteo作为天气API（免费无需密钥�?
+            // 使用Open-Meteo作为天气API（免费无需密钥）
             const openMeteoResponse = await fetch(
                 `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
             );
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const temp = Math.round(openMeteoData.current.temperature_2m);
                     const weatherCode = openMeteoData.current.weather_code;
                     
-                    temperature.textContent = `${temp}°C`;
+                    temperature.textContent = `${temp}C`;
                     const { description, icon } = getWeatherInfo(weatherCode);
                     weatherDesc.textContent = description;
                     weatherIcon.className = `fas ${icon}`;
@@ -188,22 +188,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('获取天气信息失败:', error);
-            // 使用模拟数据作为最终后�?
-            temperature.textContent = '25°C';
+            // 使用模拟数据作为最终后备
+            temperature.textContent = '25C';
             weatherDesc.textContent = '晴朗';
             weatherIcon.className = 'fas fa-sun';
         }
     }
     
-    // 根据天气代码获取描述和图�?
+    // 根据天气代码获取描述和图标
     function getWeatherInfo(code) {
         const weatherMap = {
             0: { description: '晴朗', icon: 'fa-sun' },
-            1: { description: '大部分晴�?, icon: 'fa-sun' },
+            1: { description: '大部分晴朗', icon: 'fa-sun' },
             2: { description: '部分多云', icon: 'fa-cloud-sun' },
             3: { description: '多云', icon: 'fa-cloud' },
-            45: { description: '�?, icon: 'fa-smog' },
-            48: { description: '�?, icon: 'fa-smog' },
+            45: { description: '雾', icon: 'fa-smog' },
+            48: { description: '雾', icon: 'fa-smog' },
             51: { description: '小雨', icon: 'fa-cloud-rain' },
             53: { description: '中雨', icon: 'fa-cloud-rain' },
             55: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
@@ -214,12 +214,12 @@ document.addEventListener('DOMContentLoaded', function() {
             73: { description: '中雪', icon: 'fa-snowflake' },
             75: { description: '大雪', icon: 'fa-snowflake' },
             80: { description: '阵雨', icon: 'fa-cloud-rain' },
-            81: { description: '强阵�?, icon: 'fa-cloud-showers-heavy' },
+            81: { description: '强阵雨', icon: 'fa-cloud-showers-heavy' },
             82: { description: '暴雨', icon: 'fa-poo-storm' },
             85: { description: '阵雪', icon: 'fa-snowflake' },
-            86: { description: '强阵�?, icon: 'fa-snowflake' },
+            86: { description: '强阵雪', icon: 'fa-snowflake' },
             95: { description: '雷雨', icon: 'fa-bolt' },
-            96: { description: '雷暴�?, icon: 'fa-bolt' },
+            96: { description: '雷暴雨', icon: 'fa-bolt' },
             99: { description: '强雷暴雨', icon: 'fa-bolt' }
         };
         
@@ -255,61 +255,61 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     const bgPreviews = document.querySelectorAll('.bg-option:not([data-bg="custom"])');
-// 修改背景切换函数，确保使用正确的CSS属�?
-function changeBackgroundImage(imageUrl) {
-    document.body.style.backgroundImage = `url(${imageUrl})`;
-    document.body.style.backgroundSize = 'contain';
-    document.body.style.backgroundPosition = 'center';
-    document.body.style.backgroundRepeat = 'no-repeat';
-    document.body.style.backgroundAttachment = 'fixed';
-    localStorage.setItem('selectedBackground', imageUrl);
-}
+    // 修改背景切换函数，确保使用正确的CSS属性
+    function changeBackgroundImage(imageUrl) {
+        document.body.style.backgroundImage = `url(${imageUrl})`;
+        document.body.style.backgroundSize = 'contain';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+        document.body.style.backgroundAttachment = 'fixed';
+        localStorage.setItem('selectedBackground', imageUrl);
+    }
 
-bgPreviews.forEach(option => {
-    option.addEventListener('click', function() {
-        const bgType = this.getAttribute('data-bg');
-        const bgImages = {
-            'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-            'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-            'nature3': 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
-        };
-        
-        changeBackgroundImage(bgImages[bgType]);
-        bgSelector.classList.remove('expanded');
+    bgPreviews.forEach(option => {
+        option.addEventListener('click', function() {
+            const bgType = this.getAttribute('data-bg');
+            const bgImages = {
+                'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+                'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+                'nature3': 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
+            };
+            
+            changeBackgroundImage(bgImages[bgType]);
+            bgSelector.classList.remove('expanded');
+        });
     });
-});
     
-    // 自定义背景上�?
+    // 自定义背景上传
     customBgBtn.addEventListener('click', function() {
         bgUpload.click();
     });
     
-bgUpload.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            changeBackgroundImage(event.target.result);
-            bgSelector.classList.remove('expanded');
-        };
-        reader.readAsDataURL(file);
-    }
-});
+    bgUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                changeBackgroundImage(event.target.result);
+                bgSelector.classList.remove('expanded');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
     
-    // 加载保存的背�?
-// 修改加载保存的背景函�?
-function loadSavedBackground() {
-    const savedBackground = localStorage.getItem('selectedBackground');
-    if (savedBackground) {
-        changeBackgroundImage(savedBackground);
-    } else {
-        // 设置默认背景
-        changeBackgroundImage('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+    // 加载保存的背景
+    // 修改加载保存的背景函数
+    function loadSavedBackground() {
+        const savedBackground = localStorage.getItem('selectedBackground');
+        if (savedBackground) {
+            changeBackgroundImage(savedBackground);
+        } else {
+            // 设置默认背景
+            changeBackgroundImage('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+        }
     }
-}
 
-// 在DOM加载完成后调�?
-loadSavedBackground();
+    // 在DOM加载完成后调用
+    loadSavedBackground();
     
     // ==================== 4. 待办事项功能 ====================
     const todoInput = document.getElementById('todo-input');
@@ -346,7 +346,7 @@ loadSavedBackground();
         const todos = JSON.parse(localStorage.getItem('todos')) || [];
         todoList.innerHTML = '';
         
-        // 应用当前筛�?
+        // 应用当前筛选
         const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
         
         todos.forEach(todo => {
@@ -377,7 +377,7 @@ loadSavedBackground();
         }
     }
     
-    // 判断是否为紧急任�?
+    // 判断是否为紧急任务
     function isTodoUrgent(todo) {
         if (!todo.endTime || todo.completed) return false;
         
@@ -394,7 +394,7 @@ loadSavedBackground();
         const now = new Date();
         const diffMs = end - now;
         
-        if (diffMs <= 0) return '已过�?;
+        if (diffMs <= 0) return '已过期';
         
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffHours / 24);
@@ -421,7 +421,7 @@ loadSavedBackground();
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
-            }) : '未设�?;
+            }) : '未设置';
             
         const endTimeText = todo.endTime ? 
             new Date(todo.endTime).toLocaleString('zh-CN', {
@@ -429,7 +429,7 @@ loadSavedBackground();
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
-            }) : '未设�?;
+            }) : '未设置';
             
         const remainingText = todo.endTime ? getRemainingTimeText(todo.endTime) : '';
         
@@ -438,7 +438,7 @@ loadSavedBackground();
             <div class="todo-content">
                 <div class="todo-title">${todo.text}</div>
                 <div class="todo-time">
-                    <span>开�? ${startTimeText}</span>
+                    <span>开始: ${startTimeText}</span>
                     <span> | 截止: <span class="todo-deadline">${endTimeText}</span></span>
                     ${remainingText ? `<span> | ${remainingText}</span>` : ''}
                 </div>
@@ -448,7 +448,7 @@ loadSavedBackground();
             </button>
         `;
         
-        // 事件监听�?
+        // 事件监听器
         const checkbox = li.querySelector('.todo-checkbox');
         const deleteBtn = li.querySelector('.delete-todo');
         
@@ -463,7 +463,7 @@ loadSavedBackground();
                 }, 300);
             }
             
-            // 重新加载以更新筛�?
+            // 重新加载以更新筛选
             loadTodos();
         });
         
@@ -503,12 +503,12 @@ loadSavedBackground();
         todoInputArea.style.display = 'block';
         todoInput.focus();
         
-        // 移除原有的待办事�?
+        // 移除原有的待办事项
         removeTodoFromStorage(todo.id);
         loadTodos();
     }
     
-    // 更新待办事项状�?
+    // 更新待办事项状态
     function updateTodoStatus(id, completed) {
         const todos = JSON.parse(localStorage.getItem('todos')) || [];
         const todoIndex = todos.findIndex(todo => todo.id === id);
@@ -537,12 +537,12 @@ loadSavedBackground();
         const urgent = todos.filter(t => isTodoUrgent(t)).length;
         
         document.querySelector('[data-filter="all"]').textContent = `全部 (${todos.length})`;
-        document.querySelector('[data-filter="pending"]').textContent = `未完�?(${pending})`;
-        document.querySelector('[data-filter="completed"]').textContent = `已完�?(${completed})`;
-        document.querySelector('[data-filter="urgent"]').textContent = `紧�?(${urgent})`;
+        document.querySelector('[data-filter="pending"]').textContent = `未完成 (${pending})`;
+        document.querySelector('[data-filter="completed"]').textContent = `已完成 (${completed})`;
+        document.querySelector('[data-filter="urgent"]').textContent = `紧急 (${urgent})`;
     }
     
-    // 检查待办事项截止时�?
+    // 检查待办事项截止时间
     function checkTodoDeadlines() {
         const todos = JSON.parse(localStorage.getItem('todos')) || [];
         const now = new Date();
@@ -571,7 +571,7 @@ loadSavedBackground();
         const endTime = endTimeInput.value;
         
         if (!text) {
-            alert('请输入待办事项内�?);
+            alert('请输入待办事项内容');
             return;
         }
         
@@ -584,7 +584,7 @@ loadSavedBackground();
             createdAt: new Date().toISOString()
         };
         
-        // 保存到本地存�?
+        // 保存到本地存储
         const todos = JSON.parse(localStorage.getItem('todos')) || [];
         todos.push(todo);
         localStorage.setItem('todos', JSON.stringify(todos));
@@ -598,7 +598,7 @@ loadSavedBackground();
         loadTodos();
     }
     
-    // 事件监听�?
+    // 事件监听器
     todoSubmit.addEventListener('click', addTodo);
     
     addTodoBtn.addEventListener('click', function() {
@@ -621,7 +621,7 @@ loadSavedBackground();
         }
     });
     
-    // 筛选功�?
+    // 筛选功能
     filterButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             filterButtons.forEach(b => b.classList.remove('active'));
@@ -646,29 +646,29 @@ loadSavedBackground();
             mapContainer.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%); border-radius: 10px; padding: 30px; color: white;">
                     <i class="fas fa-map-marked-alt" style="font-size: 64px; margin-bottom: 20px; opacity: 0.9;"></i>
-                    <h3 style="margin-bottom: 15px; font-size: 1.5rem;">地图服务暂时不可�?/h3>
+                    <h3 style="margin-bottom: 15px; font-size: 1.5rem;">地图服务暂时不可用</h3>
                     <p style="text-align: center; margin-bottom: 20px; font-size: 1rem; opacity: 0.9;">${message}</p>
                     
                     <div style="background: rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px); max-width: 500px; width: 100%;">
-                        <h4 style="margin-bottom: 15px; font-size: 1.1rem;">配置指南�?/h4>
+                        <h4 style="margin-bottom: 15px; font-size: 1.1rem;">配置指南：</h4>
                         <ol style="text-align: left; margin-left: 20px; font-size: 0.9rem; line-height: 1.6;">
                             <li style="margin-bottom: 10px;">
-                                <strong>获取API密钥�?/strong><br>
-                                访问 <a href="https://lbs.amap.com/" target="_blank" style="color: #a8c5ff; text-decoration: underline;">高德开放平�?/a> �?
-                                注册账号 �?控制�?�?创建新应�?�?添加Key
+                                <strong>获取API密钥：</strong><br>
+                                访问 <a href="https://lbs.amap.com/" target="_blank" style="color: #a8c5ff; text-decoration: underline;">高德开放平台</a> 
+                                注册账号  控制台  创建新应用  添加Key
                             </li>
                             <li style="margin-bottom: 10px;">
-                                <strong>配置密钥�?/strong><br>
-                                �?<code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">index.html</code> �?br>
-                                替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_SECURITY_CODE_HERE</code> 为你的安全密�?
+                                <strong>配置密钥：</strong><br>
+                                在 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">index.html</code> 中<br>
+                                替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_SECURITY_CODE_HERE</code> 为你的安全密钥
                             </li>
                             <li style="margin-bottom: 10px;">
-                                <strong>Key配置�?/strong><br>
-                                在JS代码中替�?<code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_AMAP_KEY_HERE</code> 为你的应用Key
+                                <strong>Key配置：</strong><br>
+                                在JS代码中替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_AMAP_KEY_HERE</code> 为你的应用Key
                             </li>
                             <li>
-                                <strong>服务类型�?/strong><br>
-                                创建应用时选择 "Web�?JS API)"
+                                <strong>服务类型：</strong><br>
+                                创建应用时选择 "Web端(JS API)"
                             </li>
                         </ol>
                     </div>
@@ -721,7 +721,7 @@ loadSavedBackground();
             return;
         }
         
-        // 清除之前的标�?
+        // 清除之前的标记
         if (userMarker) {
             window.map.remove(userMarker);
             userMarker = null;
@@ -757,8 +757,8 @@ loadSavedBackground();
                         const infoWindow = new AMap.InfoWindow({
                             content: `<div style="padding: 10px; min-width: 200px;">
                                 <h4 style="margin: 0 0 5px 0;">${poi.name}</h4>
-                                <p style="margin: 0; font-size: 12px; color: #666;">${poi.address || '地址未提�?}</p>
-                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${poi.tel || '电话未提�?}</p>
+                                <p style="margin: 0; font-size: 12px; color: #666;">${poi.address || '地址未提供'}</p>
+                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${poi.tel || '电话未提供'}</p>
                             </div>`,
                             offset: new AMap.Pixel(0, -30)
                         });
@@ -766,28 +766,28 @@ loadSavedBackground();
                         infoWindow.open(window.map, userMarker.getPosition());
                     }
                 } else {
-                    alert('未找到相关地�?);
+                    alert('未找到相关地点');
                 }
             });
         });
     }
     
-    // 初始化地�?- 使用JS API Loader
+    // 初始化地图 - 使用JS API Loader
     function initMap() {
         // 检查AMapLoader是否可用
         if (typeof AMapLoader === 'undefined') {
-            showMapError('高德地图加载器未加载，请检查网络连�?);
+            showMapError('高德地图加载器未加载，请检查网络连接');
             return;
         }
         
         // 使用JS API Loader加载地图
         AMapLoader.load({
-            key: "9e661689052df99b5468cfbabfa35824", // 申请好的Web端开发�?Key，调�?load 时必�?
+            key: "9e661689052df99b5468cfbabfa35824", // 申请好的Web端开发者 Key，调用 load 时必填
             version: "2.0", //指定要加载的 JS API 的版本，缺省时默认为 1.4.15
             plugins: ['AMap.PlaceSearch', 'AMap.TileLayer.Traffic', 'AMap.Geocoder'] // 需要使用的插件列表
         })
         .then((AMap) => {
-            // 初始化地�?- 使用用户位置或默认位�?
+            // 初始化地图 - 使用用户位置或默认位置
             const savedLocation = localStorage.getItem('userLocation');
             let center = [116.397428, 39.90923]; // 北京默认
             
@@ -796,7 +796,7 @@ loadSavedBackground();
                     const location = JSON.parse(savedLocation);
                     center = [location.lon || location.lng || 116.397428, location.lat || 39.90923];
                 } catch (e) {
-                    console.error('解析保存的位置失�?', e);
+                    console.error('解析保存的位置失败:', e);
                 }
             }
             
@@ -807,7 +807,7 @@ loadSavedBackground();
                 viewMode: '2D'
             });
             
-            console.log('高德地图初始化成�?);
+            console.log('高德地图初始化成功');
             
             // 如果已有用户位置，添加标记并获取位置信息
             if (savedLocation) {
@@ -842,7 +842,7 @@ loadSavedBackground();
                         // 获取天气信息
                         getWeather(lat, lng);
                         
-                        // 获取城市和区域信�?
+                        // 获取城市和区域信息
                         getLocationInfoFromAMap(lng, lat);
                         
                         // 保存位置
@@ -887,7 +887,7 @@ loadSavedBackground();
         })
         .catch((e) => {
             console.error('高德地图加载失败:', e);
-            showMapError('高德地图加载失败: ' + (e.message || '请检查Key和安全密钥配�?));
+            showMapError('高德地图加载失败: ' + (e.message || '请检查Key和安全密钥配置'));
         });
     }
     
@@ -922,7 +922,7 @@ loadSavedBackground();
         }
     });
     
-    // 更新助手状�?
+    // 更新助手状态
     function updateAssistantStatus(connected) {
         if (connected) {
             statusDot.classList.add('online');
@@ -935,7 +935,7 @@ loadSavedBackground();
         }
     }
     
-    // 添加消息到对�?
+    // 添加消息到对话
     function addMessage(content, isUser = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
@@ -973,27 +973,23 @@ loadSavedBackground();
     
     // 调用Deepseek API
     async function callDeepseekAPI(userMessage, apiKey) {
-        // 如果没有API密钥，使用模拟响�?
+        // 如果没有API密钥，使用模拟响应
         if (!apiKey) {
             return new Promise((resolve) => {
                 setTimeout(() => {
                     const responses = [
                         `您的问题是："${userMessage}"。这是一个很有价值的问题，让我为您详细解答。目前我使用的是模拟响应，请配置API密钥以获取真实AI响应。`,
                         `关于"${userMessage}"，我建议您从以下几个方面考虑：首先明确目标，然后制定计划，最后执行并评估结果。`,
-                        `我理解您想了�?${userMessage}"。根据我的知识，这个问题的关键在于把握核心要点。`,
-                        `对于"${userMessage}"，我的建议是：保持清晰的思路，逐步分析问题，找到最佳解决方案。`,
-                        `这个问题"${userMessage}"很有趣。让我为您提供一些有用的信息和指导。`
+                        `"${userMessage}"是一个有趣的话题，我可以为您提供一些见解。不过要获取更准确的信息，建议您配置API密钥。`,
+                        `感谢您的问题！关于"${userMessage}"，我认为重要的是保持开放的心态，多角度思考问题。`
                     ];
-                    
                     const randomResponse = responses[Math.floor(Math.random() * responses.length)];
                     resolve(randomResponse);
-                }, 1500);
+                }, 1000);
             });
         }
         
-        // 实际的Deepseek API调用
         try {
-            // 注意：这里需要替换为真实的Deepseek API端点
             const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -1004,116 +1000,69 @@ loadSavedBackground();
                     model: 'deepseek-chat',
                     messages: [
                         {
+                            role: 'system',
+                            content: '你是一个智能助手，帮助用户解答问题。'
+                        },
+                        {
                             role: 'user',
                             content: userMessage
                         }
                     ],
-                    max_tokens: 500,
                     temperature: 0.7,
-                    stream: false
+                    max_tokens: 500
                 })
             });
             
             if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                throw new Error(`API请求失败: ${response.status}`);
             }
             
             const data = await response.json();
             return data.choices[0].message.content;
-            
         } catch (error) {
-            console.error('Deepseek API调用失败:', error);
-            throw error;
+            console.error('API调用失败:', error);
+            return `抱歉，API调用失败：${error.message}。请检查API密钥是否正确。`;
         }
     }
     
-    // 处理用户消息
-    async function handleUserMessage() {
-        const userMessage = assistantInput.value.trim();
-        
-        if (!userMessage) return;
-        
-        const apiKey = localStorage.getItem('deepseekApiKey') || '';
+    // 发送消息
+    async function sendMessage() {
+        const message = assistantInput.value.trim();
+        if (!message) return;
         
         // 添加用户消息
-        addMessage(userMessage, true);
+        addMessage(message, true);
         assistantInput.value = '';
         
-        // 显示正在思�?
-        const thinkingDiv = addMessage('<i class="fas fa-spinner fa-spin"></i> 正在思�?..', false);
+        // 获取API密钥
+        const apiKey = localStorage.getItem('deepseekApiKey') || '';
+        
+        // 显示正在输入
+        const typingIndicator = addMessage('正在输入...');
         
         try {
-            // 调用Deepseek API
-            const response = await callDeepseekAPI(userMessage, apiKey);
+            // 调用API
+            const response = await callDeepseekAPI(message, apiKey);
             
-            // 移除思考消�?
-            thinkingDiv.remove();
+            // 移除正在输入指示器
+            typingIndicator.remove();
             
             // 添加助手回复
             addMessage(response);
-            
-            updateAssistantStatus(true);
-            
-            // 保存对话
-            saveConversation(userMessage, response);
-            
         } catch (error) {
-            thinkingDiv.remove();
-            
-            // 使用模拟响应作为后备
-            const fallbackResponses = [
-                "由于API连接问题，我暂时无法获取实时数据。不过，我可以为您提供一些通用建议...",
-                "网络连接似乎有些问题，让我尝试用本地知识为您解答...",
-                "我暂时无法连接到服务器，但我可以根据内置知识为您提供帮助..."
-            ];
-            
-            const fallbackResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-            addMessage(`${fallbackResponse}\n\n错误详情: ${error.message}`);
-            
-            updateAssistantStatus(false);
+            console.error('发送消息失败:', error);
+            typingIndicator.remove();
+            addMessage('抱歉，发送消息失败，请稍后重试。');
         }
     }
     
-    // 保存对话历史
-    function saveConversation(userMessage, assistantResponse) {
-        const conversations = JSON.parse(localStorage.getItem('assistantConversations')) || [];
-        conversations.push({
-            user: userMessage,
-            assistant: assistantResponse,
-            timestamp: new Date().toISOString()
-        });
-        
-        if (conversations.length > 50) {
-            conversations.splice(0, conversations.length - 50);
-        }
-        
-        localStorage.setItem('assistantConversations', JSON.stringify(conversations));
-    }
-    
-    // 加载对话历史
-    function loadConversations() {
-        const conversations = JSON.parse(localStorage.getItem('assistantConversations')) || [];
-        if (conversations.length > 0) {
-            conversations.forEach(conv => {
-                addMessage(conv.user, true);
-                addMessage(conv.assistant, false);
-            });
-        }
-    }
-    
-    // 事件监听�?
-    assistantSend.addEventListener('click', handleUserMessage);
+    // 事件监听器
+    assistantSend.addEventListener('click', sendMessage);
     
     assistantInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            handleUserMessage();
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
         }
     });
-    
-    // 加载对话历史
-    loadConversations();
-    
-    // ==================== 7. 初始化完�?====================
-    console.log('简约多功能面板已初始化完成');
 });
-
