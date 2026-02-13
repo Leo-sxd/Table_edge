@@ -197,7 +197,7 @@ html, body {
 
 .weather-icon {
     font-size: 2.5rem;
-    color: #f39c12;
+    color: #8c00ff;
     margin-right: 15px;
 }
 
@@ -209,12 +209,12 @@ html, body {
 .temp {
     font-size: 1.8rem;
     font-weight: 600;
-    color: #2c3e50;
+    color:#8c00ff;
 }
 
 .weather-desc {
     font-size: 0.9rem;
-    color: #7f8c8d;
+    color: #8c00ff;
     margin-top: 2px;
 }
 
@@ -226,7 +226,7 @@ html, body {
 
 .district {
     font-size: 0.85rem;
-    color: #95a5a6;
+    color: #8c00ff;
     margin-top: 2px;
 }
 
