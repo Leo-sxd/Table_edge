@@ -147,7 +147,7 @@ html, body {
     border-radius: 15px;
     margin-bottom: 30px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    border-left: 5px solid #4a6fa5;
+    border-left: 5px solid #b6d1fa;
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
 }
@@ -166,13 +166,13 @@ html, body {
 .date-time h1 {
     font-size: 3.2rem;
     font-weight: 300;
-    color: #2c3e50;
+    color: #8c00ff;
     letter-spacing: 1px;
 }
 
 .date-time p {
     font-size: 1.2rem;
-    color: #7f8c8d;
+    color: #8c00ff;
     margin-top: 5px;
 }
 
@@ -181,7 +181,7 @@ html, body {
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
-    color: #4a6fa5;
+    color: #8c00ff;
     margin-top: 5px;
 }
 
@@ -260,7 +260,7 @@ html, body {
 }
 
 .jump-btn:hover {
-    background-color: rgba(74, 111, 165, 0.95);
+    background-color: rgb(132, 0, 255);
     transform: translateY(-3px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
@@ -333,7 +333,7 @@ html, body {
 }
 
 .add-btn, .map-btn, .send-btn, .submit-btn, .cancel-btn {
-    background-color: rgba(74, 111, 165, 0.85);
+    background-color: rgb(132, 0, 255);
     color: white;
     border: none;
     border-radius: 5px;
@@ -346,21 +346,21 @@ html, body {
 }
 
 .add-btn:hover, .map-btn:hover, .send-btn:hover, .submit-btn:hover {
-    background-color: rgba(58, 90, 138, 0.95);
+    background-color: rgb(132, 0, 255);
     transform: translateY(-2px);
 }
 
 .cancel-btn {
-    background-color: rgba(149, 165, 166, 0.85);
+    background-color: rgb(132, 0, 255);
 }
 
 .cancel-btn:hover {
-    background-color: rgba(127, 140, 141, 0.95);
+    background-color: rgb(132, 0, 255);
 }
 
 /* 待办事项区域 */
 .todo-section {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgb(132, 0, 255);
     border-radius: 15px;
     padding: 25px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -369,7 +369,7 @@ html, body {
 }
 
 .todo-section:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgb(132, 0, 255);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
