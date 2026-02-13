@@ -166,13 +166,13 @@ html, body {
 .date-time h1 {
     font-size: 3.2rem;
     font-weight: 300;
-    color: #8c00ff;
+    color: #ffffff;
     letter-spacing: 1px;
 }
 
 .date-time p {
     font-size: 1.2rem;
-    color: #8c00ff;
+    color: #ffffff;
     margin-top: 5px;
 }
 
@@ -181,7 +181,7 @@ html, body {
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
-    color: #8c00ff;
+    color: #ffffff;
     margin-top: 5px;
 }
 
@@ -197,7 +197,7 @@ html, body {
 
 .weather-icon {
     font-size: 2.5rem;
-    color: #8c00ff;
+    color: #ffffff;
     margin-right: 15px;
 }
 
@@ -209,24 +209,24 @@ html, body {
 .temp {
     font-size: 1.8rem;
     font-weight: 600;
-    color:#8c00ff;
+    color:#ff9900;
 }
 
 .weather-desc {
-    font-size: 0.9rem;
-    color: #8c00ff;
+    font-size: 1.1rem;
+    color: #ffffff;
     margin-top: 2px;
 }
 
 .location {
-    font-size: 1rem;
-    color: #8c00ff;
+    font-size: 1.3rem;
+    color: #ffffff;
     margin-top: 5px;
 }
 
 .district {
-    font-size: 0.85rem;
-    color: #8c00ff;
+    font-size: 1rem;
+    color: #ffffff;
     margin-top: 2px;
 }
 
@@ -237,7 +237,7 @@ html, body {
     align-items: center;
     justify-content: center;
     padding: 15px 20px;
-    background-color: rgba(74, 111, 165, 0.7);
+    background-color: rgb(132, 0, 255);
     color: white;
     border: none;
     border-radius: 0 10px 10px 0;
@@ -260,9 +260,9 @@ html, body {
 }
 
 .jump-btn:hover {
-    background-color: rgb(132, 0, 255);
+    background-color: rgb(116, 0, 224);
     transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 15px rgba(132, 0, 255, 0.5);
 }
 
 /* 主内容区域 */
@@ -318,18 +318,18 @@ html, body {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 2px solid rgba(74, 111, 165, 0.2);
+    border-bottom: 2px solid rgb(132, 0, 255);
 }
 
 .section-header h2 {
-    font-size: 1.5rem;
-    color: #2c3e50;
+    font-size: 1.6rem;
+    color: #ffffff;
     font-weight: 500;
 }
 
 .section-header h2 i {
     margin-right: 10px;
-    color: #4a6fa5;
+    color: #ffffff;
 }
 
 .add-btn, .map-btn, .send-btn, .submit-btn, .cancel-btn {
@@ -346,7 +346,7 @@ html, body {
 }
 
 .add-btn:hover, .map-btn:hover, .send-btn:hover, .submit-btn:hover {
-    background-color: rgb(132, 0, 255);
+    background-color: rgb(100, 0, 255);
     transform: translateY(-2px);
 }
 
@@ -355,12 +355,12 @@ html, body {
 }
 
 .cancel-btn:hover {
-    background-color: rgb(132, 0, 255);
+    background-color: rgb(100, 0, 255);
 }
 
 /* 待办事项区域 */
 .todo-section {
-    background-color: rgb(132, 0, 255);
+    background-color: rgba(255, 255, 255, 0.2);
     border-radius: 15px;
     padding: 25px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -369,7 +369,7 @@ html, body {
 }
 
 .todo-section:hover {
-    background-color: rgb(132, 0, 255);
+    background-color: rgba(255, 255, 255, 0.3);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -388,7 +388,7 @@ html, body {
     flex-direction: column;
     gap: 15px;
     padding: 15px;
-    background-color: rgba(248, 249, 250, 0.6);
+    background-color: rgba(221, 221, 221, 0.6);
     border-radius: 10px;
 }
 
@@ -404,7 +404,7 @@ html, body {
 
 #todo-input:focus {
     border-color: #4a6fa5;
-    background-color: rgba(255, 255, 255, 0.95);
+    background-color: rgba(132, 0, 255, 0.25);
 }
 
 .time-selection {
@@ -421,7 +421,7 @@ html, body {
 
 .time-input-group label {
     font-size: 0.9rem;
-    color: #4a6fa5;
+    color: #8c00ff;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -467,9 +467,9 @@ html, body {
 }
 
 .filter-btn.active {
-    background-color: rgba(74, 111, 165, 0.9);
+    background-color: rgba(132, 0, 255, 0.9);
     color: white;
-    border-color: rgba(74, 111, 165, 0.9);
+    border-color: rgba(255, 255, 255,0.9);
 }
 
 .filter-btn:hover:not(.active) {
@@ -489,25 +489,25 @@ html, body {
     margin-bottom: 10px;
     background-color: rgba(248, 249, 250, 0.6);
     border-radius: 8px;
-    border-left: 4px solid rgba(74, 111, 165, 0.8);
+    border-left: 4px solid rgba(255, 255, 255, 0.8);
     transition: all 0.3s ease;
     cursor: pointer;
     backdrop-filter: blur(5px);
 }
 
 .todo-item:hover {
-    background-color: rgba(237, 242, 247, 0.85);
+    background-color: rgba(255, 255, 255, 0.85);
     transform: translateX(5px);
 }
 
 .todo-item.urgent {
-    border-left-color: rgba(231, 76, 60, 0.9);
-    background-color: rgba(231, 76, 60, 0.1);
+    border-left-color: rgba(132, 0, 255, 0.9);
+    background-color: rgba(200, 142, 255, 0.2);
 }
 
 .todo-item.completed {
     opacity: 0.7;
-    border-left-color: rgba(149, 165, 166, 0.8);
+    border-left-color: rgba(0, 255, 76, 0.8);
 }
 
 .todo-content {
@@ -524,7 +524,7 @@ html, body {
 
 .todo-time {
     font-size: 0.85rem;
-    color: #7f8c8d;
+    color: #8c00ff;
 }
 
 .todo-deadline {
@@ -536,7 +536,7 @@ html, body {
     margin-right: 15px;
     margin-top: 5px;
     transform: scale(1.3);
-    accent-color: #4a6fa5;
+    accent-color: #8c00ff;
 }
 
 .delete-todo {
@@ -581,11 +581,11 @@ html, body {
     height: 40px;
     border-radius: 50%;
     padding: 0;
-    background-color: rgba(74, 111, 165, 0.7);
+    background-color: rgba(132, 0, 255, 0.7);
 }
 
 .map-btn:hover {
-    background-color: rgba(58, 90, 138, 0.9);
+    background-color: rgba(100, 0, 255, 0.9);
 }
 
 .map-container {
@@ -634,7 +634,7 @@ html, body {
 }
 
 #map-search-btn {
-    background-color: rgba(74, 111, 165, 0.8);
+    background-color: rgba(132, 0, 255, 0.8);
     color: white;
     border: none;
     padding: 0 20px;
@@ -647,7 +647,7 @@ html, body {
 }
 
 #map-search-btn:hover {
-    background-color: rgba(58, 90, 138, 0.95);
+    background-color: rgba(100, 0, 255, 0.95);
 }
 
 /* 智能助手区域 */
@@ -669,7 +669,7 @@ html, body {
     display: flex;
     align-items: center;
     font-size: 0.9rem;
-    color: #7f8c8d;
+    color: #8c00ff;
 }
 
 .status-dot {
@@ -681,7 +681,7 @@ html, body {
 }
 
 .status-dot.online {
-    background-color: #2ecc71;
+    background-color: #8c00ff;
     animation: pulse 2s infinite;
 }
 
@@ -724,13 +724,13 @@ html, body {
 }
 
 #deepseek-api-key:focus {
-    border-color: #4a6fa5;
+    border-color: #8c00ff;
     background-color: rgba(255, 255, 255, 0.95);
 }
 
 .small-btn {
     padding: 10px 20px;
-    background-color: rgba(74, 111, 165, 0.85);
+    background-color: rgba(132, 0, 255, 0.85);
     color: white;
     border: none;
     border-radius: 6px;
@@ -741,7 +741,7 @@ html, body {
 }
 
 .small-btn:hover {
-    background-color: rgba(58, 90, 138, 0.95);
+    background-color: rgba(100, 0, 255, 0.95);
 }
 
 .api-hint {
@@ -785,7 +785,7 @@ html, body {
 }
 
 #assistant-input:focus {
-    border-color: #4a6fa5;
+    border-color: #8c00ff;
     background-color: rgba(255, 255, 255, 0.95);
 }
 
@@ -793,11 +793,11 @@ html, body {
     border-radius: 8px;
     padding: 12px 25px;
     white-space: nowrap;
-    background-color: rgba(74, 111, 165, 0.85);
+    background-color: rgba(132, 0, 255, 0.85);
 }
 
 .send-btn:hover {
-    background-color: rgba(58, 90, 138, 0.95);
+    background-color: rgba(100, 0, 255, 0.95);
 }
 
 /* 消息样式 */
@@ -818,8 +818,8 @@ html, body {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background-color: rgba(74, 111, 165, 0.9);
-    color: white;
+    background-color: rgba(132, 0, 255, 0.9);
+    color: rgb(255, 255, 255);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -828,7 +828,7 @@ html, body {
 }
 
 .user-message .avatar {
-    background-color: rgba(46, 204, 113, 0.9);
+    background-color: rgba(132, 0, 255, 0.9);
     margin-right: 0;
     margin-left: 10px;
     order: 2;
@@ -838,12 +838,12 @@ html, body {
     max-width: 70%;
     padding: 12px 15px;
     border-radius: 15px;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(132, 0, 255, 0.8);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .user-message .content {
-    background-color: rgba(227, 242, 253, 0.85);
+    background-color: rgba(132, 0, 255, 0.85);
     border-top-right-radius: 5px;
 }
 
@@ -853,7 +853,7 @@ html, body {
 
 .message-time {
     font-size: 0.75rem;
-    color: #7f8c8d;
+    color: #ffffff;
     margin-top: 5px;
     text-align: right;
 }
