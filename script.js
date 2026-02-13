@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 延迟初始化地图，确保页面完全加载
     setTimeout(initMap, 500);
     
-    // ==================== 6. Deepseek AI 集成 ====================
+    // ==================== 6. DeepSeek AI 集成 ====================
     const assistantInput = document.getElementById('assistant-input');
     const assistantSend = document.getElementById('assistant-send');
     const assistantMessages = document.getElementById('assistant-messages');
@@ -927,7 +927,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (connected) {
             statusDot.classList.add('online');
             statusText.textContent = '在线';
-            statusText.style.color = '#2ecc71';
+            statusText.style.color = '#8c00ff';
         } else {
             statusDot.classList.remove('online');
             statusText.textContent = '离线';
@@ -971,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return messageDiv;
     }
     
-    // 调用Deepseek API
+    // 调用DeepSeek API
     async function callDeepseekAPI(userMessage, apiKey) {
         // 如果没有API密钥，使用模拟响应
         if (!apiKey) {
