@@ -1,10 +1,10 @@
 /**
- * 星星粒子效果 - 轻量级 Canvas 实现（优化版 + 拖尾效果）
+ * 星星粒子效果 - 轻量级 Canvas 实现（优化版 + 精确拖尾效果）
  * 特性：
  * - 2.4-6像素大小的星星形状（放大20%）
  * - 30%-70%透明度
  * - 随机漂浮动画
- * - 细长透明拖尾效果（增强版）
+ * - 精确控制拖尾长度：星星本体宽度的8-12倍
  * - 性能优化：requestAnimationFrame
  * - 移动端优化：解决初始加载边缘聚集问题
  */
@@ -19,12 +19,14 @@
         maxSize: 6,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
         maxOpacity: 0.7,          // 最大透明度（70%）
-        speedFactor: 0.5,         // 移动速度因子（增加以产生更明显拖尾）
+        speedFactor: 0.8,         // 移动速度因子（增加以产生足够长度的拖尾）
         rotationSpeed: 0.02,      // 旋转速度
         connectionDistance: 100,  // 连线距离（可选功能）
         color: '255, 255, 255',   // 白色粒子
-        trailOpacity: 0.4,        // 拖尾透明度（增加以更明显）
-        trailWidth: 2             // 拖尾基础宽度
+        trailOpacity: 0.35,       // 拖尾透明度
+        trailWidth: 1.5,          // 拖尾基础宽度
+        trailLengthMin: 8,        // 拖尾长度倍数（最小）
+        trailLengthMax: 12        // 拖尾长度倍数（最大）
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -54,12 +56,23 @@
             this.x = Math.random() * viewport.width;
             this.y = Math.random() * viewport.height;
 
+            // 星星大小（外半径）
             this.size = Math.random() * (CONFIG.maxSize - CONFIG.minSize) + CONFIG.minSize;
             this.opacity = Math.random() * (CONFIG.maxOpacity - CONFIG.minOpacity) + CONFIG.minOpacity;
 
-            // 增加速度使拖尾更明显
-            this.vx = (Math.random() - 0.5) * CONFIG.speedFactor;
-            this.vy = (Math.random() - 0.5) * CONFIG.speedFactor;
+            // 星星本体宽度（直径）= size * 2
+            const bodyWidth = this.size * 2;
+            
+            // 计算拖尾目标长度：本体宽度的8-12倍
+            const trailLengthMultiplier = Math.random() * 
+                (CONFIG.trailLengthMax - CONFIG.trailLengthMin) + CONFIG.trailLengthMin;
+            this.targetTrailLength = bodyWidth * trailLengthMultiplier;
+            
+            // 根据拖尾长度调整速度，确保拖尾效果自然
+            // 速度范围：0.3 - 1.2，大星星移动稍快以产生更长拖尾
+            const baseSpeed = 0.3 + (this.size / CONFIG.maxSize) * 0.9;
+            this.vx = (Math.random() - 0.5) * baseSpeed;
+            this.vy = (Math.random() - 0.5) * baseSpeed;
 
             this.angle = Math.random() * Math.PI * 2;
             this.rotationSpeed = (Math.random() - 0.5) * CONFIG.rotationSpeed;
@@ -67,9 +80,9 @@
             this.twinkleSpeed = Math.random() * 0.02 + 0.01;
             this.twinklePhase = Math.random() * Math.PI * 2;
 
-            // 拖尾相关属性 - 增加长度
-            this.trail = [];
-            this.maxTrailLength = Math.floor(Math.random() * 15 + 15); // 15-30个拖尾点
+            // 拖尾相关属性
+            this.trail = []; // 存储拖尾位置点
+            this.currentTrailLength = 0; // 当前拖尾长度（像素）
         }
 
         update(canvasWidth, canvasHeight) {
@@ -78,12 +91,17 @@
                 x: this.x,
                 y: this.y,
                 angle: this.angle,
-                opacity: this.opacity
+                opacity: this.opacity,
+                timestamp: Date.now()
             });
 
-            // 限制拖尾长度
-            if (this.trail.length > this.maxTrailLength) {
+            // 计算当前拖尾长度
+            this.currentTrailLength = this.calculateTrailLength();
+            
+            // 限制拖尾长度在目标范围内
+            while (this.currentTrailLength > this.targetTrailLength && this.trail.length > 2) {
                 this.trail.shift();
+                this.currentTrailLength = this.calculateTrailLength();
             }
 
             // 更新位置
@@ -93,24 +111,44 @@
             this.angle += this.rotationSpeed;
             this.twinklePhase += this.twinkleSpeed;
 
-            // 边界检查
+            // 边界检查 - 穿过边界时清除拖尾
             const margin = this.size * 2;
+            let crossedBoundary = false;
+            
             if (this.x < -margin) {
                 this.x = canvasWidth + margin;
-                this.trail = [];
+                crossedBoundary = true;
             }
             if (this.x > canvasWidth + margin) {
                 this.x = -margin;
-                this.trail = [];
+                crossedBoundary = true;
             }
             if (this.y < -margin) {
                 this.y = canvasHeight + margin;
-                this.trail = [];
+                crossedBoundary = true;
             }
             if (this.y > canvasHeight + margin) {
                 this.y = -margin;
-                this.trail = [];
+                crossedBoundary = true;
             }
+            
+            if (crossedBoundary) {
+                this.trail = [];
+                this.currentTrailLength = 0;
+            }
+        }
+
+        // 计算拖尾的实际像素长度
+        calculateTrailLength() {
+            if (this.trail.length < 2) return 0;
+            
+            let length = 0;
+            for (let i = 1; i < this.trail.length; i++) {
+                const dx = this.trail[i].x - this.trail[i-1].x;
+                const dy = this.trail[i].y - this.trail[i-1].y;
+                length += Math.sqrt(dx * dx + dy * dy);
+            }
+            return length;
         }
 
         draw(ctx) {
@@ -131,56 +169,94 @@
         drawTrail(ctx) {
             if (this.trail.length < 2) return;
 
-            // 绘制拖尾线条
+            const bodyWidth = this.size * 2;
+            const actualTrailLength = this.calculateTrailLength();
+            const lengthRatio = actualTrailLength / bodyWidth; // 拖尾长度与本体宽度的比例
+
+            // 绘制拖尾主体
             ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(this.trail[0].x, this.trail[0].y);
             
-            // 使用曲线连接拖尾点，使拖尾更流畅
-            for (let i = 1; i < this.trail.length; i++) {
-                const point = this.trail[i];
-                ctx.lineTo(point.x, point.y);
+            // 使用多条线段绘制拖尾，实现宽度渐变
+            for (let i = 0; i < this.trail.length - 1; i++) {
+                const currentPoint = this.trail[i];
+                const nextPoint = this.trail[i + 1];
+                
+                // 计算当前点在拖尾中的位置比例（0 = 末端，1 = 连接星星处）
+                const positionRatio = i / (this.trail.length - 1);
+                
+                // 宽度渐变：从细到粗
+                // 末端最细（0.3倍），连接处最粗（1.0倍）
+                const widthRatio = 0.3 + positionRatio * 0.7;
+                const lineWidth = CONFIG.trailWidth * widthRatio;
+                
+                // 透明度渐变：从透明到半透明再到透明
+                // 创建更自然的渐变效果
+                let alpha;
+                if (positionRatio < 0.2) {
+                    // 末端20%：从0渐变到0.3
+                    alpha = (positionRatio / 0.2) * 0.3;
+                } else if (positionRatio < 0.8) {
+                    // 中间60%：保持较高透明度
+                    alpha = 0.3 + (positionRatio - 0.2) / 0.6 * 0.4;
+                } else {
+                    // 靠近星星20%：逐渐减弱
+                    alpha = 0.7 - (positionRatio - 0.8) / 0.2 * 0.3;
+                }
+                alpha *= CONFIG.trailOpacity;
+
+                ctx.beginPath();
+                ctx.moveTo(currentPoint.x, currentPoint.y);
+                ctx.lineTo(nextPoint.x, nextPoint.y);
+                
+                ctx.strokeStyle = `rgba(${CONFIG.color}, ${alpha})`;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.stroke();
             }
 
-            // 创建拖尾渐变效果
-            const lastPoint = this.trail[this.trail.length - 1];
-            const firstPoint = this.trail[0];
-            const gradient = ctx.createLinearGradient(
-                firstPoint.x, firstPoint.y,
-                lastPoint.x, lastPoint.y
-            );
-
-            // 渐变：从透明到半透明
-            gradient.addColorStop(0, `rgba(${CONFIG.color}, 0)`);
-            gradient.addColorStop(0.3, `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.3})`);
-            gradient.addColorStop(0.7, `rgba(${CONFIG.color}, ${CONFIG.trailOpacity})`);
-            gradient.addColorStop(1, `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.5})`);
-
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = CONFIG.trailWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.stroke();
-
-            // 添加发光效果
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity})`;
+            // 添加整体发光效果
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.5})`;
+            
+            // 重新绘制一次以应用发光
+            ctx.beginPath();
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+            for (let i = 1; i < this.trail.length; i++) {
+                ctx.lineTo(this.trail[i].x, this.trail[i].y);
+            }
+            ctx.strokeStyle = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.3})`;
+            ctx.lineWidth = CONFIG.trailWidth * 0.5;
             ctx.stroke();
 
             ctx.restore();
 
-            // 绘制拖尾末端的淡出点
-            if (this.trail.length > 5) {
+            // 绘制拖尾末端的淡出光点
+            if (this.trail.length > 3) {
                 const endPoint = this.trail[0];
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(endPoint.x, endPoint.y, this.size * 0.3, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.3})`;
-                ctx.shadowBlur = 4;
-                ctx.shadowColor = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.5})`;
+                ctx.arc(endPoint.x, endPoint.y, this.size * 0.25, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.4})`;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.6})`;
                 ctx.fill();
                 ctx.restore();
             }
+
+            // 调试用：绘制拖尾长度指示（可选，开发时使用）
+            // this.drawDebugInfo(ctx, actualTrailLength, bodyWidth);
+        }
+
+        drawDebugInfo(ctx, trailLength, bodyWidth) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.font = '10px Arial';
+            ctx.fillText(
+                `${(trailLength/bodyWidth).toFixed(1)}x`, 
+                this.x + this.size + 5, 
+                this.y
+            );
+            ctx.restore();
         }
 
         drawStar(ctx, cx, cy, size, opacity) {
@@ -273,7 +349,7 @@
                     this.setCanvasSize(viewport.width, viewport.height);
                     this.createParticles();
                     this.start();
-                    console.log('✨ 粒子效果已启动（带增强拖尾效果）');
+                    console.log('✨ 粒子效果已启动（精确拖尾长度控制：本体宽度8-12倍）');
                 } else {
                     setTimeout(checkStability, 100);
                 }
@@ -302,6 +378,7 @@
                 particle.canvasWidth = viewport.width;
                 particle.canvasHeight = viewport.height;
                 particle.trail = [];
+                particle.currentTrailLength = 0;
             });
         }
 
@@ -358,8 +435,9 @@
         setSpeed(factor) {
             CONFIG.speedFactor = factor;
             this.particles.forEach(p => {
-                p.vx = (Math.random() - 0.5) * factor;
-                p.vy = (Math.random() - 0.5) * factor;
+                const baseSpeed = 0.3 + (p.size / CONFIG.maxSize) * 0.9;
+                p.vx = (Math.random() - 0.5) * baseSpeed;
+                p.vy = (Math.random() - 0.5) * baseSpeed;
             });
         }
     }
