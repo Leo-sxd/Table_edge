@@ -962,3 +962,74 @@ html, body {
 
 
 
+
+
+/* 移动端/电脑版视图切换按钮样式 */
+.view-switch-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: none; /* 默认隐藏，移动端显示 */
+}
+
+.view-switch-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background-color: rgba(74, 111, 165, 0.9);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.view-switch-btn:hover {
+    background-color: rgba(58, 90, 138, 0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.view-switch-btn i {
+    font-size: 1rem;
+}
+
+/* 移动端显示切换按钮 */
+@media (max-width: 768px) {
+    .view-switch-container {
+        display: block;
+    }
+    
+    /* 电脑版模式下的样式 */
+    body.desktop-mode {
+        min-width: 1200px;
+        overflow-x: auto;
+    }
+    
+    body.desktop-mode .container {
+        min-width: 1200px;
+    }
+    
+    body.desktop-mode .main-content {
+        grid-template-columns: 1fr 1.5fr 1fr !important;
+    }
+    
+    body.desktop-mode .header {
+        flex-direction: row;
+    }
+    
+    body.desktop-mode .header-right {
+        flex-direction: row;
+    }
+    
+    body.desktop-mode .map-section {
+        grid-column: auto;
+        order: 0;
+    }
+}

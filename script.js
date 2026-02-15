@@ -1,6 +1,77 @@
 ﻿// script.js - 修复高德地图API加载问题
 
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ==================== 移动端/电脑版视图切换功能 ====================
+    const viewSwitchContainer = document.getElementById('view-switch-container');
+    const viewSwitchBtn = document.getElementById('view-switch-btn');
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    
+    // 检测是否为移动设备
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+               || window.innerWidth <= 768;
+    }
+    
+    // 切换到电脑版视图
+    function switchToDesktop() {
+        document.body.classList.add('desktop-mode');
+        // 修改viewport为桌面版
+        viewportMeta.setAttribute('content', 'width=1200, initial-scale=0.3, maximum-scale=2.0, user-scalable=yes');
+        
+        // 更新按钮文本
+        viewSwitchBtn.innerHTML = '<i class="fas fa-mobile-alt"></i><span>手机版</span>';
+        viewSwitchBtn.title = '切换回手机版';
+        
+        // 保存用户选择
+        localStorage.setItem('viewMode', 'desktop');
+        
+        // 重新加载地图以适应新尺寸
+        if (window.map) {
+            setTimeout(() => {
+                window.map.resize();
+            }, 300);
+        }
+    }
+    
+    // 切换到手机版视图
+    function switchToMobile() {
+        document.body.classList.remove('desktop-mode');
+        // 恢复移动端viewport
+        viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+        
+        // 更新按钮文本
+        viewSwitchBtn.innerHTML = '<i class="fas fa-desktop"></i><span>电脑版</span>';
+        viewSwitchBtn.title = '切换至电脑版';
+        
+        // 保存用户选择
+        localStorage.setItem('viewMode', 'mobile');
+        
+        // 重新加载地图以适应新尺寸
+        if (window.map) {
+            setTimeout(() => {
+                window.map.resize();
+            }, 300);
+        }
+    }
+    
+    // 切换按钮点击事件
+    if (viewSwitchBtn) {
+        viewSwitchBtn.addEventListener('click', function() {
+            if (document.body.classList.contains('desktop-mode')) {
+                switchToMobile();
+            } else {
+                switchToDesktop();
+            }
+        });
+    }
+    
+    // 页面加载时检查用户之前的视图选择
+    const savedViewMode = localStorage.getItem('viewMode');
+    if (savedViewMode === 'desktop' && isMobileDevice()) {
+        switchToDesktop();
+    }
+    
     // ==================== 1. 时间和日期更新 ====================
     function updateDateTime() {
         const now = new Date();
