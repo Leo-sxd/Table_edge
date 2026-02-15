@@ -1,7 +1,7 @@
 /**
  * 星星粒子效果 - 轻量级 Canvas 实现
  * 特性：
- * - 2-5像素大小的星星形状
+ * - 2.4-6像素大小的星星形状（放大20%）
  * - 30%-70%透明度
  * - 随机漂浮动画
  * - 性能优化：requestAnimationFrame
@@ -13,8 +13,8 @@
     // 粒子系统配置
     const CONFIG = {
         particleCount: 60,        // 粒子数量（适中，不影响性能）
-        minSize: 2,               // 最小粒子大小（像素）
-        maxSize: 5,               // 最大粒子大小（像素）
+        minSize: 2.4,             // 最小粒子大小（像素）- 放大20%
+        maxSize: 6,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
         maxOpacity: 0.7,          // 最大透明度（70%）
         speedFactor: 0.3,         // 移动速度因子
@@ -35,7 +35,7 @@
             this.x = Math.random() * this.canvas.width;
             this.y = Math.random() * this.canvas.height;
 
-            // 随机大小（2-5像素）
+            // 随机大小（2.4-6像素）- 放大20%
             this.size = Math.random() * (CONFIG.maxSize - CONFIG.minSize) + CONFIG.minSize;
 
             // 随机透明度（0.3-0.7）
@@ -159,7 +159,7 @@
             // 开始动画
             this.start();
 
-            console.log('✨ 粒子效果已启动');
+            console.log('✨ 粒子效果已启动（星星尺寸已放大20%）');
         }
 
         createParticles() {
