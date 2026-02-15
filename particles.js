@@ -14,12 +14,15 @@
 
     // 粒子系统配置
     const CONFIG = {
-        particleCount: 80,        // 粒子数量（适中，不影响性能）
-        minSize: 4,             // 最小粒子大小（像素）- 放大20%
-        maxSize: 8,               // 最大粒子大小（像素）- 放大20%
+        particleCount: 60,        // 粒子数量（适中，不影响性能）
+        minSize: 2.4,             // 最小粒子大小（像素）- 放大20%
+        maxSize: 6,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
         maxOpacity: 0.7,          // 最大透明度（70%）
-        speedFactor: 0.8,         // 移动速度因子（增加以产生足够长度的拖尾）
+        // 速度配置：2cm/s ≈ 75.6像素/秒（基于96 PPI标准屏幕）
+        // 60fps下：75.6 / 60 ≈ 1.26 像素/帧
+        baseSpeed: 1.3,           // 基础速度：2cm/s对应的像素速度
+        speedVariation: 0.3,      // 速度变化范围（±30%）
         rotationSpeed: 0.02,      // 旋转速度
         connectionDistance: 100,  // 连线距离（可选功能）
         color: '255, 255, 255',   // 白色粒子
@@ -68,11 +71,15 @@
                 (CONFIG.trailLengthMax - CONFIG.trailLengthMin) + CONFIG.trailLengthMin;
             this.targetTrailLength = bodyWidth * trailLengthMultiplier;
             
-            // 根据拖尾长度调整速度，确保拖尾效果自然
-            // 速度范围：0.3 - 1.2，大星星移动稍快以产生更长拖尾
-            const baseSpeed = 0.3 + (this.size / CONFIG.maxSize) * 0.9;
-            this.vx = (Math.random() - 0.5) * baseSpeed;
-            this.vy = (Math.random() - 0.5) * baseSpeed;
+            // 设置移动速度：约2cm/s（75.6像素/秒，60fps下约1.3像素/帧）
+            // 添加±30%的随机变化，使运动更自然
+            const speedVariation = 1 + (Math.random() - 0.5) * CONFIG.speedVariation;
+            const finalSpeed = CONFIG.baseSpeed * speedVariation;
+            
+            // 随机方向，保持恒定速度
+            const angle = Math.random() * Math.PI * 2;
+            this.vx = Math.cos(angle) * finalSpeed;
+            this.vy = Math.sin(angle) * finalSpeed;
 
             this.angle = Math.random() * Math.PI * 2;
             this.rotationSpeed = (Math.random() - 0.5) * CONFIG.rotationSpeed;
@@ -433,11 +440,14 @@
         }
 
         setSpeed(factor) {
-            CONFIG.speedFactor = factor;
+            // factor: 相对于2cm/s的倍数（1.0 = 2cm/s）
+            CONFIG.baseSpeed = 1.3 * factor;
             this.particles.forEach(p => {
-                const baseSpeed = 0.3 + (p.size / CONFIG.maxSize) * 0.9;
-                p.vx = (Math.random() - 0.5) * baseSpeed;
-                p.vy = (Math.random() - 0.5) * baseSpeed;
+                const speedVariation = 1 + (Math.random() - 0.5) * CONFIG.speedVariation;
+                const finalSpeed = CONFIG.baseSpeed * speedVariation;
+                const angle = Math.random() * Math.PI * 2;
+                p.vx = Math.cos(angle) * finalSpeed;
+                p.vy = Math.sin(angle) * finalSpeed;
             });
         }
     }
