@@ -13,8 +13,8 @@
     // 粒子系统配置
     const CONFIG = {
         particleCount: 60,        // 粒子数量（适中，不影响性能）
-        minSize: 2.4,             // 最小粒子大小（像素）- 放大20%
-        maxSize: 6,               // 最大粒子大小（像素）- 放大20%
+        minSize: 4,             // 最小粒子大小（像素）- 放大20%
+        maxSize: 8,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
         maxOpacity: 0.7,          // 最大透明度（70%）
         speedFactor: 0.3,         // 移动速度因子
