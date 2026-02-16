@@ -1445,4 +1445,207 @@ function setBackground(bg) {
         }
     });
 
+function initAssistant() {
+    const assistantInput = document.getElementById('assistant-input');
+    const assistantSend = document.getElementById('assistant-send');
+    const assistantMessages = document.getElementById('assistant-messages');
+    const saveApiKeyBtn = document.getElementById('save-api-key');
+    const apiKeyInput = document.getElementById('deepseek-api-key');
+    
+    // 加载保存的API密钥
+    const savedApiKey = localStorage.getItem('deepseekApiKey');
+    if (savedApiKey) {
+        apiKeyInput.value = savedApiKey;
+        updateStatus('在线', true);
+    }
+    
+    // 保存API密钥
+    saveApiKeyBtn.addEventListener('click', () => {
+        const apiKey = apiKeyInput.value.trim();
+        if (apiKey) {
+            localStorage.setItem('deepseekApiKey', apiKey);
+            updateStatus('在线', true);
+            alert('API密钥已保存');
+        }
+    });
+    
+    // 更新状态显示
+    function updateStatus(text, isOnline) {
+        const statusDot = document.getElementById('assistant-status-dot');
+        const statusText = document.getElementById('assistant-status-text');
+        
+        if (statusDot && statusText) {
+            statusDot.className = 'status-dot' + (isOnline ? ' online' : '');
+            statusText.textContent = text;
+        }
+    }
+    
+    // 添加消息到聊天区域
+    function addMessage(content, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+        messageDiv.innerHTML = `
+            <div class="avatar">
+                <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
+            </div>
+            <div class="content">
+                <p>${content}</p>
+                <div class="message-time">${new Date().toLocaleTimeString('zh-CN')}</div>
+            </div>
+        `;
+        assistantMessages.appendChild(messageDiv);
+        assistantMessages.scrollTop = assistantMessages.scrollHeight;
+        return messageDiv;
+    }
+    
+    // 调用Deepseek API
+    async function callDeepseekAPI(userMessage, apiKey) {
+        try {
+            const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: '你是一个智能助手，帮助用户解答问题。'
+                        },
+                        {
+                            role: 'user',
+                            content: userMessage
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 500
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error('API调用失败:', error);
+            return `抱歉，API调用失败：${error.message}。请检查API密钥是否正确。`;
+        }
+    }
+    
+    // 发送消息
+    async function sendMessage() {
+        const message = assistantInput.value.trim();
+        if (!message) return;
+        
+        // 添加用户消息
+        addMessage(message, true);
+        assistantInput.value = '';
+        
+        // 获取API密钥
+        const apiKey = localStorage.getItem('deepseekApiKey') || '';
+        
+        if (!apiKey) {
+            addMessage('请先输入并保存Deepseek API密钥。');
+            return;
+        }
+        
+        // 显示正在输入
+        const typingIndicator = addMessage('正在输入...');
+        
+        try {
+            // 调用API
+            const response = await callDeepseekAPI(message, apiKey);
+            
+            // 移除正在输入指示器
+            typingIndicator.remove();
+            
+            // 添加助手回复
+            addMessage(response);
+        } catch (error) {
+            console.error('发送消息失败:', error);
+            typingIndicator.remove();
+            addMessage('抱歉，发送消息失败，请稍后重试。');
+        }
+    }
+    
+    // 事件监听器
+    assistantSend.addEventListener('click', sendMessage);
+    
+    assistantInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+}
 
+function initViewSwitch() {
+    const viewSwitchBtn = document.getElementById('view-switch-btn');
+    const viewSwitchContainer = document.getElementById('view-switch-container');
+    
+    if (viewSwitchBtn) {
+        viewSwitchBtn.addEventListener('click', () => {
+            document.body.classList.toggle('desktop-mode');
+            const isDesktop = document.body.classList.contains('desktop-mode');
+            viewSwitchBtn.innerHTML = isDesktop ? 
+                '<i class="fas fa-mobile-alt"></i><span>手机版</span>' : 
+                '<i class="fas fa-desktop"></i><span>电脑版</span>';
+        });
+    }
+}
+
+function initWeatherAndLocation() {
+    // 获取位置信息
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                // 更新位置显示
+                updateLocationInfo(lat, lng);
+                
+                // 获取天气信息
+                getWeatherInfo(lat, lng);
+            },
+            (error) => {
+                console.error('定位失败:', error);
+                document.getElementById('location-text').textContent = '定位失败';
+                document.getElementById('city-name').textContent = '定位失败';
+                
+                // 使用默认位置（北京）获取天气
+                getWeatherInfo(39.9042, 116.4074);
+            }
+        );
+    } else {
+        document.getElementById('location-text').textContent = '浏览器不支持定位';
+        getWeatherInfo(39.9042, 116.4074);
+    }
+}
+
+    function initPoemModule() {
+        // 获取DOM元素
+        poemDisplay = document.getElementById('poem-display');
+        poemText = document.getElementById('poem-text');
+        poemInputArea = document.getElementById('poem-input-area');
+        poemInput = document.getElementById('poem-input');
+        poemSubmit = document.getElementById('poem-submit');
+        poemCancel = document.getElementById('poem-cancel');
+
+        if (!poemDisplay || !poemText) {
+            console.log('诗句模块元素未找到，跳过初始化');
+            return;
+        }
+
+        // 加载保存的诗句
+        loadPoem();
+
+        // 绑定事件
+        bindEvents();
+
+        console.log('诗句模块初始化完成');
+    }
