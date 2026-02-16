@@ -99,30 +99,32 @@
             // 使用线性随机确保速度分布均匀
             this.speed = Math.random() * (CONFIG.maxSpeed - CONFIG.minSpeed) + CONFIG.minSpeed;
             
-            // 随机选择从哪条边进入（0:上, 1:右, 2:下, 3:左）
-            const edge = Math.floor(Math.random() * 4);
+            // 随机选择从哪条边进入（0:上, 1:右上, 2:左上）
+            // 限制：仅允许从顶部和左右上2/3区域进入
+            // 禁止从底部和左右下1/3区域进入
+            const edge = Math.floor(Math.random() * 3);
+            
+            // 计算允许的最大Y坐标（距离顶部2/3高度）
+            const maxAllowedY = viewport.height * (2 / 3);
             
             // 计算进入角度（指向屏幕内）
             let entryAngle;
             switch(edge) {
-                case 0: // 从上边进入，向下移动
+                case 0: // 从顶部进入，向下移动
                     this.x = Math.random() * (viewport.width + 2 * CONFIG.spawnMargin) - CONFIG.spawnMargin;
                     this.y = -CONFIG.spawnMargin;
                     entryAngle = Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 3;
                     break;
-                case 1: // 从右边进入，向左移动
+                case 1: // 从右边上2/3区域进入，向左移动
                     this.x = viewport.width + CONFIG.spawnMargin;
-                    this.y = Math.random() * (viewport.height + 2 * CONFIG.spawnMargin) - CONFIG.spawnMargin;
+                    // Y坐标限制在上2/3区域（0到maxAllowedY）
+                    this.y = Math.random() * (maxAllowedY + CONFIG.spawnMargin) - CONFIG.spawnMargin;
                     entryAngle = Math.PI + (Math.random() - 0.5) * Math.PI / 3;
                     break;
-                case 2: // 从下边进入，向上移动
-                    this.x = Math.random() * (viewport.width + 2 * CONFIG.spawnMargin) - CONFIG.spawnMargin;
-                    this.y = viewport.height + CONFIG.spawnMargin;
-                    entryAngle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 3;
-                    break;
-                case 3: // 从左边进入，向右移动
+                case 2: // 从左边上2/3区域进入，向右移动
                     this.x = -CONFIG.spawnMargin;
-                    this.y = Math.random() * (viewport.height + 2 * CONFIG.spawnMargin) - CONFIG.spawnMargin;
+                    // Y坐标限制在上2/3区域（0到maxAllowedY）
+                    this.y = Math.random() * (maxAllowedY + CONFIG.spawnMargin) - CONFIG.spawnMargin;
                     entryAngle = (Math.random() - 0.5) * Math.PI / 3;
                     break;
             }
@@ -456,7 +458,7 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none;
-                z-index: 0;
+                z-index: 999999;
             `;
             
             document.body.insertBefore(this.canvas, document.body.firstChild);
