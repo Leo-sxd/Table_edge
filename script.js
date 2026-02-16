@@ -209,6 +209,7 @@
             ctx.restore();
         }
 
+        // 绘制拖尾 - 优化版，实现从头部到尾部的透明度渐变
         drawTrail(ctx) {
             if (this.trail.length < 2) return;
 
@@ -242,69 +243,64 @@
                 ctx.lineCap = 'round';
                 ctx.stroke();
             }
-
-            // 添加整体发光效果（主要在头部）
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.6})`;
             
-            // 重新绘制头部部分以应用发光
-            const headStart = Math.max(0, this.trail.length - 5);
+            // 在头部添加发光效果（连接星星处）
+            const headPoint = this.trail[this.trail.length - 1];
+            const headGradient = ctx.createRadialGradient(
+                headPoint.x, headPoint.y, 0,
+                headPoint.x, headPoint.y, this.size * 2
+            );
+            headGradient.addColorStop(0, `rgba(${CONFIG.color}, ${CONFIG.trailOpacity})`);
+            headGradient.addColorStop(1, `rgba(${CONFIG.color}, 0)`);
+            
+            ctx.fillStyle = headGradient;
             ctx.beginPath();
-            ctx.moveTo(this.trail[headStart].x, this.trail[headStart].y);
-            for (let i = headStart + 1; i < this.trail.length; i++) {
-                ctx.lineTo(this.trail[i].x, this.trail[i].y);
-            }
-            ctx.strokeStyle = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.4})`;
-            ctx.lineWidth = CONFIG.trailWidth * 0.8;
-            ctx.stroke();
-
+            ctx.arc(headPoint.x, headPoint.y, this.size * 2, 0, Math.PI * 2);
+            ctx.fill();
+            
             ctx.restore();
-
-            // 绘制拖尾末端的淡出光点
-            if (this.trail.length > 3) {
-                const endPoint = this.trail[0];
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(endPoint.x, endPoint.y, this.size * 0.2, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.2})`;
-                ctx.shadowBlur = 4;
-                ctx.shadowColor = `rgba(${CONFIG.color}, ${CONFIG.trailOpacity * 0.3})`;
-                ctx.fill();
-                ctx.restore();
-            }
         }
 
-        drawStar(ctx, cx, cy, size, opacity) {
-            const spikes = 4;
-            const outerRadius = size;
-            const innerRadius = size * 0.4;
+        // 绘制五角星
+        drawStar(ctx, cx, cy, outerRadius, opacity) {
+            const innerRadius = outerRadius * 0.4; // 内半径为外半径的40%
+            const spikes = 5;
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
 
             ctx.beginPath();
-            ctx.fillStyle = `rgba(${CONFIG.color}, ${opacity})`;
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
 
-            for (let i = 0; i < spikes * 2; i++) {
-                const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const angle = (i * Math.PI) / spikes;
-                const x = cx + Math.cos(angle) * radius;
-                const y = cy + Math.sin(angle) * radius;
-
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
             }
-
+            ctx.lineTo(cx, cy - outerRadius);
             ctx.closePath();
+            
+            ctx.fillStyle = `rgba(${CONFIG.color}, ${opacity})`;
             ctx.fill();
-
-            // 添加发光效果
-            ctx.shadowBlur = size * 2;
-            ctx.shadowColor = `rgba(${CONFIG.color}, ${opacity * 0.5})`;
+            
+            // 添加星星发光效果
+            const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerRadius * 2);
+            gradient.addColorStop(0, `rgba(${CONFIG.color}, ${opacity * 0.5})`);
+            gradient.addColorStop(1, `rgba(${CONFIG.color}, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerRadius * 2, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 
-    // ==================== 静态闪烁星星类（保持不变）====================
+    // ==================== 静态闪烁星星类 ====================
     class StaticStar {
         constructor(canvasWidth, canvasHeight) {
             this.canvasWidth = canvasWidth;
@@ -313,114 +309,52 @@
         }
 
         reset() {
-            const viewport = getViewportSize();
+            // 在页面80%高度范围内随机位置
+            this.x = Math.random() * this.canvasWidth;
+            this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
             
-            this.x = Math.random() * viewport.width;
-            const maxHeight = viewport.height * CONFIG.staticStarHeightPercent;
-            this.y = Math.random() * maxHeight;
-
-            this.size = Math.random() * 
-                (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + 
-                CONFIG.staticStarMinSize;
-
-            this.baseOpacity = Math.random() * 
-                (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + 
-                CONFIG.staticStarMinOpacity;
-
-            this.twinkleSpeed = Math.random() * 
-                (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + 
-                CONFIG.staticStarTwinkleMin;
+            this.size = Math.random() * (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + CONFIG.staticStarMinSize;
+            this.baseOpacity = Math.random() * (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + CONFIG.staticStarMinOpacity;
+            
+            this.twinkleSpeed = Math.random() * (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + CONFIG.staticStarTwinkleMin;
             this.twinklePhase = Math.random() * Math.PI * 2;
-            
-            this.angle = Math.random() * Math.PI * 2;
-            this.rotationSpeed = (Math.random() - 0.5) * 0.005;
-
-            this.lifeTime = 0;
-            this.maxLifeTime = Math.random() * 300 + 200;
-            this.fadeState = 'alive';
-            this.fadeProgress = 0;
         }
 
         update() {
             this.twinklePhase += this.twinkleSpeed;
-            this.angle += this.rotationSpeed;
-
-            this.lifeTime++;
-            
-            if (this.fadeState === 'alive' && this.lifeTime > this.maxLifeTime) {
-                this.fadeState = 'fading';
-                this.fadeProgress = 0;
-            } else if (this.fadeState === 'fading') {
-                this.fadeProgress += 0.02;
-                if (this.fadeProgress >= 1) {
-                    this.fadeState = 'respawning';
-                    this.fadeProgress = 0;
-                    const viewport = getViewportSize();
-                    this.x = Math.random() * viewport.width;
-                    const maxHeight = viewport.height * CONFIG.staticStarHeightPercent;
-                    this.y = Math.random() * maxHeight;
-                }
-            } else if (this.fadeState === 'respawning') {
-                this.fadeProgress += 0.02;
-                if (this.fadeProgress >= 1) {
-                    this.fadeState = 'alive';
-                    this.lifeTime = 0;
-                    this.maxLifeTime = Math.random() * 300 + 200;
-                }
-            }
         }
 
         draw(ctx) {
             const twinkle = Math.sin(this.twinklePhase) * 0.3;
-            let currentOpacity = this.baseOpacity + twinkle;
-            
-            if (this.fadeState === 'fading') {
-                currentOpacity *= (1 - this.fadeProgress);
-            } else if (this.fadeState === 'respawning') {
-                currentOpacity *= this.fadeProgress;
-            }
-            
-            currentOpacity = Math.max(0, Math.min(1, currentOpacity));
-
-            if (currentOpacity <= 0.01) return;
+            const currentOpacity = Math.max(0.05, Math.min(1, this.baseOpacity + twinkle));
 
             ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle);
-            this.drawStar(ctx, 0, 0, this.size, currentOpacity);
-            ctx.restore();
-        }
-
-        drawStar(ctx, cx, cy, size, opacity) {
-            const spikes = 4;
-            const outerRadius = size;
-            const innerRadius = size * 0.4;
-
+            
+            // 绘制静态星星（简单的圆形带发光）
+            const gradient = ctx.createRadialGradient(
+                this.x, this.y, 0,
+                this.x, this.y, this.size * 3
+            );
+            gradient.addColorStop(0, `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`);
+            gradient.addColorStop(0.3, `rgba(${CONFIG.staticStarColor}, ${currentOpacity * 0.5})`);
+            gradient.addColorStop(1, `rgba(${CONFIG.staticStarColor}, 0)`);
+            
+            ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${opacity})`;
-
-            for (let i = 0; i < spikes * 2; i++) {
-                const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const angle = (i * Math.PI) / spikes;
-                const x = cx + Math.cos(angle) * radius;
-                const y = cy + Math.sin(angle) * radius;
-
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-
-            ctx.closePath();
+            ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
             ctx.fill();
-
-            ctx.shadowBlur = size * 1.5;
-            ctx.shadowColor = `rgba(${CONFIG.staticStarColor}, ${opacity * 0.6})`;
+            
+            // 绘制星星核心
+            ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
         }
     }
 
-    // ==================== 粒子系统管理器（增强版）====================
+    // ==================== 粒子系统管理器 ====================
     class ParticleSystem {
         constructor() {
             this.canvas = null;
@@ -428,18 +362,31 @@
             this.particles = [];
             this.staticStars = [];
             this.animationId = null;
-            this.isActive = false;
-            this.isInitialized = false;
-            this.resizeTimeout = null;
+            this.isActive = true;
+            
+            this.init();
         }
 
         init() {
-            if (this.isInitialized) return;
+            this.createCanvas();
+            this.createParticles();
+            this.createStaticStars();
+            this.bindEvents();
+            this.animate();
+            
+            console.log('粒子系统初始化完成');
+        }
 
+        createCanvas() {
             this.canvas = document.createElement('canvas');
             this.canvas.id = 'particles-canvas';
             this.ctx = this.canvas.getContext('2d');
-
+            
+            const viewport = getViewportSize();
+            this.canvas.width = viewport.width;
+            this.canvas.height = viewport.height;
+            
+            // 设置Canvas样式
             this.canvas.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -447,84 +394,16 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none;
-                z-index: 9999;
+                z-index: 0;
             `;
-
+            
             document.body.insertBefore(this.canvas, document.body.firstChild);
-            this.waitForStableViewport();
-
-            window.addEventListener('resize', () => this.handleResize());
-            window.addEventListener('orientationchange', () => {
-                setTimeout(() => this.handleResize(), 300);
-            });
-
-            this.isInitialized = true;
-        }
-
-        waitForStableViewport() {
-            let stableCount = 0;
-            let lastWidth = 0;
-            let lastHeight = 0;
-            
-            const checkStability = () => {
-                const viewport = getViewportSize();
-                
-                if (viewport.width === lastWidth && viewport.height === lastHeight) {
-                    stableCount++;
-                } else {
-                    stableCount = 0;
-                    lastWidth = viewport.width;
-                    lastHeight = viewport.height;
-                }
-                
-                if (stableCount >= 3) {
-                    this.setCanvasSize(viewport.width, viewport.height);
-                    this.createParticles();
-                    this.createStaticStars();
-                    this.start();
-                    console.log('✨ 粒子效果已启动（增强版流星 + 静态闪烁星星）');
-                } else {
-                    setTimeout(checkStability, 100);
-                }
-            };
-            
-            checkStability();
-        }
-
-        handleResize() {
-            if (this.resizeTimeout) {
-                clearTimeout(this.resizeTimeout);
-            }
-            
-            this.resizeTimeout = setTimeout(() => {
-                const viewport = getViewportSize();
-                this.setCanvasSize(viewport.width, viewport.height);
-                // 窗口大小改变时，让所有流星重新生成以适应新边界
-                this.createParticles();
-                this.redistributeStaticStars();
-            }, 250);
-        }
-
-        redistributeStaticStars() {
-            const viewport = getViewportSize();
-            this.staticStars.forEach(star => {
-                star.x = (star.x / star.canvasWidth) * viewport.width;
-                const maxHeight = viewport.height * CONFIG.staticStarHeightPercent;
-                const currentMaxHeight = star.canvasHeight * CONFIG.staticStarHeightPercent;
-                star.y = (star.y / currentMaxHeight) * maxHeight;
-                star.canvasWidth = viewport.width;
-                star.canvasHeight = viewport.height;
-            });
-        }
-
-        setCanvasSize(width, height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
         }
 
         createParticles() {
             const viewport = getViewportSize();
             this.particles = [];
+            
             for (let i = 0; i < CONFIG.particleCount; i++) {
                 this.particles.push(new Particle(viewport.width, viewport.height));
             }
@@ -533,44 +412,93 @@
         createStaticStars() {
             const viewport = getViewportSize();
             this.staticStars = [];
+            
             for (let i = 0; i < CONFIG.staticStarCount; i++) {
                 this.staticStars.push(new StaticStar(viewport.width, viewport.height));
             }
         }
 
-        start() {
-            if (this.isActive) return;
-            this.isActive = true;
-            this.animate();
+        bindEvents() {
+            // 窗口大小改变时重新调整
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    this.handleResize();
+                }, 250);
+            });
+
+            // 页面可见性改变时暂停/恢复动画
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    this.pause();
+                } else {
+                    this.resume();
+                }
+            });
+
+            // 移动端方向改变
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => this.handleResize(), 100);
+            });
         }
 
-        stop() {
-            this.isActive = false;
-            if (this.animationId) {
-                cancelAnimationFrame(this.animationId);
-            }
+        handleResize() {
+            const viewport = getViewportSize();
+            this.canvas.width = viewport.width;
+            this.canvas.height = viewport.height;
+            
+            // 重新生成静态星星以适应新尺寸
+            this.createStaticStars();
+            
+            // 移动流星会继续飞行并在飞出屏幕后重新生成
         }
 
         animate() {
             if (!this.isActive) return;
 
+            const viewport = getViewportSize();
+            
+            // 清空画布
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-            // 先绘制静态闪烁星星（作为背景层）
+            
+            // 先绘制静态星星（在最底层）
             this.staticStars.forEach(star => {
                 star.update();
                 star.draw(this.ctx);
             });
-
-            // 再绘制移动流星（作为前景层）
+            
+            // 再绘制移动流星
             this.particles.forEach(particle => {
-                particle.update(this.canvas.width, this.canvas.height);
+                particle.update(viewport.width, viewport.height);
                 particle.draw(this.ctx);
             });
 
             this.animationId = requestAnimationFrame(() => this.animate());
         }
 
+        pause() {
+            this.isActive = false;
+            if (this.animationId) {
+                cancelAnimationFrame(this.animationId);
+            }
+        }
+
+        resume() {
+            if (!this.isActive) {
+                this.isActive = true;
+                this.animate();
+            }
+        }
+
+        destroy() {
+            this.pause();
+            if (this.canvas && this.canvas.parentNode) {
+                this.canvas.parentNode.removeChild(this.canvas);
+            }
+        }
+
+        // 公共API
         setParticleCount(count) {
             CONFIG.particleCount = count;
             this.createParticles();
@@ -602,669 +530,180 @@
             console.log('粒子效果已存在');
             return;
         }
-
-        const system = new ParticleSystem();
-        system.init();
-        window.particleSystem = system;
+        
+        // 延迟初始化，确保DOM完全加载
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                new ParticleSystem();
+            });
+        } else {
+            new ParticleSystem();
+        }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initParticles);
-    } else {
-        initParticles();
-    }
+    // 自动初始化
+    initParticles();
 
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = { ParticleSystem, Particle, StaticStar, CONFIG };
-    }
+    // 暴露全局API
+    window.ParticleSystem = ParticleSystem;
+    window.initParticles = initParticles;
+
 })();
-
 
 
 /* ========== script.js ========== */
 
-﻿// script.js - 修复高德地图API加载问题
-
+// 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', function() {
+    // 更新时间
+    updateTime();
+    setInterval(updateTime, 1000);
     
-    // ==================== 移动端/电脑版视图切换功能 ====================
-    const viewSwitchContainer = document.getElementById('view-switch-container');
-    const viewSwitchBtn = document.getElementById('view-switch-btn');
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    // 更新最后更新时间
+    document.getElementById('last-update-time').textContent = new Date().toLocaleString('zh-CN');
     
-    // 检测是否为移动设备
-    function isMobileDevice() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-               || window.innerWidth <= 768;
-    }
+    // 初始化背景选择器
+    initBackgroundSelector();
     
-    // 切换到电脑版视图
-    function switchToDesktop() {
-        document.body.classList.add('desktop-mode');
-        // 修改viewport为桌面版
-        viewportMeta.setAttribute('content', 'width=1200, initial-scale=0.3, maximum-scale=2.0, user-scalable=yes');
-        
-        // 更新按钮文本
-        viewSwitchBtn.innerHTML = '<i class="fas fa-mobile-alt"></i><span>手机版</span>';
-        viewSwitchBtn.title = '切换回手机版';
-        
-        // 保存用户选择
-        localStorage.setItem('viewMode', 'desktop');
-        
-        // 重新加载地图以适应新尺寸
-        if (window.map) {
-            setTimeout(() => {
-                window.map.resize();
-            }, 300);
-        }
-    }
+    // 初始化待办事项
+    initTodoList();
     
-    // 切换到手机版视图
-    function switchToMobile() {
-        document.body.classList.remove('desktop-mode');
-        // 恢复移动端viewport
-        viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
-        
-        // 更新按钮文本
-        viewSwitchBtn.innerHTML = '<i class="fas fa-desktop"></i><span>电脑版</span>';
-        viewSwitchBtn.title = '切换至电脑版';
-        
-        // 保存用户选择
-        localStorage.setItem('viewMode', 'mobile');
-        
-        // 重新加载地图以适应新尺寸
-        if (window.map) {
-            setTimeout(() => {
-                window.map.resize();
-            }, 300);
-        }
-    }
+    // 初始化地图
+    initMap();
     
-    // 切换按钮点击事件
-    if (viewSwitchBtn) {
-        viewSwitchBtn.addEventListener('click', function() {
-            if (document.body.classList.contains('desktop-mode')) {
-                switchToMobile();
-            } else {
-                switchToDesktop();
-            }
-        });
-    }
+    // 初始化智能助手
+    initAssistant();
     
-    // 页面加载时检查用户之前的视图选择
-    const savedViewMode = localStorage.getItem('viewMode');
-    if (savedViewMode === 'desktop' && isMobileDevice()) {
-        switchToDesktop();
-    }
+    // 初始化视图切换
+    initViewSwitch();
+});
+
+// 更新时间函数
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
+    const dateString = now.toLocaleDateString('zh-CN', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        weekday: 'long' 
+    });
     
-    // ==================== 1. 时间和日期更新 ====================
-    function updateDateTime() {
-        const now = new Date();
-        
-        // 格式化时间
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        const timeString = `${hours}:${minutes}:${seconds}`;
-        document.getElementById('current-time').textContent = timeString;
-        
-        // 格式化日期
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-        const weekday = weekdays[now.getDay()];
-        const dateString = `${year}年${month}月${day}日 ${weekday}`;
-        document.getElementById('current-date').textContent = dateString;
-        
-        // 更新最后更新时间
-        document.getElementById('last-update-time').textContent = timeString;
-        
-        // 检查待办事项的时间
-        checkTodoDeadlines();
-    }
-    
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-    
-    // ==================== 2. 地理位置和天气信息 ====================
-    const locationText = document.getElementById('location-text');
-    const temperature = document.getElementById('temperature');
-    const weatherDesc = document.getElementById('weather-description');
-    const cityName = document.getElementById('city-name');
-    const districtName = document.getElementById('district-name');
-    const weatherIcon = document.getElementById('weather-icon');
-    
-    // 存储当前位置信息
-    let currentPosition = { lat: 39.9042, lon: 116.4074 };
-    
-    // 获取地理位置和天气
-    async function getGeolocationAndWeather() {
-        // 首先尝试从本地存储获取位置
-        const savedLocation = localStorage.getItem('userLocation');
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    currentPosition = { lat, lon };
-                    
-                    // 更新位置显示
-                    locationText.textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-                    cityName.textContent = '位置获取中';
-                    
-                    // 保存位置
-                    localStorage.setItem('userLocation', JSON.stringify({
-                        lat: lat,
-                        lon: lon,
-                        timestamp: Date.now()
-                    }));
-                    
-                    // 获取天气信息
-                    await getWeather(lat, lon);
-                    
-                    // 使用高德地图逆地理编码获取城市和区域信息
-                    await getLocationInfoFromAMap(lon, lat);
-                    
-                    // 初始化地图中心点
-                    if (window.map) {
-                        window.map.setCenter([lon, lat]);
-                        addUserMarker(lon, lat);
-                    }
-                },
-                (error) => {
-                    console.log('获取位置失败，使用默认位置:', error);
-                    // 使用默认位置（北京）
-                    const defaultLat = 39.9042;
-                    const defaultLon = 116.4074;
-                    currentPosition = { lat: defaultLat, lon: defaultLon };
-                    
-                    locationText.textContent = `纬度: ${defaultLat.toFixed(2)}, 经度: ${defaultLon.toFixed(2)} (默认)`;
-                    getWeather(defaultLat, defaultLon);
-                    
-                    // 使用默认位置获取城市信息
-                    getLocationInfoFromAMap(defaultLon, defaultLat);
-                    
-                    if (window.map) {
-                        window.map.setCenter([defaultLon, defaultLat]);
-                    }
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                }
-            );
-        } else {
-            // 浏览器不支持地理定位
-            locationText.textContent = '浏览器不支持地理定位';
-            getWeather(39.9042, 116.4074); // 默认北京
-            getLocationInfoFromAMap(116.4074, 39.9042);
-        }
-    }
-    
-    // 使用高德地图逆地理编码获取城市和区域信息
-    async function getLocationInfoFromAMap(lng, lat) {
-        try {
-            // 等待AMap加载完成
-            if (typeof AMap === 'undefined') {
-                console.log('AMap未加载，等待中...');
-                setTimeout(() => getLocationInfoFromAMap(lng, lat), 1000);
-                return;
-            }
-            
-            // 加载逆地理编码插件
-            AMap.plugin(['AMap.Geocoder'], function() {
-                const geocoder = new AMap.Geocoder({
-                    radius: 1000,
-                    extensions: 'all'
-                });
-                
-                geocoder.getAddress([lng, lat], function(status, result) {
-                    if (status === 'complete' && result.regeocode) {
-                        const addressComponent = result.regeocode.addressComponent;
-                        const province = addressComponent.province || '';
-                        const city = addressComponent.city || addressComponent.province || '未知城市';
-                        const district = addressComponent.district || '';
-                        const street = addressComponent.street || '';
-                        const streetNumber = addressComponent.streetNumber || '';
-                        
-                        // 更新城市名称
-                        cityName.textContent = city;
-                        
-                        // 更新区域名称
-                        if (district) {
-                            districtName.textContent = district;
-                            districtName.style.display = 'block';
-                        } else {
-                            districtName.style.display = 'none';
-                        }
-                        
-                        // 更新位置显示
-                        const locationDetail = `${province} ${city} ${district} ${street}${streetNumber}`.trim();
-                        locationText.textContent = locationDetail || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                        
-                        console.log('位置信息:', { province, city, district, street, streetNumber });
-                    } else {
-                        console.log('逆地理编码失败:', status, result);
-                        cityName.textContent = '位置获取失败';
-                        districtName.style.display = 'none';
-                    }
-                });
-            });
-        } catch (error) {
-            console.error('获取位置信息失败:', error);
-            cityName.textContent = '位置获取失败';
-            districtName.style.display = 'none';
-        }
-    }
-    
-    // 获取天气和城市信息
-    async function getWeather(lat, lon) {
-        try {
-            // 使用Open-Meteo作为天气API（免费无需密钥）
-            const openMeteoResponse = await fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
-            );
-            
-            if (!openMeteoResponse.ok) {
-                throw new Error('天气API请求失败');
-            }
-            
-            const openMeteoData = await openMeteoResponse.json();
-            if (openMeteoData.current) {
-                const temp = Math.round(openMeteoData.current.temperature_2m);
-                const weatherCode = openMeteoData.current.weather_code;
-                
-                temperature.textContent = `${temp}°C`;
-                const { description, icon } = getWeatherInfo(weatherCode);
-                weatherDesc.textContent = description;
-                weatherIcon.className = `fas ${icon}`;
-            }
-        } catch (error) {
-            console.error('获取天气信息失败:', error);
-            // 使用模拟数据作为最终后备
-            temperature.textContent = '25°C';
-            weatherDesc.textContent = '晴朗';
-            weatherIcon.className = 'fas fa-sun';
-        }
-    }
-    
-    // 根据天气代码获取描述和图标
-    function getWeatherInfo(code) {
-        const weatherMap = {
-            0: { description: '晴朗', icon: 'fa-sun' },
-            1: { description: '大部分晴朗', icon: 'fa-sun' },
-            2: { description: '部分多云', icon: 'fa-cloud-sun' },
-            3: { description: '多云', icon: 'fa-cloud' },
-            45: { description: '雾', icon: 'fa-smog' },
-            48: { description: '雾', icon: 'fa-smog' },
-            51: { description: '小雨', icon: 'fa-cloud-rain' },
-            53: { description: '中雨', icon: 'fa-cloud-rain' },
-            55: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
-            61: { description: '小雨', icon: 'fa-cloud-rain' },
-            63: { description: '中雨', icon: 'fa-cloud-rain' },
-            65: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
-            71: { description: '小雪', icon: 'fa-snowflake' },
-            73: { description: '中雪', icon: 'fa-snowflake' },
-            75: { description: '大雪', icon: 'fa-snowflake' },
-            80: { description: '阵雨', icon: 'fa-cloud-rain' },
-            81: { description: '强阵雨', icon: 'fa-cloud-showers-heavy' },
-            82: { description: '暴雨', icon: 'fa-poo-storm' },
-            85: { description: '阵雪', icon: 'fa-snowflake' },
-            86: { description: '强阵雪', icon: 'fa-snowflake' },
-            95: { description: '雷雨', icon: 'fa-bolt' },
-            96: { description: '雷暴雨', icon: 'fa-bolt' },
-            99: { description: '强雷暴雨', icon: 'fa-bolt' }
-        };
-        
-        return weatherMap[code] || { description: '未知', icon: 'fa-question' };
-    }
-    
-    // 初始化地理位置和天气
-    getGeolocationAndWeather();
-    
-    // ==================== 3. 背景图片切换 ====================
+    document.getElementById('current-time').textContent = timeString;
+    document.getElementById('current-date').textContent = dateString;
+}
+
+// 背景选择器初始化
+function initBackgroundSelector() {
     const bgSelector = document.getElementById('bg-selector');
     const changeBgBtn = document.getElementById('change-bg-btn');
-    const bgOptions = document.getElementById('bg-options');
-    const customBgBtn = document.getElementById('custom-bg-btn');
+    const bgOptions = document.querySelectorAll('.bg-option');
     const bgUpload = document.getElementById('bg-upload');
+    const customBgBtn = document.getElementById('custom-bg-btn');
     
-    // 修复：添加点击展开/收起功能
-    changeBgBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
+    // 切换背景选项显示
+    changeBgBtn.addEventListener('click', () => {
         bgSelector.classList.toggle('expanded');
     });
     
-    // 点击其他地方收起
-    document.addEventListener('click', function(e) {
+    // 点击外部关闭
+    document.addEventListener('click', (e) => {
         if (!bgSelector.contains(e.target)) {
             bgSelector.classList.remove('expanded');
         }
     });
     
-    // 防止点击选项区域收起
-    bgOptions.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-    
-    const bgPreviews = document.querySelectorAll('.bg-option:not([data-bg="custom"])');
-    // 修改背景切换函数，确保使用正确的CSS属性
-    function changeBackgroundImage(imageUrl) {
-        document.body.style.backgroundImage = `url(${imageUrl})`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-        document.body.style.backgroundRepeat = 'no-repeat';
-        document.body.style.backgroundAttachment = 'fixed';
-        localStorage.setItem('selectedBackground', imageUrl);
-    }
-
-    bgPreviews.forEach(option => {
-        option.addEventListener('click', function() {
-            const bgType = this.getAttribute('data-bg');
-            const bgImages = {
-                'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-                'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-                'nature3': 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
-            };
-            
-            changeBackgroundImage(bgImages[bgType]);
+    // 选择预设背景
+    bgOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const bg = option.dataset.bg;
+            if (bg === 'custom') {
+                bgUpload.click();
+            } else {
+                setBackground(bg);
+            }
             bgSelector.classList.remove('expanded');
         });
     });
     
     // 自定义背景上传
-    customBgBtn.addEventListener('click', function() {
-        bgUpload.click();
-    });
-    
-    bgUpload.addEventListener('change', function(e) {
+    bgUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function(event) {
-                changeBackgroundImage(event.target.result);
-                bgSelector.classList.remove('expanded');
+            reader.onload = (event) => {
+                document.body.style.backgroundImage = `url(${event.target.result})`;
+                localStorage.setItem('customBackground', event.target.result);
             };
             reader.readAsDataURL(file);
         }
     });
     
-    // 加载保存的背景
-    // 修改加载保存的背景函数
-    function loadSavedBackground() {
-        const savedBackground = localStorage.getItem('selectedBackground');
-        if (savedBackground) {
-            changeBackgroundImage(savedBackground);
-        } else {
-            // 设置默认背景
-            changeBackgroundImage('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
-        }
+    // 加载保存的自定义背景
+    const savedBg = localStorage.getItem('customBackground');
+    if (savedBg) {
+        document.body.style.backgroundImage = `url(${savedBg})`;
     }
+}
 
-    // 在DOM加载完成后调用
-    loadSavedBackground();
+// 设置背景
+function setBackground(bg) {
+    const bgUrls = {
+        nature1: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+        nature2: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+        nature3: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
+    };
     
-    // ==================== 4. 待办事项功能 ====================
-    const todoInput = document.getElementById('todo-input');
-    const todoSubmit = document.getElementById('todo-submit');
-    const todoCancel = document.getElementById('todo-cancel');
-    const todoList = document.getElementById('todo-list');
-    const startTimeInput = document.getElementById('start-time');
-    const endTimeInput = document.getElementById('end-time');
+    if (bgUrls[bg]) {
+        document.body.style.backgroundImage = `url(${bgUrls[bg]})`;
+        localStorage.removeItem('customBackground');
+    }
+}
+
+// 待办事项功能
+function initTodoList() {
     const addTodoBtn = document.getElementById('add-todo-btn');
     const todoInputArea = document.getElementById('todo-input-area');
-    const filterButtons = document.querySelectorAll('.filter-btn');
+    const todoSubmit = document.getElementById('todo-submit');
+    const todoCancel = document.getElementById('todo-cancel');
+    const todoInput = document.getElementById('todo-input');
+    const todoList = document.getElementById('todo-list');
+    const filterBtns = document.querySelectorAll('.filter-btn');
     
-    // 设置默认时间
-    function setDefaultTimes() {
-        const now = new Date();
-        const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-        
-        startTimeInput.value = formatDateTimeLocal(now);
-        endTimeInput.value = formatDateTimeLocal(oneHourLater);
-    }
+    let todos = JSON.parse(localStorage.getItem('todos')) || [];
+    let currentFilter = 'all';
     
-    function formatDateTimeLocal(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-    
-    // 加载待办事项
-    function loadTodos() {
-        const todos = JSON.parse(localStorage.getItem('todos')) || [];
-        todoList.innerHTML = '';
-        
-        // 应用当前筛选
-        const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
-        
-        todos.forEach(todo => {
-            if (shouldShowTodo(todo, activeFilter)) {
-                addTodoToDOM(todo);
-            }
-        });
-        
-        updateTodoCounts();
-    }
-    
-    // 判断是否显示待办事项
-    function shouldShowTodo(todo, filter) {
-        const isCompleted = todo.completed;
-        const isUrgent = isTodoUrgent(todo);
-        
-        switch(filter) {
-            case 'all':
-                return true;
-            case 'pending':
-                return !isCompleted;
-            case 'completed':
-                return isCompleted;
-            case 'urgent':
-                return isUrgent;
-            default:
-                return true;
+    // 显示/隐藏输入区域
+    addTodoBtn.addEventListener('click', () => {
+        todoInputArea.style.display = todoInputArea.style.display === 'none' ? 'block' : 'none';
+        if (todoInputArea.style.display === 'block') {
+            todoInput.focus();
         }
-    }
+    });
     
-    // 判断是否为紧急任务
-    function isTodoUrgent(todo) {
-        if (!todo.endTime || todo.completed) return false;
-        
-        const endTime = new Date(todo.endTime);
-        const now = new Date();
-        const diffHours = (endTime - now) / (1000 * 60 * 60);
-        
-        return diffHours < 24 && diffHours > 0;
-    }
+    // 取消按钮
+    todoCancel.addEventListener('click', () => {
+        todoInputArea.style.display = 'none';
+        clearTodoForm();
+    });
     
-    // 获取剩余时间文本
-    function getRemainingTimeText(endTime) {
-        const end = new Date(endTime);
-        const now = new Date();
-        const diffMs = end - now;
-        
-        if (diffMs <= 0) return '已过期';
-        
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffHours / 24);
-        
-        if (diffDays > 0) {
-            return `${diffDays}天后到期`;
-        } else if (diffHours > 0) {
-            return `${diffHours}小时后到期`;
-        } else {
-            const diffMinutes = Math.floor(diffMs / (1000 * 60));
-            return `${diffMinutes}分钟后到期`;
-        }
-    }
+    // 提交待办事项
+    todoSubmit.addEventListener('click', addTodo);
     
-    // 添加待办事项到DOM
-    function addTodoToDOM(todo) {
-        const li = document.createElement('li');
-        li.className = `todo-item ${todo.completed ? 'completed' : ''} ${isTodoUrgent(todo) ? 'urgent' : ''}`;
-        li.dataset.id = todo.id;
-        
-        const startTimeText = todo.startTime ? 
-            new Date(todo.startTime).toLocaleString('zh-CN', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : '未设置';
-            
-        const endTimeText = todo.endTime ? 
-            new Date(todo.endTime).toLocaleString('zh-CN', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : '未设置';
-            
-        const remainingText = todo.endTime ? getRemainingTimeText(todo.endTime) : '';
-        
-        li.innerHTML = `
-            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
-            <div class="todo-content">
-                <div class="todo-title">${todo.text}</div>
-                <div class="todo-time">
-                    <span>开始: ${startTimeText}</span>
-                    <span> | 截止: <span class="todo-deadline">${endTimeText}</span></span>
-                    ${remainingText ? `<span> | ${remainingText}</span>` : ''}
-                </div>
-            </div>
-            <button class="delete-todo" title="删除">
-                <i class="fas fa-trash"></i>
-            </button>
-        `;
-        
-        // 事件监听器
-        const checkbox = li.querySelector('.todo-checkbox');
-        const deleteBtn = li.querySelector('.delete-todo');
-        
-        checkbox.addEventListener('change', function() {
-            li.classList.toggle('completed');
-            updateTodoStatus(todo.id, this.checked);
-            
-            if (this.checked) {
-                li.style.transform = 'translateX(5px) scale(0.98)';
-                setTimeout(() => {
-                    li.style.transform = '';
-                }, 300);
-            }
-            
-            // 重新加载以更新筛选
-            loadTodos();
+    // 筛选按钮
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            renderTodos();
         });
-        
-        deleteBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            li.style.transform = 'translateX(100px)';
-            li.style.opacity = '0';
-            
-            setTimeout(() => {
-                removeTodoFromStorage(todo.id);
-                loadTodos();
-            }, 300);
-        });
-        
-        // 点击待办事项进行编辑
-        li.addEventListener('click', function(e) {
-            if (e.target !== checkbox && e.target !== deleteBtn && !deleteBtn.contains(e.target)) {
-                editTodo(todo);
-            }
-        });
-        
-        todoList.appendChild(li);
-    }
+    });
     
-    // 编辑待办事项
-    function editTodo(todo) {
-        todoInput.value = todo.text;
-        
-        if (todo.startTime) {
-            startTimeInput.value = formatDateTimeLocal(new Date(todo.startTime));
-        }
-        
-        if (todo.endTime) {
-            endTimeInput.value = formatDateTimeLocal(new Date(todo.endTime));
-        }
-        
-        todoInputArea.style.display = 'block';
-        todoInput.focus();
-        
-        // 移除原有的待办事项
-        removeTodoFromStorage(todo.id);
-        loadTodos();
-    }
-    
-    // 更新待办事项状态
-    function updateTodoStatus(id, completed) {
-        const todos = JSON.parse(localStorage.getItem('todos')) || [];
-        const todoIndex = todos.findIndex(todo => todo.id === id);
-        
-        if (todoIndex !== -1) {
-            todos[todoIndex].completed = completed;
-            todos[todoIndex].completedAt = completed ? new Date().toISOString() : null;
-            localStorage.setItem('todos', JSON.stringify(todos));
-            updateTodoCounts();
-        }
-    }
-    
-    // 从存储中移除
-    function removeTodoFromStorage(id) {
-        const todos = JSON.parse(localStorage.getItem('todos')) || [];
-        const filteredTodos = todos.filter(todo => todo.id !== id);
-        localStorage.setItem('todos', JSON.stringify(filteredTodos));
-        updateTodoCounts();
-    }
-    
-    // 更新待办事项计数
-    function updateTodoCounts() {
-        const todos = JSON.parse(localStorage.getItem('todos')) || [];
-        const pending = todos.filter(t => !t.completed).length;
-        const completed = todos.filter(t => t.completed).length;
-        const urgent = todos.filter(t => isTodoUrgent(t)).length;
-        
-        document.querySelector('[data-filter="all"]').textContent = `全部 (${todos.length})`;
-        document.querySelector('[data-filter="pending"]').textContent = `未完成 (${pending})`;
-        document.querySelector('[data-filter="completed"]').textContent = `已完成 (${completed})`;
-        document.querySelector('[data-filter="urgent"]').textContent = `紧急 (${urgent})`;
-    }
-    
-    // 检查待办事项截止时间
-    function checkTodoDeadlines() {
-        const todos = JSON.parse(localStorage.getItem('todos')) || [];
-        const now = new Date();
-        
-        todos.forEach(todo => {
-            if (!todo.completed && todo.endTime) {
-                const endTime = new Date(todo.endTime);
-                const diffHours = (endTime - now) / (1000 * 60 * 60);
-                
-                // 1小时内即将过期的任务添加闪烁效果
-                if (diffHours > 0 && diffHours < 1) {
-                    const todoElement = document.querySelector(`.todo-item[data-id="${todo.id}"]`);
-                    if (todoElement) {
-                        todoElement.classList.add('urgent');
-                        todoElement.style.animation = 'blink 1s infinite';
-                    }
-                }
-            }
-        });
-    }
-    
-    // 添加待办事项
     function addTodo() {
         const text = todoInput.value.trim();
-        const startTime = startTimeInput.value;
-        const endTime = endTimeInput.value;
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
         
         if (!text) {
             alert('请输入待办事项内容');
@@ -1274,417 +713,181 @@ document.addEventListener('DOMContentLoaded', function() {
         const todo = {
             id: Date.now(),
             text: text,
-            startTime: startTime ? new Date(startTime).toISOString() : null,
-            endTime: endTime ? new Date(endTime).toISOString() : null,
+            startTime: startTime,
+            endTime: endTime,
             completed: false,
-            createdAt: new Date().toISOString()
+            urgent: false
         };
         
-        // 保存到本地存储
-        const todos = JSON.parse(localStorage.getItem('todos')) || [];
         todos.push(todo);
+        saveTodos();
+        renderTodos();
+        clearTodoForm();
+        todoInputArea.style.display = 'none';
+    }
+    
+    function clearTodoForm() {
+        todoInput.value = '';
+        document.getElementById('start-time').value = '';
+        document.getElementById('end-time').value = '';
+    }
+    
+    function saveTodos() {
         localStorage.setItem('todos', JSON.stringify(todos));
-        
-        // 重置表单
-        todoInput.value = '';
-        setDefaultTimes();
-        todoInputArea.style.display = 'none';
-        
-        // 重新加载待办事项
-        loadTodos();
+        updateFilterCounts();
     }
     
-    // 事件监听器
-    todoSubmit.addEventListener('click', addTodo);
-    
-    addTodoBtn.addEventListener('click', function() {
-        todoInputArea.style.display = todoInputArea.style.display === 'block' ? 'none' : 'block';
-        if (todoInputArea.style.display === 'block') {
-            todoInput.focus();
-            setDefaultTimes();
+    function renderTodos() {
+        todoList.innerHTML = '';
+        
+        let filteredTodos = todos;
+        if (currentFilter === 'pending') {
+            filteredTodos = todos.filter(t => !t.completed);
+        } else if (currentFilter === 'completed') {
+            filteredTodos = todos.filter(t => t.completed);
+        } else if (currentFilter === 'urgent') {
+            filteredTodos = todos.filter(t => t.urgent);
         }
-    });
-    
-    todoCancel.addEventListener('click', function() {
-        todoInputArea.style.display = 'none';
-        todoInput.value = '';
-        setDefaultTimes();
-    });
-    
-    todoInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            addTodo();
-        }
-    });
-    
-    // 筛选功能
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterButtons.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            loadTodos();
-        });
-    });
-    
-    // 初始加载
-    setDefaultTimes();
-    loadTodos();
-    
-    // ==================== 5. 高德地图功能 ====================
-    let map = null;
-    let userMarker = null;
-    let trafficLayer = null;
-    
-    // 显示地图错误信息
-    function showMapError(message) {
-        const mapContainer = document.getElementById('map');
-        if (mapContainer) {
-            mapContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%); border-radius: 10px; padding: 30px; color: white;">
-                    <i class="fas fa-map-marked-alt" style="font-size: 64px; margin-bottom: 20px; opacity: 0.9;"></i>
-                    <h3 style="margin-bottom: 15px; font-size: 1.5rem;">地图服务暂时不可用</h3>
-                    <p style="text-align: center; margin-bottom: 20px; font-size: 1rem; opacity: 0.9;">${message}</p>
-                    
-                    <div style="background: rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px); max-width: 500px; width: 100%;">
-                        <h4 style="margin-bottom: 15px; font-size: 1.1rem;">配置指南：</h4>
-                        <ol style="text-align: left; margin-left: 20px; font-size: 0.9rem; line-height: 1.6;">
-                            <li style="margin-bottom: 10px;">
-                                <strong>获取API密钥：</strong><br>
-                                访问 <a href="https://lbs.amap.com/" target="_blank" style="color: #a8c5ff; text-decoration: underline;">高德开放平台</a> 
-                                注册账号  控制台  创建新应用  添加Key
-                            </li>
-                            <li style="margin-bottom: 10px;">
-                                <strong>配置密钥：</strong><br>
-                                在 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">index.html</code> 中<br>
-                                替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_SECURITY_CODE_HERE</code> 为你的安全密钥
-                            </li>
-                            <li style="margin-bottom: 10px;">
-                                <strong>Key配置：</strong><br>
-                                在JS代码中替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_AMAP_KEY_HERE</code> 为你的应用Key
-                            </li>
-                            <li>
-                                <strong>服务类型：</strong><br>
-                                创建应用时选择 "Web端(JS API)"
-                            </li>
-                        </ol>
+        
+        filteredTodos.forEach(todo => {
+            const li = document.createElement('li');
+            li.className = `todo-item ${todo.urgent ? 'urgent' : ''} ${todo.completed ? 'completed' : ''}`;
+            li.innerHTML = `
+                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
+                <div class="todo-content">
+                    <div class="todo-title">${todo.text}</div>
+                    <div class="todo-time">
+                        ${todo.startTime ? '开始: ' + new Date(todo.startTime).toLocaleString('zh-CN') : ''}
+                        ${todo.endTime ? '<br>截止: ' + new Date(todo.endTime).toLocaleString('zh-CN') : ''}
                     </div>
-                    
-                    <button onclick="location.reload()" style="margin-top: 25px; padding: 10px 25px; background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); color: white; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
-                        <i class="fas fa-redo" style="margin-right: 8px;"></i>重新加载地图
-                    </button>
                 </div>
+                <button class="delete-todo"><i class="fas fa-trash"></i></button>
             `;
-        }
-    }
-    
-    // 添加用户标记
-    function addUserMarker(lng, lat) {
-        if (!window.map) return;
-        
-        if (userMarker) {
-            window.map.remove(userMarker);
-        }
-        
-        userMarker = new AMap.Marker({
-            position: [lng, lat],
-            title: '我的位置',
-            icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
-            zIndex: 1000
-        });
-        
-        window.map.add(userMarker);
-        
-        // 信息窗口
-        const infoWindow = new AMap.InfoWindow({
-            content: `<div style="padding: 10px; min-width: 200px;">
-                <h4 style="margin: 0 0 5px 0;">我的位置</h4>
-                <p style="margin: 0; font-size: 12px; color: #666;">经度: ${lng.toFixed(6)}</p>
-                <p style="margin: 0; font-size: 12px; color: #666;">纬度: ${lat.toFixed(6)}</p>
-            </div>`,
-            offset: new AMap.Pixel(0, -30)
-        });
-        
-        infoWindow.open(window.map, [lng, lat]);
-    }
-    
-    // 搜索地点
-    function searchPlace() {
-        if (!window.map) return;
-        
-        const keyword = document.getElementById('map-search-input').value.trim();
-        if (!keyword) {
-            alert('请输入搜索关键词');
-            return;
-        }
-        
-        // 清除之前的标记
-        if (userMarker) {
-            window.map.remove(userMarker);
-            userMarker = null;
-        }
-        
-        // 使用插件方式加载PlaceSearch
-        AMap.plugin(['AMap.PlaceSearch'], function() {
-            const placeSearch = new AMap.PlaceSearch({
-                pageSize: 10,
-                pageIndex: 1,
-                city: '全国',
-                map: window.map
+            
+            // 复选框事件
+            const checkbox = li.querySelector('.todo-checkbox');
+            checkbox.addEventListener('change', () => {
+                todo.completed = checkbox.checked;
+                saveTodos();
+                renderTodos();
             });
             
-            placeSearch.search(keyword, function(status, result) {
-                if (status === 'complete' && result.info === 'OK') {
-                    const pois = result.poiList.pois;
-                    if (pois.length > 0) {
-                        const poi = pois[0];
-                        
-                        // 添加标记
-                        userMarker = new AMap.Marker({
-                            position: [poi.location.lng, poi.location.lat],
-                            title: poi.name,
-                            icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_red.png'
-                        });
-                        
-                        window.map.add(userMarker);
-                        window.map.setCenter([poi.location.lng, poi.location.lat]);
-                        window.map.setZoom(15);
-                        
-                        // 信息窗口
-                        const infoWindow = new AMap.InfoWindow({
-                            content: `<div style="padding: 10px; min-width: 200px;">
-                                <h4 style="margin: 0 0 5px 0;">${poi.name}</h4>
-                                <p style="margin: 0; font-size: 12px; color: #666;">${poi.address || '地址未提供'}</p>
-                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${poi.tel || '电话未提供'}</p>
-                            </div>`,
-                            offset: new AMap.Pixel(0, -30)
-                        });
-                        
-                        infoWindow.open(window.map, userMarker.getPosition());
-                    }
-                } else {
-                    alert('未找到相关地点');
-                }
+            // 删除按钮事件
+            const deleteBtn = li.querySelector('.delete-todo');
+            deleteBtn.addEventListener('click', () => {
+                todos = todos.filter(t => t.id !== todo.id);
+                saveTodos();
+                renderTodos();
             });
+            
+            todoList.appendChild(li);
         });
     }
     
-    // 初始化地图 - 使用JS API Loader
-    function initMap() {
-        // 检查AMapLoader是否可用
-        if (typeof AMapLoader === 'undefined') {
-            showMapError('高德地图加载器未加载，请检查网络连接');
-            return;
-        }
+    function updateFilterCounts() {
+        const all = todos.length;
+        const pending = todos.filter(t => !t.completed).length;
+        const completed = todos.filter(t => t.completed).length;
+        const urgent = todos.filter(t => t.urgent).length;
         
-        // 使用JS API Loader加载地图
-        AMapLoader.load({
-            key: "9e661689052df99b5468cfbabfa35824", // 申请好的Web端开发者 Key，调用 load 时必填
-            version: "2.0", //指定要加载的 JS API 的版本，缺省时默认为 1.4.15
-            plugins: ['AMap.PlaceSearch', 'AMap.TileLayer.Traffic', 'AMap.Geocoder'] // 需要使用的插件列表
-        })
-        .then((AMap) => {
-            // 初始化地图 - 使用用户位置或默认位置
-            const savedLocation = localStorage.getItem('userLocation');
-            let center = [116.397428, 39.90923]; // 北京默认
-            
-            if (savedLocation) {
-                try {
-                    const location = JSON.parse(savedLocation);
-                    center = [location.lon || location.lng || 116.397428, location.lat || 39.90923];
-                } catch (e) {
-                    console.error('解析保存的位置失败:', e);
-                }
-            }
-            
-            // 创建地图实例 - JS API 2.0 默认自带缩放控件，无需手动添加
-            window.map = new AMap.Map('map', {
-                zoom: 13,
-                center: center,
-                viewMode: '2D'
-            });
-            
-            console.log('高德地图初始化成功');
-            
-            // 如果已有用户位置，添加标记并获取位置信息
-            if (savedLocation) {
-                try {
-                    const location = JSON.parse(savedLocation);
-                    addUserMarker(location.lon || location.lng, location.lat);
-                    // 获取位置信息
-                    getLocationInfoFromAMap(location.lon || location.lng, location.lat);
-                } catch (e) {
-                    console.error('添加用户标记失败:', e);
-                }
-            }
-            
-            // 定位按钮
-            document.getElementById('locate-me').addEventListener('click', function() {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(position) {
+        filterBtns[0].textContent = `全部 (${all})`;
+        filterBtns[1].textContent = `未完成 (${pending})`;
+        filterBtns[2].textContent = `已完成 (${completed})`;
+        filterBtns[3].textContent = `紧急 (${urgent})`;
+    }
+    
+    // 初始化渲染
+    renderTodos();
+    updateFilterCounts();
+}
+
+// 地图初始化
+function initMap() {
+    // 高德地图初始化
+    if (typeof AMap !== 'undefined') {
+        const map = new AMap.Map('map', {
+            zoom: 11,
+            center: [116.397428, 39.90923]
+        });
+        
+        // 定位按钮
+        document.getElementById('locate-me').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
                         const lng = position.coords.longitude;
                         const lat = position.coords.latitude;
-                        currentPosition = { lat, lon: lng };
-                        
-                        // 更新地图中心
-                        window.map.setCenter([lng, lat]);
-                        window.map.setZoom(15);
-                        
-                        // 添加标记
-                        addUserMarker(lng, lat);
-                        
-                        // 更新位置显示
-                        locationText.textContent = `纬度: ${lat.toFixed(2)}, 经度: ${lng.toFixed(2)}`;
-                        
-                        // 获取天气信息
-                        getWeather(lat, lng);
-                        
-                        // 获取城市和区域信息
-                        getLocationInfoFromAMap(lng, lat);
-                        
-                        // 保存位置
-                        localStorage.setItem('userLocation', JSON.stringify({
-                            lat: lat,
-                            lon: lng,
-                            timestamp: Date.now()
-                        }));
-                        
-                    }, function(error) {
-                        alert('无法获取您的位置: ' + error.message);
+                        map.setCenter([lng, lat]);
+                        new AMap.Marker({
+                            position: [lng, lat],
+                            map: map
+                        });
+                    },
+                    (error) => {
+                        console.error('定位失败:', error);
+                        alert('定位失败，请检查定位权限');
+                    }
+                );
+            }
+        });
+        
+        // 搜索功能
+        document.getElementById('map-search-btn').addEventListener('click', () => {
+            const keyword = document.getElementById('map-search-input').value;
+            if (keyword) {
+                AMap.plugin('AMap.PlaceSearch', () => {
+                    const placeSearch = new AMap.PlaceSearch({
+                        map: map
                     });
-                } else {
-                    alert('您的浏览器不支持地理定位功能');
-                }
-            });
-            
-            // 实时路况切换
-            document.getElementById('traffic-toggle').addEventListener('click', function() {
-                if (!trafficLayer) {
-                    trafficLayer = new AMap.TileLayer.Traffic({
-                        zIndex: 10
-                    });
-                    window.map.add(trafficLayer);
-                    this.style.backgroundColor = '#4a6fa5';
-                    this.style.color = 'white';
-                } else {
-                    window.map.remove(trafficLayer);
-                    trafficLayer = null;
-                    this.style.backgroundColor = '';
-                    this.style.color = '';
-                }
-            });
-            
-            // 搜索功能
-            document.getElementById('map-search-btn').addEventListener('click', searchPlace);
-            document.getElementById('map-search-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchPlace();
-                }
-            });
-        })
-        .catch((e) => {
-            console.error('高德地图加载失败:', e);
-            showMapError('高德地图加载失败: ' + (e.message || '请检查Key和安全密钥配置'));
+                    placeSearch.search(keyword);
+                });
+            }
         });
     }
-    
-    // 延迟初始化地图，确保页面完全加载
-    setTimeout(initMap, 500);
-    
-    // ==================== 6. DeepSeek AI 集成 ====================
+}
+
+// 智能助手初始化
+function initAssistant() {
     const assistantInput = document.getElementById('assistant-input');
     const assistantSend = document.getElementById('assistant-send');
     const assistantMessages = document.getElementById('assistant-messages');
-    const statusDot = document.getElementById('assistant-status-dot');
-    const statusText = document.getElementById('assistant-status-text');
-    const apiKeyInput = document.getElementById('deepseek-api-key');
     const saveApiKeyBtn = document.getElementById('save-api-key');
+    const apiKeyInput = document.getElementById('deepseek-api-key');
     
     // 加载保存的API密钥
-    const savedApiKey = localStorage.getItem('deepseekApiKey') || '';
+    const savedApiKey = localStorage.getItem('deepseekApiKey');
     if (savedApiKey) {
         apiKeyInput.value = savedApiKey;
-        updateAssistantStatus(true);
     }
     
     // 保存API密钥
-    saveApiKeyBtn.addEventListener('click', function() {
+    saveApiKeyBtn.addEventListener('click', () => {
         const apiKey = apiKeyInput.value.trim();
         if (apiKey) {
             localStorage.setItem('deepseekApiKey', apiKey);
-            alert('API密钥已保存到本地');
-            updateAssistantStatus(true);
-        } else {
-            alert('请输入API密钥');
+            alert('API密钥已保存');
         }
     });
     
-    // 更新助手状态
-    function updateAssistantStatus(connected) {
-        if (connected) {
-            statusDot.classList.add('online');
-            statusText.textContent = '在线';
-            statusText.style.color = '#8c00ff';
-        } else {
-            statusDot.classList.remove('online');
-            statusText.textContent = '离线';
-            statusText.style.color = '#e74c3c';
-        }
-    }
-    
-    // 添加消息到对话
+    // 添加消息到聊天区域
     function addMessage(content, isUser = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-        
-        const avatarIcon = isUser ? 'fas fa-user' : 'fas fa-robot';
-        const timestamp = new Date().toLocaleTimeString('zh-CN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        
         messageDiv.innerHTML = `
             <div class="avatar">
-                <i class="${avatarIcon}"></i>
+                <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
             </div>
             <div class="content">
                 <p>${content}</p>
-                <div class="message-time">${timestamp}</div>
             </div>
         `;
-        
         assistantMessages.appendChild(messageDiv);
         assistantMessages.scrollTop = assistantMessages.scrollHeight;
-        
-        // 添加动画
-        messageDiv.style.opacity = '0';
-        messageDiv.style.transform = isUser ? 'translateX(20px)' : 'translateX(-20px)';
-        
-        setTimeout(() => {
-            messageDiv.style.opacity = '1';
-            messageDiv.style.transform = 'translateX(0)';
-        }, 10);
-        
         return messageDiv;
     }
     
-    // 调用DeepSeek API
+    // 调用Deepseek API
     async function callDeepseekAPI(userMessage, apiKey) {
-        // 如果没有API密钥，使用模拟响应
-        if (!apiKey) {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const responses = [
-                        `您的问题是："${userMessage}"。这是一个很有价值的问题，让我为您详细解答。目前我使用的是模拟响应，请配置API密钥以获取真实AI响应。`,
-                        `关于"${userMessage}"，我建议您从以下几个方面考虑：首先明确目标，然后制定计划，最后执行并评估结果。`,
-                        `"${userMessage}"是一个有趣的话题，我可以为您提供一些见解。不过要获取更准确的信息，建议您配置API密钥。`,
-                        `感谢您的问题！关于"${userMessage}"，我认为重要的是保持开放的心态，多角度思考问题。`
-                    ];
-                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                    resolve(randomResponse);
-                }, 1000);
-            });
-        }
-        
         try {
             const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
                 method: 'POST',
@@ -1761,7 +964,275 @@ document.addEventListener('DOMContentLoaded', function() {
             sendMessage();
         }
     });
-});
+}
+
+// 视图切换功能
+function initViewSwitch() {
+    const viewSwitchBtn = document.getElementById('view-switch-btn');
+    const viewSwitchContainer = document.getElementById('view-switch-container');
+    
+    if (viewSwitchBtn) {
+        viewSwitchBtn.addEventListener('click', () => {
+            document.body.classList.toggle('desktop-mode');
+            const isDesktop = document.body.classList.contains('desktop-mode');
+            viewSwitchBtn.innerHTML = isDesktop ? 
+                '<i class="fas fa-mobile-alt"></i><span>手机版</span>' : 
+                '<i class="fas fa-desktop"></i><span>电脑版</span>';
+        });
+    }
+}
 
 
+/* ========== poem.js ========== */
 
+/**
+ * 自定义诗句模块
+ * Poem Module JavaScript
+ * 
+ * 功能：允许用户输入、编辑、保存自定义诗句
+ * 数据持久化：使用localStorage保存
+ */
+
+(function() {
+    'use strict';
+
+    // 诗句模块配置
+    const POEM_CONFIG = {
+        storageKey: 'user_custom_poem',
+        defaultText: '点击编辑您的专属诗句...',
+        maxLength: 100
+    };
+
+    // DOM元素引用
+    let poemDisplay, poemText, poemInputArea, poemInput, 
+        poemSubmit, poemCancel;
+
+    /**
+     * 初始化诗句模块
+     */
+    function initPoemModule() {
+        // 获取DOM元素
+        poemDisplay = document.getElementById('poem-display');
+        poemText = document.getElementById('poem-text');
+        poemInputArea = document.getElementById('poem-input-area');
+        poemInput = document.getElementById('poem-input');
+        poemSubmit = document.getElementById('poem-submit');
+        poemCancel = document.getElementById('poem-cancel');
+
+        if (!poemDisplay || !poemText) {
+            console.log('诗句模块元素未找到，跳过初始化');
+            return;
+        }
+
+        // 加载保存的诗句
+        loadPoem();
+
+        // 绑定事件
+        bindEvents();
+
+        console.log('诗句模块初始化完成');
+    }
+
+    /**
+     * 绑定事件处理
+     */
+    function bindEvents() {
+        // 点击显示区域进入编辑模式
+        poemDisplay.addEventListener('click', enterEditMode);
+
+        // 保存按钮
+        poemSubmit.addEventListener('click', savePoem);
+
+        // 取消按钮
+        poemCancel.addEventListener('click', cancelEdit);
+
+        // 输入框回车保存（Ctrl+Enter）
+        poemInput.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                savePoem();
+            } else if (e.key === 'Escape') {
+                cancelEdit();
+            }
+        });
+
+        // 输入框实时字符计数
+        poemInput.addEventListener('input', function() {
+            const currentLength = this.value.length;
+            if (currentLength >= POEM_CONFIG.maxLength) {
+                this.style.borderColor = '#ff6b6b';
+            } else {
+                this.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }
+        });
+    }
+
+    /**
+     * 进入编辑模式
+     */
+    function enterEditMode() {
+        const currentText = poemText.textContent;
+        
+        // 如果显示的是默认文本，输入框留空
+        if (currentText === POEM_CONFIG.defaultText) {
+            poemInput.value = '';
+        } else {
+            poemInput.value = currentText;
+        }
+
+        // 切换显示
+        poemDisplay.style.display = 'none';
+        poemInputArea.style.display = 'flex';
+
+        // 聚焦输入框
+        setTimeout(() => {
+            poemInput.focus();
+            poemInput.select();
+        }, 10);
+    }
+
+    /**
+     * 保存诗句
+     */
+    function savePoem() {
+        const text = poemInput.value.trim();
+
+        // 输入验证
+        if (!text) {
+            // 空内容，显示提示
+            poemInput.style.borderColor = '#ff6b6b';
+            poemInput.placeholder = '请输入内容后再保存...';
+            
+            // 3秒后恢复
+            setTimeout(() => {
+                poemInput.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                poemInput.placeholder = '请输入您的诗句...';
+            }, 3000);
+            return;
+        }
+
+        // 长度验证
+        if (text.length > POEM_CONFIG.maxLength) {
+            alert('诗句长度不能超过' + POEM_CONFIG.maxLength + '个字符');
+            return;
+        }
+
+        // 保存到localStorage
+        try {
+            localStorage.setItem(POEM_CONFIG.storageKey, text);
+            console.log('诗句已保存');
+        } catch (e) {
+            console.warn('localStorage不可用，诗句仅在当前会话有效');
+        }
+
+        // 更新显示
+        poemText.textContent = text;
+
+        // 切换回显示模式
+        exitEditMode();
+
+        // 显示保存成功动画
+        showSaveAnimation();
+    }
+
+    /**
+     * 取消编辑
+     */
+    function cancelEdit() {
+        exitEditMode();
+    }
+
+    /**
+     * 退出编辑模式
+     */
+    function exitEditMode() {
+        poemInputArea.style.display = 'none';
+        poemDisplay.style.display = 'block';
+    }
+
+    /**
+     * 加载保存的诗句
+     */
+    function loadPoem() {
+        let savedPoem = null;
+
+        try {
+            savedPoem = localStorage.getItem(POEM_CONFIG.storageKey);
+        } catch (e) {
+            console.warn('无法访问localStorage');
+        }
+
+        if (savedPoem && savedPoem.trim()) {
+            poemText.textContent = savedPoem;
+        } else {
+            poemText.textContent = POEM_CONFIG.defaultText;
+        }
+    }
+
+    /**
+     * 显示保存成功动画
+     */
+    function showSaveAnimation() {
+        poemText.style.transition = 'all 0.3s ease';
+        poemText.style.textShadow = '0 0 20px rgba(102, 126, 234, 0.8)';
+        
+        setTimeout(() => {
+            poemText.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
+        }, 1000);
+    }
+
+    /**
+     * 公共API - 供外部调用
+     */
+    window.PoemModule = {
+        /**
+         * 获取当前诗句
+         * @returns {string} 当前诗句内容
+         */
+        getPoem: function() {
+            const text = poemText.textContent;
+            return text === POEM_CONFIG.defaultText ? '' : text;
+        },
+
+        /**
+         * 设置诗句
+         * @param {string} text - 诗句内容
+         */
+        setPoem: function(text) {
+            if (text && text.trim()) {
+                poemText.textContent = text.trim();
+                try {
+                    localStorage.setItem(POEM_CONFIG.storageKey, text.trim());
+                } catch (e) {
+                    console.warn('无法保存到localStorage');
+                }
+            }
+        },
+
+        /**
+         * 清除诗句
+         */
+        clearPoem: function() {
+            poemText.textContent = POEM_CONFIG.defaultText;
+            try {
+                localStorage.removeItem(POEM_CONFIG.storageKey);
+            } catch (e) {
+                console.warn('无法清除localStorage');
+            }
+        },
+
+        /**
+         * 进入编辑模式
+         */
+        edit: function() {
+            enterEditMode();
+        }
+    };
+
+    // DOM加载完成后初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPoemModule);
+    } else {
+        initPoemModule();
+    }
+
+})();
