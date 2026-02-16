@@ -261,20 +261,27 @@
             ctx.restore();
         }
 
-        // 绘制四角星（菱形）
+        // 绘制四角星
         drawStar(ctx, cx, cy, outerRadius, opacity) {
-            // 绘制四角星（菱形）
+            // 绘制四角星（十字星形）
             ctx.beginPath();
             
-            // 四角星的四个顶点
-            // 0度（上）
-            ctx.moveTo(cx, cy - outerRadius);
-            // 90度（右）
-            ctx.lineTo(cx + outerRadius, cy);
-            // 180度（下）
-            ctx.lineTo(cx, cy + outerRadius);
-            // 270度（左）
-            ctx.lineTo(cx - outerRadius, cy);
+            // 四角星的8个顶点（外4个 + 内4个）
+            const innerRadius = outerRadius * 0.4; // 内凹半径
+            
+            // 从顶部开始，顺时针绘制
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI / 4) - Math.PI / 2; // 从顶部开始
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const x = cx + Math.cos(angle) * radius;
+                const y = cy + Math.sin(angle) * radius;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
             
             ctx.closePath();
             
@@ -323,13 +330,25 @@
 
             ctx.save();
             
-            // 绘制四角星（菱形）
+            // 绘制四角星
             const size = this.size;
+            const innerSize = size * 0.4; // 内凹半径
             ctx.beginPath();
-            ctx.moveTo(this.x, this.y - size);
-            ctx.lineTo(this.x + size, this.y);
-            ctx.lineTo(this.x, this.y + size);
-            ctx.lineTo(this.x - size, this.y);
+            
+            // 四角星的8个顶点（外4个 + 内4个）
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI / 4) - Math.PI / 2; // 从顶部开始
+                const radius = i % 2 === 0 ? size : innerSize;
+                const x = this.x + Math.cos(angle) * radius;
+                const y = this.y + Math.sin(angle) * radius;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
             ctx.closePath();
             
             ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`;
