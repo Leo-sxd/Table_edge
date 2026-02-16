@@ -321,7 +321,27 @@
         }
 
         update() {
+            // Store previous phase to detect cycle completion
+            const prevPhase = this.twinklePhase;
             this.twinklePhase += this.twinkleSpeed;
+            
+            // Check if twinkling cycle completed (crossed 2π boundary)
+            // A complete breathing cycle is when phase goes from 0 to 2π
+            // We detect this by checking if phase wrapped around
+            if (Math.floor(prevPhase / (Math.PI * 2)) !== Math.floor(this.twinklePhase / (Math.PI * 2))) {
+                // Cycle completed, randomize position
+                this.randomizePosition();
+            }
+        }
+        
+        /**
+         * Randomize star position within allowed area
+         * Called during each twinkling cycle
+         */
+        randomizePosition() {
+            // Generate new random position within bounds
+            this.x = Math.random() * this.canvasWidth;
+            this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
         }
 
         draw(ctx) {
