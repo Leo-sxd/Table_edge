@@ -664,36 +664,71 @@ function setBackground(bg) {
 
 // 天气和位置初始化
 function initWeatherAndLocation() {
-    // 获取位置信息
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                // 更新位置显示
-                updateLocationInfo(lat, lng);
-                
-                // 获取天气信息
-                getWeatherInfo(lat, lng);
-            },
-            (error) => {
-                console.error('定位失败:', error);
-                document.getElementById('location-text').textContent = '定位失败';
-                document.getElementById('city-name').textContent = '定位失败';
-                
-                // 使用默认位置（北京）获取天气
-                getWeatherInfo(39.9042, 116.4074);
+    // 等待AMap加载完成
+    waitForAMap().then(() => {
+        // 获取位置信息
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // 更新位置显示
+                    updateLocationInfo(lat, lng);
+                    
+                    // 获取天气信息
+                    getWeatherInfo(lat, lng);
+                },
+                (error) => {
+                    console.error('定位失败:', error);
+                    document.getElementById('location-text').textContent = '定位失败';
+                    document.getElementById('city-name').textContent = '定位失败';
+                    document.getElementById('district-name').textContent = '--';
+                    
+                    // 使用默认位置（北京）获取天气
+                    getWeatherInfo(39.9042, 116.4074);
+                }
+            );
+        } else {
+            document.getElementById('location-text').textContent = '浏览器不支持定位';
+            getWeatherInfo(39.9042, 116.4074);
+        }
+    }).catch((error) => {
+        console.error('AMap加载失败:', error);
+        document.getElementById('location-text').textContent = '地图服务加载失败';
+    });
+}
+
+// 等待AMap加载完成
+function waitForAMap() {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 最多等待5秒
+        
+        function checkAMap() {
+            attempts++;
+            if (typeof AMap !== 'undefined') {
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                reject(new Error('AMap加载超时'));
+            } else {
+                setTimeout(checkAMap, 100);
             }
-        );
-    } else {
-        document.getElementById('location-text').textContent = '浏览器不支持定位';
-        getWeatherInfo(39.9042, 116.4074);
-    }
+        }
+        
+        checkAMap();
+    });
 }
 
 // 更新位置信息
 function updateLocationInfo(lat, lng) {
+    if (typeof AMap === 'undefined') {
+        document.getElementById('location-text').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        document.getElementById('city-name').textContent = '位置未获取';
+        document.getElementById('district-name').textContent = '--';
+        return;
+    }
+    
     // 使用高德地图逆地理编码
     AMap.plugin('AMap.Geocoder', function() {
         const geocoder = new AMap.Geocoder({
@@ -716,7 +751,10 @@ function updateLocationInfo(lat, lng) {
                 document.getElementById('city-name').textContent = city || province || '未知城市';
                 document.getElementById('district-name').textContent = district || '';
             } else {
+                console.error('逆地理编码失败:', status, result);
                 document.getElementById('location-text').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                document.getElementById('city-name').textContent = '位置未获取';
+                document.getElementById('district-name').textContent = '--';
             }
         });
     });
@@ -928,56 +966,95 @@ function initMap() {
             version: '2.0',
             plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']
         }).then((AMap) => {
+            // 确保地图容器有明确的高度
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                mapContainer.style.height = '100%';
+                mapContainer.style.width = '100%';
+            }
+            
             const map = new AMap.Map('map', {
                 zoom: 11,
-                center: [116.397428, 39.90923]
+                center: [116.397428, 39.90923],
+                viewMode: '2D',
+                resizeEnable: true
             });
             
             // 添加控件
-            map.addControl(new AMap.ToolBar());
+            map.addControl(new AMap.ToolBar({
+                position: 'RB'
+            }));
             map.addControl(new AMap.Scale());
             
             // 定位按钮
-            document.getElementById('locate-me').addEventListener('click', () => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lng = position.coords.longitude;
-                            const lat = position.coords.latitude;
-                            map.setCenter([lng, lat]);
-                            new AMap.Marker({
-                                position: [lng, lat],
-                                map: map
-                            });
-                        },
-                        (error) => {
-                            console.error('定位失败:', error);
-                            alert('定位失败，请检查定位权限');
-                        }
-                    );
-                }
-            });
+            const locateBtn = document.getElementById('locate-me');
+            if (locateBtn) {
+                locateBtn.addEventListener('click', () => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                const lng = position.coords.longitude;
+                                const lat = position.coords.latitude;
+                                map.setCenter([lng, lat]);
+                                new AMap.Marker({
+                                    position: [lng, lat],
+                                    map: map
+                                });
+                            },
+                            (error) => {
+                                console.error('定位失败:', error);
+                                alert('定位失败，请检查定位权限');
+                            }
+                        );
+                    }
+                });
+            }
             
             // 搜索功能
-            document.getElementById('map-search-btn').addEventListener('click', () => {
-                const keyword = document.getElementById('map-search-input').value;
-                if (keyword) {
-                    AMap.plugin('AMap.PlaceSearch', () => {
-                        const placeSearch = new AMap.PlaceSearch({
-                            map: map
+            const searchBtn = document.getElementById('map-search-btn');
+            const searchInput = document.getElementById('map-search-input');
+            
+            if (searchBtn && searchInput) {
+                searchBtn.addEventListener('click', () => {
+                    const keyword = searchInput.value.trim();
+                    if (keyword) {
+                        AMap.plugin('AMap.PlaceSearch', () => {
+                            const placeSearch = new AMap.PlaceSearch({
+                                map: map,
+                                pageSize: 5,
+                                pageIndex: 1
+                            });
+                            placeSearch.search(keyword);
                         });
-                        placeSearch.search(keyword);
-                    });
-                }
-            });
+                    }
+                });
+                
+                // 回车搜索
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchBtn.click();
+                    }
+                });
+            }
             
             // 保存map实例供其他功能使用
             window.amapInstance = map;
+            window.AMap = AMap;
+            
+            console.log('高德地图初始化完成');
         }).catch((error) => {
             console.error('高德地图加载失败:', error);
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                mapContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">地图加载失败</div>';
+            }
         });
     } else {
         console.error('AMapLoader未加载');
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">地图加载失败</div>';
+        }
     }
 }
 
