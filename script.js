@@ -550,270 +550,110 @@
 })();
 
 
-/* ========== script.js ========== */
+// script.js - 修复高德地图API加载问题
 
-// 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', function() {
-    // 更新时间
-    updateTime();
-    setInterval(updateTime, 1000);
     
-    // 更新最后更新时间
-    document.getElementById('last-update-time').textContent = new Date().toLocaleString('zh-CN');
+    // ==================== 移动端/电脑版视图切换功能 ====================
+    const viewSwitchContainer = document.getElementById('view-switch-container');
+    const viewSwitchBtn = document.getElementById('view-switch-btn');
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
     
-    // 初始化背景选择器
-    initBackgroundSelector();
+    // 检测是否为移动设备
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+               || window.innerWidth <= 768;
+    }
     
-    // 初始化待办事项
-    initTodoList();
-    
-    // 初始化地图
-    initMap();
-    
-    // 初始化智能助手
-    initAssistant();
-    
-    // 初始化视图切换
-    initViewSwitch();
-    
-    // 初始化天气和位置
-    initWeatherAndLocation();
-});
-
-
-// 待办事项功能
-function initTodoList() {
-    const addTodoBtn = document.getElementById('add-todo-btn');
-    const todoInputArea = document.getElementById('todo-input-area');
-    const todoSubmit = document.getElementById('todo-submit');
-    const todoCancel = document.getElementById('todo-cancel');
-    const todoInput = document.getElementById('todo-input');
-    const todoList = document.getElementById('todo-list');
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    
-    let todos = JSON.parse(localStorage.getItem('todos')) || [];
-    let currentFilter = 'all';
-    
-    // 显示/隐藏输入区域
-    addTodoBtn.addEventListener('click', () => {
-        todoInputArea.style.display = todoInputArea.style.display === 'none' ? 'block' : 'none';
-        if (todoInputArea.style.display === 'block') {
-            todoInput.focus();
+    // 切换到电脑版视图
+    function switchToDesktop() {
+        document.body.classList.add('desktop-mode');
+        // 修改viewport为桌面版
+        viewportMeta.setAttribute('content', 'width=1200, initial-scale=0.3, maximum-scale=2.0, user-scalable=yes');
+        
+        // 更新按钮文本
+        viewSwitchBtn.innerHTML = '<i class="fas fa-mobile-alt"></i><span>手机版</span>';
+        viewSwitchBtn.title = '切换回手机版';
+        
+        // 保存用户选择
+        localStorage.setItem('viewMode', 'desktop');
+        
+        // 重新加载地图以适应新尺寸
+        if (window.map) {
+            setTimeout(() => {
+                window.map.resize();
+            }, 300);
         }
-    });
+    }
     
-    // 取消按钮
-    todoCancel.addEventListener('click', () => {
-        todoInputArea.style.display = 'none';
-        clearTodoForm();
-    });
-    
-    // 提交待办事项
-    todoSubmit.addEventListener('click', addTodo);
-    
-    // 筛选按钮
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            renderTodos();
-        });
-    });
-    
-    function addTodo() {
-        const text = todoInput.value.trim();
-        const startTime = document.getElementById('start-time').value;
-        const endTime = document.getElementById('end-time').value;
+    // 切换到手机版视图
+    function switchToMobile() {
+        document.body.classList.remove('desktop-mode');
+        // 恢复移动端viewport
+        viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
         
-        if (!text) {
-            alert('请输入待办事项内容');
-            return;
+        // 更新按钮文本
+        viewSwitchBtn.innerHTML = '<i class="fas fa-desktop"></i><span>电脑版</span>';
+        viewSwitchBtn.title = '切换至电脑版';
+        
+        // 保存用户选择
+        localStorage.setItem('viewMode', 'mobile');
+        
+        // 重新加载地图以适应新尺寸
+        if (window.map) {
+            setTimeout(() => {
+                window.map.resize();
+            }, 300);
         }
-        
-        const todo = {
-            id: Date.now(),
-            text: text,
-            startTime: startTime,
-            endTime: endTime,
-            completed: false,
-            urgent: false
-        };
-        
-        todos.push(todo);
-        saveTodos();
-        renderTodos();
-        clearTodoForm();
-        todoInputArea.style.display = 'none';
     }
     
-    function clearTodoForm() {
-        todoInput.value = '';
-        document.getElementById('start-time').value = '';
-        document.getElementById('end-time').value = '';
-    }
-    
-    function saveTodos() {
-        localStorage.setItem('todos', JSON.stringify(todos));
-        updateFilterCounts();
-    }
-    
-    function renderTodos() {
-        todoList.innerHTML = '';
-        
-        let filteredTodos = todos;
-        if (currentFilter === 'pending') {
-            filteredTodos = todos.filter(t => !t.completed);
-        } else if (currentFilter === 'completed') {
-            filteredTodos = todos.filter(t => t.completed);
-        } else if (currentFilter === 'urgent') {
-            filteredTodos = todos.filter(t => t.urgent);
-        }
-        
-        filteredTodos.forEach(todo => {
-            const li = document.createElement('li');
-            li.className = `todo-item ${todo.urgent ? 'urgent' : ''} ${todo.completed ? 'completed' : ''}`;
-            li.innerHTML = `
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
-                <div class="todo-content">
-                    <div class="todo-title">${todo.text}</div>
-                    <div class="todo-time">
-                        ${todo.startTime ? '开始: ' + new Date(todo.startTime).toLocaleString('zh-CN') : ''}
-                        ${todo.endTime ? '<br>截止: ' + new Date(todo.endTime).toLocaleString('zh-CN') : ''}
-                    </div>
-                </div>
-                <button class="delete-todo"><i class="fas fa-trash"></i></button>
-            `;
-            
-            // 复选框事件
-            const checkbox = li.querySelector('.todo-checkbox');
-            checkbox.addEventListener('change', () => {
-                todo.completed = checkbox.checked;
-                saveTodos();
-                renderTodos();
-            });
-            
-            // 删除按钮事件
-            const deleteBtn = li.querySelector('.delete-todo');
-            deleteBtn.addEventListener('click', () => {
-                todos = todos.filter(t => t.id !== todo.id);
-                saveTodos();
-                renderTodos();
-            });
-            
-            todoList.appendChild(li);
-        });
-    }
-    
-    function updateFilterCounts() {
-        const all = todos.length;
-        const pending = todos.filter(t => !t.completed).length;
-        const completed = todos.filter(t => t.completed).length;
-        const urgent = todos.filter(t => t.urgent).length;
-        
-        filterBtns[0].textContent = `全部 (${all})`;
-        filterBtns[1].textContent = `未完成 (${pending})`;
-        filterBtns[2].textContent = `已完成 (${completed})`;
-        filterBtns[3].textContent = `紧急 (${urgent})`;
-    }
-    
-    // 初始化渲染
-    renderTodos();
-    updateFilterCounts();
-}
-
-// 地图初始化
-function initMap() {
-    // 使用AMapLoader加载高德地图
-    if (typeof AMapLoader !== 'undefined') {
-        AMapLoader.load({
-            key: '8fd12b82c18d08935bd8d829dcdb9135',
-            version: '2.0',
-            plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']
-        }).then((AMap) => {
-
-// 更新时间函数
-function updateTime() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
-    const dateString = now.toLocaleDateString('zh-CN', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        weekday: 'long' 
-    });
-    
-    document.getElementById('current-time').textContent = timeString;
-    document.getElementById('current-date').textContent = dateString;
-}
-
-// 背景选择器初始化
-function initBackgroundSelector() {
-    const bgSelector = document.getElementById('bg-selector');
-    const changeBgBtn = document.getElementById('change-bg-btn');
-    const bgOptions = document.querySelectorAll('.bg-option');
-    const bgUpload = document.getElementById('bg-upload');
-    const customBgBtn = document.getElementById('custom-bg-btn');
-    
-    // 切换背景选项显示
-    changeBgBtn.addEventListener('click', () => {
-        bgSelector.classList.toggle('expanded');
-    });
-    
-    // 点击外部关闭
-    document.addEventListener('click', (e) => {
-        if (!bgSelector.contains(e.target)) {
-            bgSelector.classList.remove('expanded');
-        }
-    });
-    
-    // 选择预设背景
-    bgOptions.forEach(option => {
-        option.addEventListener('click', () => {
-            const bg = option.dataset.bg;
-            if (bg === 'custom') {
-                bgUpload.click();
+    // 切换按钮点击事件
+    if (viewSwitchBtn) {
+        viewSwitchBtn.addEventListener('click', function() {
+            if (document.body.classList.contains('desktop-mode')) {
+                switchToMobile();
             } else {
-                setBackground(bg);
+                switchToDesktop();
             }
-            bgSelector.classList.remove('expanded');
         });
-    });
-    
-    // 自定义背景上传
-    bgUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                document.body.style.backgroundImage = `url(${event.target.result})`;
-                localStorage.setItem('customBackground', event.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-    
-    // 加载保存的自定义背景
-    const savedBg = localStorage.getItem('customBackground');
-    if (savedBg) {
-        document.body.style.backgroundImage = `url(${savedBg})`;
     }
-}
-
-// 设置背景
-function setBackground(bg) {
-    const bgUrls = {
-        nature1: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-        nature2: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-        nature3: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
-    };
     
-    if (bgUrls[bg]) {
-        document.body.style.backgroundImage = `url(${bgUrls[bg]})`;
-        localStorage.removeItem('customBackground');
+    // 页面加载时检查用户之前的视图选择
+    const savedViewMode = localStorage.getItem('viewMode');
+    if (savedViewMode === 'desktop' && isMobileDevice()) {
+        switchToDesktop();
     }
-}
-
+    
+    // ==================== 1. 时间和日期更新 ====================
+    function updateDateTime() {
+        const now = new Date();
+        
+        // 格式化时间
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const timeString = `${hours}:${minutes}:${seconds}`;
+        document.getElementById('current-time').textContent = timeString;
+        
+        // 格式化日期
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        const weekday = weekdays[now.getDay()];
+        const dateString = `${year}年${month}月${day}日 ${weekday}`;
+        document.getElementById('current-date').textContent = dateString;
+        
+        // 更新最后更新时间
+        document.getElementById('last-update-time').textContent = timeString;
+        
+        // 检查待办事项的时间
+        checkTodoDeadlines();
+    }
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
     // ==================== 2. 地理位置和天气信息 ====================
     const locationText = document.getElementById('location-text');
     const temperature = document.getElementById('temperature');
@@ -1012,7 +852,411 @@ function setBackground(bg) {
     // 初始化地理位置和天气
     getGeolocationAndWeather();
     
+    // ==================== 3. 背景图片切换 ====================
+    const bgSelector = document.getElementById('bg-selector');
+    const changeBgBtn = document.getElementById('change-bg-btn');
+    const bgOptions = document.getElementById('bg-options');
+    const customBgBtn = document.getElementById('custom-bg-btn');
+    const bgUpload = document.getElementById('bg-upload');
+    
+    // 修复：添加点击展开/收起功能
+    changeBgBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        bgSelector.classList.toggle('expanded');
+    });
+    
+    // 点击其他地方收起
+    document.addEventListener('click', function(e) {
+        if (!bgSelector.contains(e.target)) {
+            bgSelector.classList.remove('expanded');
+        }
+    });
+    
+    // 防止点击选项区域收起
+    bgOptions.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    const bgPreviews = document.querySelectorAll('.bg-option:not([data-bg="custom"])');
+    // 修改背景切换函数，确保使用正确的CSS属性
+    function changeBackgroundImage(imageUrl) {
+        document.body.style.backgroundImage = `url(${imageUrl})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+        document.body.style.backgroundAttachment = 'fixed';
+        localStorage.setItem('selectedBackground', imageUrl);
+    }
 
+    bgPreviews.forEach(option => {
+        option.addEventListener('click', function() {
+            const bgType = this.getAttribute('data-bg');
+            const bgImages = {
+                'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+                'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+                'nature3': 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
+            };
+            
+            changeBackgroundImage(bgImages[bgType]);
+            bgSelector.classList.remove('expanded');
+        });
+    });
+    
+    // 自定义背景上传
+    customBgBtn.addEventListener('click', function() {
+        bgUpload.click();
+    });
+    
+    bgUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                changeBackgroundImage(event.target.result);
+                bgSelector.classList.remove('expanded');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // 加载保存的背景
+    // 修改加载保存的背景函数
+    function loadSavedBackground() {
+        const savedBackground = localStorage.getItem('selectedBackground');
+        if (savedBackground) {
+            changeBackgroundImage(savedBackground);
+        } else {
+            // 设置默认背景
+            changeBackgroundImage('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+        }
+    }
+
+    // 在DOM加载完成后调用
+    loadSavedBackground();
+    
+    // ==================== 4. 待办事项功能 ====================
+    const todoInput = document.getElementById('todo-input');
+    const todoSubmit = document.getElementById('todo-submit');
+    const todoCancel = document.getElementById('todo-cancel');
+    const todoList = document.getElementById('todo-list');
+    const startTimeInput = document.getElementById('start-time');
+    const endTimeInput = document.getElementById('end-time');
+    const addTodoBtn = document.getElementById('add-todo-btn');
+    const todoInputArea = document.getElementById('todo-input-area');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    
+    // 设置默认时间
+    function setDefaultTimes() {
+        const now = new Date();
+        const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+        
+        startTimeInput.value = formatDateTimeLocal(now);
+        endTimeInput.value = formatDateTimeLocal(oneHourLater);
+    }
+    
+    function formatDateTimeLocal(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+    
+    // 加载待办事项
+    function loadTodos() {
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        todoList.innerHTML = '';
+        
+        // 应用当前筛选
+        const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+        
+        todos.forEach(todo => {
+            if (shouldShowTodo(todo, activeFilter)) {
+                addTodoToDOM(todo);
+            }
+        });
+        
+        updateTodoCounts();
+    }
+    
+    // 判断是否显示待办事项
+    function shouldShowTodo(todo, filter) {
+        const isCompleted = todo.completed;
+        const isUrgent = isTodoUrgent(todo);
+        
+        switch(filter) {
+            case 'all':
+                return true;
+            case 'pending':
+                return !isCompleted;
+            case 'completed':
+                return isCompleted;
+            case 'urgent':
+                return isUrgent;
+            default:
+                return true;
+        }
+    }
+    
+    // 判断是否为紧急任务
+    function isTodoUrgent(todo) {
+        if (!todo.endTime || todo.completed) return false;
+        
+        const endTime = new Date(todo.endTime);
+        const now = new Date();
+        const diffHours = (endTime - now) / (1000 * 60 * 60);
+        
+        return diffHours < 24 && diffHours > 0;
+    }
+    
+    // 获取剩余时间文本
+    function getRemainingTimeText(endTime) {
+        const end = new Date(endTime);
+        const now = new Date();
+        const diffMs = end - now;
+        
+        if (diffMs <= 0) return '已过期';
+        
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffDays > 0) {
+            return `${diffDays}天后到期`;
+        } else if (diffHours > 0) {
+            return `${diffHours}小时后到期`;
+        } else {
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            return `${diffMinutes}分钟后到期`;
+        }
+    }
+    
+    // 添加待办事项到DOM
+    function addTodoToDOM(todo) {
+        const li = document.createElement('li');
+        li.className = `todo-item ${todo.completed ? 'completed' : ''} ${isTodoUrgent(todo) ? 'urgent' : ''}`;
+        li.dataset.id = todo.id;
+        
+        const startTimeText = todo.startTime ? 
+            new Date(todo.startTime).toLocaleString('zh-CN', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '未设置';
+            
+        const endTimeText = todo.endTime ? 
+            new Date(todo.endTime).toLocaleString('zh-CN', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '未设置';
+            
+        const remainingText = todo.endTime ? getRemainingTimeText(todo.endTime) : '';
+        
+        li.innerHTML = `
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
+            <div class="todo-content">
+                <div class="todo-title">${todo.text}</div>
+                <div class="todo-time">
+                    <span>开始: ${startTimeText}</span>
+                    <span> | 截止: <span class="todo-deadline">${endTimeText}</span></span>
+                    ${remainingText ? `<span> | ${remainingText}</span>` : ''}
+                </div>
+            </div>
+            <button class="delete-todo" title="删除">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        // 事件监听器
+        const checkbox = li.querySelector('.todo-checkbox');
+        const deleteBtn = li.querySelector('.delete-todo');
+        
+        checkbox.addEventListener('change', function() {
+            li.classList.toggle('completed');
+            updateTodoStatus(todo.id, this.checked);
+            
+            if (this.checked) {
+                li.style.transform = 'translateX(5px) scale(0.98)';
+                setTimeout(() => {
+                    li.style.transform = '';
+                }, 300);
+            }
+            
+            // 重新加载以更新筛选
+            loadTodos();
+        });
+        
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            li.style.transform = 'translateX(100px)';
+            li.style.opacity = '0';
+            
+            setTimeout(() => {
+                removeTodoFromStorage(todo.id);
+                loadTodos();
+            }, 300);
+        });
+        
+        // 点击待办事项进行编辑
+        li.addEventListener('click', function(e) {
+            if (e.target !== checkbox && e.target !== deleteBtn && !deleteBtn.contains(e.target)) {
+                editTodo(todo);
+            }
+        });
+        
+        todoList.appendChild(li);
+    }
+    
+    // 编辑待办事项
+    function editTodo(todo) {
+        todoInput.value = todo.text;
+        
+        if (todo.startTime) {
+            startTimeInput.value = formatDateTimeLocal(new Date(todo.startTime));
+        }
+        
+        if (todo.endTime) {
+            endTimeInput.value = formatDateTimeLocal(new Date(todo.endTime));
+        }
+        
+        todoInputArea.style.display = 'block';
+        todoInput.focus();
+        
+        // 移除原有的待办事项
+        removeTodoFromStorage(todo.id);
+        loadTodos();
+    }
+    
+    // 更新待办事项状态
+    function updateTodoStatus(id, completed) {
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        const todoIndex = todos.findIndex(todo => todo.id === id);
+        
+        if (todoIndex !== -1) {
+            todos[todoIndex].completed = completed;
+            todos[todoIndex].completedAt = completed ? new Date().toISOString() : null;
+            localStorage.setItem('todos', JSON.stringify(todos));
+            updateTodoCounts();
+        }
+    }
+    
+    // 从存储中移除
+    function removeTodoFromStorage(id) {
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        const filteredTodos = todos.filter(todo => todo.id !== id);
+        localStorage.setItem('todos', JSON.stringify(filteredTodos));
+        updateTodoCounts();
+    }
+    
+    // 更新待办事项计数
+    function updateTodoCounts() {
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        const pending = todos.filter(t => !t.completed).length;
+        const completed = todos.filter(t => t.completed).length;
+        const urgent = todos.filter(t => isTodoUrgent(t)).length;
+        
+        document.querySelector('[data-filter="all"]').textContent = `全部 (${todos.length})`;
+        document.querySelector('[data-filter="pending"]').textContent = `未完成 (${pending})`;
+        document.querySelector('[data-filter="completed"]').textContent = `已完成 (${completed})`;
+        document.querySelector('[data-filter="urgent"]').textContent = `紧急 (${urgent})`;
+    }
+    
+    // 检查待办事项截止时间
+    function checkTodoDeadlines() {
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        const now = new Date();
+        
+        todos.forEach(todo => {
+            if (!todo.completed && todo.endTime) {
+                const endTime = new Date(todo.endTime);
+                const diffHours = (endTime - now) / (1000 * 60 * 60);
+                
+                // 1小时内即将过期的任务添加闪烁效果
+                if (diffHours > 0 && diffHours < 1) {
+                    const todoElement = document.querySelector(`.todo-item[data-id="${todo.id}"]`);
+                    if (todoElement) {
+                        todoElement.classList.add('urgent');
+                        todoElement.style.animation = 'blink 1s infinite';
+                    }
+                }
+            }
+        });
+    }
+    
+    // 添加待办事项
+    function addTodo() {
+        const text = todoInput.value.trim();
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        
+        if (!text) {
+            alert('请输入待办事项内容');
+            return;
+        }
+        
+        const todo = {
+            id: Date.now(),
+            text: text,
+            startTime: startTime ? new Date(startTime).toISOString() : null,
+            endTime: endTime ? new Date(endTime).toISOString() : null,
+            completed: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        // 保存到本地存储
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        todos.push(todo);
+        localStorage.setItem('todos', JSON.stringify(todos));
+        
+        // 重置表单
+        todoInput.value = '';
+        setDefaultTimes();
+        todoInputArea.style.display = 'none';
+        
+        // 重新加载待办事项
+        loadTodos();
+    }
+    
+    // 事件监听器
+    todoSubmit.addEventListener('click', addTodo);
+    
+    addTodoBtn.addEventListener('click', function() {
+        todoInputArea.style.display = todoInputArea.style.display === 'block' ? 'none' : 'block';
+        if (todoInputArea.style.display === 'block') {
+            todoInput.focus();
+            setDefaultTimes();
+        }
+    });
+    
+    todoCancel.addEventListener('click', function() {
+        todoInputArea.style.display = 'none';
+        todoInput.value = '';
+        setDefaultTimes();
+    });
+    
+    todoInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            addTodo();
+        }
+    });
+    
+    // 筛选功能
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            loadTodos();
+        });
+    });
+    
+    // 初始加载
+    setDefaultTimes();
+    loadTodos();
+    
     // ==================== 5. 高德地图功能 ====================
     let map = null;
     let userMarker = null;
@@ -1444,208 +1688,5 @@ function setBackground(bg) {
             sendMessage();
         }
     });
+});
 
-function initAssistant() {
-    const assistantInput = document.getElementById('assistant-input');
-    const assistantSend = document.getElementById('assistant-send');
-    const assistantMessages = document.getElementById('assistant-messages');
-    const saveApiKeyBtn = document.getElementById('save-api-key');
-    const apiKeyInput = document.getElementById('deepseek-api-key');
-    
-    // 加载保存的API密钥
-    const savedApiKey = localStorage.getItem('deepseekApiKey');
-    if (savedApiKey) {
-        apiKeyInput.value = savedApiKey;
-        updateStatus('在线', true);
-    }
-    
-    // 保存API密钥
-    saveApiKeyBtn.addEventListener('click', () => {
-        const apiKey = apiKeyInput.value.trim();
-        if (apiKey) {
-            localStorage.setItem('deepseekApiKey', apiKey);
-            updateStatus('在线', true);
-            alert('API密钥已保存');
-        }
-    });
-    
-    // 更新状态显示
-    function updateStatus(text, isOnline) {
-        const statusDot = document.getElementById('assistant-status-dot');
-        const statusText = document.getElementById('assistant-status-text');
-        
-        if (statusDot && statusText) {
-            statusDot.className = 'status-dot' + (isOnline ? ' online' : '');
-            statusText.textContent = text;
-        }
-    }
-    
-    // 添加消息到聊天区域
-    function addMessage(content, isUser = false) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-        messageDiv.innerHTML = `
-            <div class="avatar">
-                <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
-            </div>
-            <div class="content">
-                <p>${content}</p>
-                <div class="message-time">${new Date().toLocaleTimeString('zh-CN')}</div>
-            </div>
-        `;
-        assistantMessages.appendChild(messageDiv);
-        assistantMessages.scrollTop = assistantMessages.scrollHeight;
-        return messageDiv;
-    }
-    
-    // 调用Deepseek API
-    async function callDeepseekAPI(userMessage, apiKey) {
-        try {
-            const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'deepseek-chat',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: '你是一个智能助手，帮助用户解答问题。'
-                        },
-                        {
-                            role: 'user',
-                            content: userMessage
-                        }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 500
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data.choices[0].message.content;
-        } catch (error) {
-            console.error('API调用失败:', error);
-            return `抱歉，API调用失败：${error.message}。请检查API密钥是否正确。`;
-        }
-    }
-    
-    // 发送消息
-    async function sendMessage() {
-        const message = assistantInput.value.trim();
-        if (!message) return;
-        
-        // 添加用户消息
-        addMessage(message, true);
-        assistantInput.value = '';
-        
-        // 获取API密钥
-        const apiKey = localStorage.getItem('deepseekApiKey') || '';
-        
-        if (!apiKey) {
-            addMessage('请先输入并保存Deepseek API密钥。');
-            return;
-        }
-        
-        // 显示正在输入
-        const typingIndicator = addMessage('正在输入...');
-        
-        try {
-            // 调用API
-            const response = await callDeepseekAPI(message, apiKey);
-            
-            // 移除正在输入指示器
-            typingIndicator.remove();
-            
-            // 添加助手回复
-            addMessage(response);
-        } catch (error) {
-            console.error('发送消息失败:', error);
-            typingIndicator.remove();
-            addMessage('抱歉，发送消息失败，请稍后重试。');
-        }
-    }
-    
-    // 事件监听器
-    assistantSend.addEventListener('click', sendMessage);
-    
-    assistantInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-}
-
-function initViewSwitch() {
-    const viewSwitchBtn = document.getElementById('view-switch-btn');
-    const viewSwitchContainer = document.getElementById('view-switch-container');
-    
-    if (viewSwitchBtn) {
-        viewSwitchBtn.addEventListener('click', () => {
-            document.body.classList.toggle('desktop-mode');
-            const isDesktop = document.body.classList.contains('desktop-mode');
-            viewSwitchBtn.innerHTML = isDesktop ? 
-                '<i class="fas fa-mobile-alt"></i><span>手机版</span>' : 
-                '<i class="fas fa-desktop"></i><span>电脑版</span>';
-        });
-    }
-}
-
-function initWeatherAndLocation() {
-    // 获取位置信息
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                // 更新位置显示
-                updateLocationInfo(lat, lng);
-                
-                // 获取天气信息
-                getWeatherInfo(lat, lng);
-            },
-            (error) => {
-                console.error('定位失败:', error);
-                document.getElementById('location-text').textContent = '定位失败';
-                document.getElementById('city-name').textContent = '定位失败';
-                
-                // 使用默认位置（北京）获取天气
-                getWeatherInfo(39.9042, 116.4074);
-            }
-        );
-    } else {
-        document.getElementById('location-text').textContent = '浏览器不支持定位';
-        getWeatherInfo(39.9042, 116.4074);
-    }
-}
-
-    function initPoemModule() {
-        // 获取DOM元素
-        poemDisplay = document.getElementById('poem-display');
-        poemText = document.getElementById('poem-text');
-        poemInputArea = document.getElementById('poem-input-area');
-        poemInput = document.getElementById('poem-input');
-        poemSubmit = document.getElementById('poem-submit');
-        poemCancel = document.getElementById('poem-cancel');
-
-        if (!poemDisplay || !poemText) {
-            console.log('诗句模块元素未找到，跳过初始化');
-            return;
-        }
-
-        // 加载保存的诗句
-        loadPoem();
-
-        // 绑定事件
-        bindEvents();
-
-        console.log('诗句模块初始化完成');
-    }
