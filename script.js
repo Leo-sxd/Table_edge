@@ -1077,53 +1077,42 @@
             
             if (connectableParticles.length < 2) return;
             
+            // 收集所有可能的连线（带距离信息）
+            const allPossibleConnections = [];
+            
+            for (let i = 0; i < connectableParticles.length; i++) {
+                for (let j = i + 1; j < connectableParticles.length; j++) {
+                    const p1 = connectableParticles[i];
+                    const p2 = connectableParticles[j];
+                    
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    allPossibleConnections.push({
+                        p1: p1,
+                        p2: p2,
+                        distance: distance,
+                        pairKey: `${i}-${j}`
+                    });
+                }
+            }
+            
+            // 按距离排序，取最近的maxTotalConnections个
+            allPossibleConnections.sort((a, b) => a.distance - b.distance);
+            const connectionsToDraw = allPossibleConnections.slice(0, CONFIG.maxTotalConnections);
+            
+            // 绘制选中的连线
             this.mouseCtx.save();
             this.mouseCtx.strokeStyle = `rgba(${CONFIG.connectionLineColor}, ${CONFIG.connectionLineOpacity})`;
             this.mouseCtx.lineWidth = CONFIG.connectionLineWidth;
             this.mouseCtx.lineCap = 'round';
             
-            const maxConnections = CONFIG.maxConnectionsPerParticle;
-            const drawnPairs = new Set(); // 记录已绘制的连线对，避免重复
-            
-            // 为每个粒子计算最近的连接
-            for (let i = 0; i < connectableParticles.length; i++) {
-                const p1 = connectableParticles[i];
-                
-                // 计算该粒子到所有其他可连接粒子的距离
-                const distances = [];
-                for (let j = 0; j < connectableParticles.length; j++) {
-                    if (i === j) continue;
-                    
-                    const p2 = connectableParticles[j];
-                    const dx = p2.x - p1.x;
-                    const dy = p2.y - p1.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    distances.push({
-                        index: j,
-                        particle: p2,
-                        distance: distance
-                    });
-                }
-                
-                // 按距离排序，取最近的maxConnections个
-                distances.sort((a, b) => a.distance - b.distance);
-                const nearestConnections = distances.slice(0, maxConnections);
-                
-                // 绘制连线（确保不重复绘制）
-                for (const conn of nearestConnections) {
-                    // 创建唯一的连线标识（较小的索引在前）
-                    const pairKey = i < conn.index ? `${i}-${conn.index}` : `${conn.index}-${i}`;
-                    
-                    if (!drawnPairs.has(pairKey)) {
-                        drawnPairs.add(pairKey);
-                        
-                        this.mouseCtx.beginPath();
-                        this.mouseCtx.moveTo(p1.x, p1.y);
-                        this.mouseCtx.lineTo(conn.particle.x, conn.particle.y);
-                        this.mouseCtx.stroke();
-                    }
-                }
+            for (const conn of connectionsToDraw) {
+                this.mouseCtx.beginPath();
+                this.mouseCtx.moveTo(conn.p1.x, conn.p1.y);
+                this.mouseCtx.lineTo(conn.p2.x, conn.p2.y);
+                this.mouseCtx.stroke();
             }
             
             this.mouseCtx.restore();
