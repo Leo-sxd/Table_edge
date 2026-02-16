@@ -89,8 +89,8 @@
         enhancedParticleMaxSpeed: 2.0,  // 最大速度
         
         // 引力配置
-        gravityStrength: 0.8,           // 引力强度
-        gravityRadius: 120,             // 引力作用半径（px）
+        gravityStrength: 0.9,           // 引力强度
+        gravityRadius: 240,             // 引力作用半径（px）
         gravityMinDistance: 10,         // 最小引力距离（防止除零）
         
         // 挣脱配置
