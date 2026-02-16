@@ -83,7 +83,7 @@
         mouseTrailDecay: 0.05,          // 衰减速度
         
         // 增强彩色粒子配置
-        enhancedParticleCount: 15,      // 粒子数量
+        enhancedParticleCount: 35,      // 粒子数量
         enhancedParticleSize: 4,        // 粒子大小
         enhancedParticleMinSpeed: 0.5,  // 最小速度
         enhancedParticleMaxSpeed: 2.0,  // 最大速度
