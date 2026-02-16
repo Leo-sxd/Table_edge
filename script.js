@@ -556,10 +556,8 @@
     // ==================== 粒子系统管理器 ====================
     class ParticleSystem {
         constructor() {
-            this.staticCanvas = null;      // 静止星星canvas (底层)
+            this.staticCanvas = null;      // 静止星星和布朗粒子canvas (底层)
             this.staticCtx = null;
-            this.brownianCanvas = null;    // 布朗粒子canvas (中层)
-            this.brownianCtx = null;
             this.particleCanvas = null;    // 移动星星canvas (顶层)
             this.particleCtx = null;
             this.particles = [];
@@ -602,23 +600,6 @@
                 z-index: 0;
             `;
             
-            // 创建布朗粒子canvas (中层, z-index: 500)
-            this.brownianCanvas = document.createElement('canvas');
-            this.brownianCanvas.id = 'brownian-particles-canvas';
-            this.brownianCtx = this.brownianCanvas.getContext('2d');
-            this.brownianCanvas.width = viewport.width;
-            this.brownianCanvas.height = viewport.height;
-            
-            this.brownianCanvas.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-                z-index: 500;
-            `;
-            
             // 创建移动星星canvas (顶层, z-index: 999999)
             this.particleCanvas = document.createElement('canvas');
             this.particleCanvas.id = 'particles-canvas';
@@ -636,9 +617,8 @@
                 z-index: 999999;
             `;
             
-            // 按顺序插入canvas：底层 -> 中层 -> 顶层
+            // 按顺序插入canvas：底层 -> 顶层
             document.body.insertBefore(this.staticCanvas, document.body.firstChild);
-            document.body.insertBefore(this.brownianCanvas, document.body.firstChild);
             document.body.insertBefore(this.particleCanvas, document.body.firstChild);
         }
 
@@ -697,11 +677,9 @@
         handleResize() {
             const viewport = getViewportSize();
             
-            // 调整三个canvas的大小
+            // 调整两个canvas的大小
             this.staticCanvas.width = viewport.width;
             this.staticCanvas.height = viewport.height;
-            this.brownianCanvas.width = viewport.width;
-            this.brownianCanvas.height = viewport.height;
             this.particleCanvas.width = viewport.width;
             this.particleCanvas.height = viewport.height;
             
@@ -745,13 +723,10 @@
                 star.draw(this.staticCtx);
             });
             
-            // 清空布朗粒子画布（防止轨迹）
-            this.brownianCtx.clearRect(0, 0, this.brownianCanvas.width, this.brownianCanvas.height);
-            
-            // 绘制布朗粒子到中层canvas
+            // 绘制布朗粒子到底层canvas（和静止星星同一层）
             this.brownianParticles.forEach(particle => {
                 particle.update();
-                particle.draw(this.brownianCtx);
+                particle.draw(this.staticCtx);
             });
             
             // 绘制移动流星到顶层canvas
@@ -781,9 +756,6 @@
             this.pause();
             if (this.staticCanvas && this.staticCanvas.parentNode) {
                 this.staticCanvas.parentNode.removeChild(this.staticCanvas);
-            }
-            if (this.brownianCanvas && this.brownianCanvas.parentNode) {
-                this.brownianCanvas.parentNode.removeChild(this.brownianCanvas);
             }
             if (this.particleCanvas && this.particleCanvas.parentNode) {
                 this.particleCanvas.parentNode.removeChild(this.particleCanvas);
@@ -819,8 +791,7 @@
 
     function initParticles() {
         if (document.getElementById('particles-canvas') || 
-            document.getElementById('static-stars-canvas') ||
-            document.getElementById('brownian-particles-canvas')) {
+            document.getElementById('static-stars-canvas')) {
             console.log('粒子效果已存在');
             return;
         }
