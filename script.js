@@ -261,35 +261,28 @@
             ctx.restore();
         }
 
-        // 绘制五角星
+        // 绘制四角星（菱形）
         drawStar(ctx, cx, cy, outerRadius, opacity) {
-            const innerRadius = outerRadius * 0.4; // 内半径为外半径的40%
-            const spikes = 5;
-            let rot = Math.PI / 2 * 3;
-            let x = cx;
-            let y = cy;
-            const step = Math.PI / spikes;
-
+            // 绘制四角星（菱形）
             ctx.beginPath();
+            
+            // 四角星的四个顶点
+            // 0度（上）
             ctx.moveTo(cx, cy - outerRadius);
-            for (let i = 0; i < spikes; i++) {
-                x = cx + Math.cos(rot) * outerRadius;
-                y = cy + Math.sin(rot) * outerRadius;
-                ctx.lineTo(x, y);
-                rot += step;
-
-                x = cx + Math.cos(rot) * innerRadius;
-                y = cy + Math.sin(rot) * innerRadius;
-                ctx.lineTo(x, y);
-                rot += step;
-            }
-            ctx.lineTo(cx, cy - outerRadius);
+            // 90度（右）
+            ctx.lineTo(cx + outerRadius, cy);
+            // 180度（下）
+            ctx.lineTo(cx, cy + outerRadius);
+            // 270度（左）
+            ctx.lineTo(cx - outerRadius, cy);
+            
             ctx.closePath();
             
+            // 填充星星
             ctx.fillStyle = `rgba(${CONFIG.color}, ${opacity})`;
             ctx.fill();
             
-            // 添加星星发光效果
+            // 添加发光效果
             const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerRadius * 2);
             gradient.addColorStop(0, `rgba(${CONFIG.color}, ${opacity * 0.5})`);
             gradient.addColorStop(1, `rgba(${CONFIG.color}, 0)`);
@@ -330,24 +323,30 @@
 
             ctx.save();
             
-            // 绘制静态星星（简单的圆形带发光）
+            // 绘制四角星（菱形）
+            const size = this.size;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y - size);
+            ctx.lineTo(this.x + size, this.y);
+            ctx.lineTo(this.x, this.y + size);
+            ctx.lineTo(this.x - size, this.y);
+            ctx.closePath();
+            
+            ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`;
+            ctx.fill();
+            
+            // 添加发光效果
             const gradient = ctx.createRadialGradient(
                 this.x, this.y, 0,
-                this.x, this.y, this.size * 3
+                this.x, this.y, size * 3
             );
-            gradient.addColorStop(0, `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`);
-            gradient.addColorStop(0.3, `rgba(${CONFIG.staticStarColor}, ${currentOpacity * 0.5})`);
+            gradient.addColorStop(0, `rgba(${CONFIG.staticStarColor}, ${currentOpacity * 0.5})`);
+            gradient.addColorStop(0.3, `rgba(${CONFIG.staticStarColor}, ${currentOpacity * 0.2})`);
             gradient.addColorStop(1, `rgba(${CONFIG.staticStarColor}, 0)`);
             
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // 绘制星星核心
-            ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, size * 3, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.restore();
@@ -576,6 +575,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化视图切换
     initViewSwitch();
+    
+    // 初始化天气和位置
+    initWeatherAndLocation();
 });
 
 // 更新时间函数
@@ -658,6 +660,122 @@ function setBackground(bg) {
         document.body.style.backgroundImage = `url(${bgUrls[bg]})`;
         localStorage.removeItem('customBackground');
     }
+}
+
+// 天气和位置初始化
+function initWeatherAndLocation() {
+    // 获取位置信息
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                // 更新位置显示
+                updateLocationInfo(lat, lng);
+                
+                // 获取天气信息
+                getWeatherInfo(lat, lng);
+            },
+            (error) => {
+                console.error('定位失败:', error);
+                document.getElementById('location-text').textContent = '定位失败';
+                document.getElementById('city-name').textContent = '定位失败';
+                
+                // 使用默认位置（北京）获取天气
+                getWeatherInfo(39.9042, 116.4074);
+            }
+        );
+    } else {
+        document.getElementById('location-text').textContent = '浏览器不支持定位';
+        getWeatherInfo(39.9042, 116.4074);
+    }
+}
+
+// 更新位置信息
+function updateLocationInfo(lat, lng) {
+    // 使用高德地图逆地理编码
+    AMap.plugin('AMap.Geocoder', function() {
+        const geocoder = new AMap.Geocoder({
+            radius: 1000,
+            extensions: 'all'
+        });
+        
+        geocoder.getAddress([lng, lat], function(status, result) {
+            if (status === 'complete' && result.regeocode) {
+                const address = result.regeocode.addressComponent;
+                const province = address.province || '';
+                const city = address.city || address.province || '';
+                const district = address.district || '';
+                const street = address.street || '';
+                const streetNumber = address.streetNumber || '';
+                
+                // 更新位置显示
+                const locationText = `${province} ${city} ${district} ${street}${streetNumber}`;
+                document.getElementById('location-text').textContent = locationText.trim();
+                document.getElementById('city-name').textContent = city || province || '未知城市';
+                document.getElementById('district-name').textContent = district || '';
+            } else {
+                document.getElementById('location-text').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            }
+        });
+    });
+}
+
+// 获取天气信息
+async function getWeatherInfo(lat, lng) {
+    try {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=auto`);
+        
+        if (!response.ok) {
+            throw new Error('天气API请求失败');
+        }
+        
+        const data = await response.json();
+        
+        if (data.current) {
+            const temp = Math.round(data.current.temperature_2m);
+            const weatherCode = data.current.weather_code;
+            
+            // 更新温度
+            document.getElementById('temperature').textContent = `${temp}°C`;
+            
+            // 更新天气描述和图标
+            const weatherInfo = getWeatherDescription(weatherCode);
+            document.getElementById('weather-description').textContent = weatherInfo.description;
+            document.getElementById('weather-icon').className = `fas ${weatherInfo.icon}`;
+        }
+    } catch (error) {
+        console.error('获取天气信息失败:', error);
+        document.getElementById('temperature').textContent = '--°C';
+        document.getElementById('weather-description').textContent = '获取失败';
+    }
+}
+
+// 天气代码转描述和图标
+function getWeatherDescription(code) {
+    const weatherMap = {
+        0: { description: '晴朗', icon: 'fa-sun' },
+        1: { description: '多云', icon: 'fa-cloud-sun' },
+        2: { description: '多云', icon: 'fa-cloud-sun' },
+        3: { description: '阴天', icon: 'fa-cloud' },
+        45: { description: '雾', icon: 'fa-smog' },
+        48: { description: '雾凇', icon: 'fa-smog' },
+        51: { description: '毛毛雨', icon: 'fa-cloud-rain' },
+        53: { description: '小雨', icon: 'fa-cloud-rain' },
+        55: { description: '中雨', icon: 'fa-cloud-showers-heavy' },
+        61: { description: '小雨', icon: 'fa-cloud-rain' },
+        63: { description: '中雨', icon: 'fa-cloud-showers-heavy' },
+        65: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
+        71: { description: '小雪', icon: 'fa-snowflake' },
+        73: { description: '中雪', icon: 'fa-snowflake' },
+        75: { description: '大雪', icon: 'fa-snowflake' },
+        95: { description: '雷雨', icon: 'fa-bolt' },
+        96: { description: '雷阵雨', icon: 'fa-bolt' },
+        99: { description: '强雷雨', icon: 'fa-bolt' }
+    };
+    
+    return weatherMap[code] || { description: '未知', icon: 'fa-question' };
 }
 
 // 待办事项功能
@@ -803,46 +921,63 @@ function initTodoList() {
 
 // 地图初始化
 function initMap() {
-    // 高德地图初始化
-    if (typeof AMap !== 'undefined') {
-        const map = new AMap.Map('map', {
-            zoom: 11,
-            center: [116.397428, 39.90923]
-        });
-        
-        // 定位按钮
-        document.getElementById('locate-me').addEventListener('click', () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lng = position.coords.longitude;
-                        const lat = position.coords.latitude;
-                        map.setCenter([lng, lat]);
-                        new AMap.Marker({
-                            position: [lng, lat],
+    // 使用AMapLoader加载高德地图
+    if (typeof AMapLoader !== 'undefined') {
+        AMapLoader.load({
+            key: '8fd12b82c18d08935bd8d829dcdb9135',
+            version: '2.0',
+            plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']
+        }).then((AMap) => {
+            const map = new AMap.Map('map', {
+                zoom: 11,
+                center: [116.397428, 39.90923]
+            });
+            
+            // 添加控件
+            map.addControl(new AMap.ToolBar());
+            map.addControl(new AMap.Scale());
+            
+            // 定位按钮
+            document.getElementById('locate-me').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lng = position.coords.longitude;
+                            const lat = position.coords.latitude;
+                            map.setCenter([lng, lat]);
+                            new AMap.Marker({
+                                position: [lng, lat],
+                                map: map
+                            });
+                        },
+                        (error) => {
+                            console.error('定位失败:', error);
+                            alert('定位失败，请检查定位权限');
+                        }
+                    );
+                }
+            });
+            
+            // 搜索功能
+            document.getElementById('map-search-btn').addEventListener('click', () => {
+                const keyword = document.getElementById('map-search-input').value;
+                if (keyword) {
+                    AMap.plugin('AMap.PlaceSearch', () => {
+                        const placeSearch = new AMap.PlaceSearch({
                             map: map
                         });
-                    },
-                    (error) => {
-                        console.error('定位失败:', error);
-                        alert('定位失败，请检查定位权限');
-                    }
-                );
-            }
-        });
-        
-        // 搜索功能
-        document.getElementById('map-search-btn').addEventListener('click', () => {
-            const keyword = document.getElementById('map-search-input').value;
-            if (keyword) {
-                AMap.plugin('AMap.PlaceSearch', () => {
-                    const placeSearch = new AMap.PlaceSearch({
-                        map: map
+                        placeSearch.search(keyword);
                     });
-                    placeSearch.search(keyword);
-                });
-            }
+                }
+            });
+            
+            // 保存map实例供其他功能使用
+            window.amapInstance = map;
+        }).catch((error) => {
+            console.error('高德地图加载失败:', error);
         });
+    } else {
+        console.error('AMapLoader未加载');
     }
 }
 
@@ -858,6 +993,7 @@ function initAssistant() {
     const savedApiKey = localStorage.getItem('deepseekApiKey');
     if (savedApiKey) {
         apiKeyInput.value = savedApiKey;
+        updateStatus('在线', true);
     }
     
     // 保存API密钥
@@ -865,9 +1001,21 @@ function initAssistant() {
         const apiKey = apiKeyInput.value.trim();
         if (apiKey) {
             localStorage.setItem('deepseekApiKey', apiKey);
+            updateStatus('在线', true);
             alert('API密钥已保存');
         }
     });
+    
+    // 更新状态显示
+    function updateStatus(text, isOnline) {
+        const statusDot = document.getElementById('assistant-status-dot');
+        const statusText = document.getElementById('assistant-status-text');
+        
+        if (statusDot && statusText) {
+            statusDot.className = 'status-dot' + (isOnline ? ' online' : '');
+            statusText.textContent = text;
+        }
+    }
     
     // 添加消息到聊天区域
     function addMessage(content, isUser = false) {
@@ -879,6 +1027,7 @@ function initAssistant() {
             </div>
             <div class="content">
                 <p>${content}</p>
+                <div class="message-time">${new Date().toLocaleTimeString('zh-CN')}</div>
             </div>
         `;
         assistantMessages.appendChild(messageDiv);
@@ -935,6 +1084,11 @@ function initAssistant() {
         
         // 获取API密钥
         const apiKey = localStorage.getItem('deepseekApiKey') || '';
+        
+        if (!apiKey) {
+            addMessage('请先输入并保存Deepseek API密钥。');
+            return;
+        }
         
         // 显示正在输入
         const typingIndicator = addMessage('正在输入...');
