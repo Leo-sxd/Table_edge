@@ -702,21 +702,28 @@ function initWeatherAndLocation() {
 // 等待AMap加载完成
 function waitForAMap() {
     return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 50; // 最多等待5秒
-        
-        function checkAMap() {
-            attempts++;
-            if (typeof AMap !== 'undefined') {
-                resolve();
-            } else if (attempts >= maxAttempts) {
-                reject(new Error('AMap加载超时'));
-            } else {
-                setTimeout(checkAMap, 100);
-            }
+        // 如果AMap已加载，直接resolve
+        if (typeof AMap !== 'undefined') {
+            resolve();
+            return;
         }
         
-        checkAMap();
+        // 监听地图加载完成事件
+        const onAmapLoaded = (e) => {
+            window.removeEventListener('amapLoaded', onAmapLoaded);
+            resolve();
+        };
+        window.addEventListener('amapLoaded', onAmapLoaded);
+        
+        // 超时处理
+        setTimeout(() => {
+            window.removeEventListener('amapLoaded', onAmapLoaded);
+            if (typeof AMap !== 'undefined') {
+                resolve();
+            } else {
+                reject(new Error('AMap加载超时'));
+            }
+        }, 10000); // 10秒超时
     });
 }
 
@@ -960,9 +967,9 @@ function initTodoList() {
 // 地图初始化
 function initMap() {
     // 使用AMapLoader加载高德地图
+    // 注意：安全密钥已在HTML中通过 _AMapSecurityConfig 配置
     if (typeof AMapLoader !== 'undefined') {
         AMapLoader.load({
-            key: '8fd12b82c18d08935bd8d829dcdb9135',
             version: '2.0',
             plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']
         }).then((AMap) => {
@@ -1042,6 +1049,9 @@ function initMap() {
             window.AMap = AMap;
             
             console.log('高德地图初始化完成');
+            
+            // 触发自定义事件通知其他组件地图已加载
+            window.dispatchEvent(new CustomEvent('amapLoaded', { detail: { AMap: AMap, map: map } }));
         }).catch((error) => {
             console.error('高德地图加载失败:', error);
             const mapContainer = document.getElementById('map');
