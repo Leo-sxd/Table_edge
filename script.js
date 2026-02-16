@@ -421,8 +421,10 @@
     // ==================== 粒子系统管理器 ====================
     class ParticleSystem {
         constructor() {
-            this.canvas = null;
-            this.ctx = null;
+            this.staticCanvas = null;      // 静止星星canvas (底层)
+            this.staticCtx = null;
+            this.particleCanvas = null;    // 移动星星canvas (顶层)
+            this.particleCtx = null;
             this.particles = [];
             this.staticStars = [];
             this.animationId = null;
@@ -442,16 +444,33 @@
         }
 
         createCanvas() {
-            this.canvas = document.createElement('canvas');
-            this.canvas.id = 'particles-canvas';
-            this.ctx = this.canvas.getContext('2d');
-            
             const viewport = getViewportSize();
-            this.canvas.width = viewport.width;
-            this.canvas.height = viewport.height;
             
-            // 设置Canvas样式
-            this.canvas.style.cssText = `
+            // 创建静止星星canvas (底层, z-index: 0)
+            this.staticCanvas = document.createElement('canvas');
+            this.staticCanvas.id = 'static-stars-canvas';
+            this.staticCtx = this.staticCanvas.getContext('2d');
+            this.staticCanvas.width = viewport.width;
+            this.staticCanvas.height = viewport.height;
+            
+            this.staticCanvas.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 0;
+            `;
+            
+            // 创建移动星星canvas (顶层, z-index: 999999)
+            this.particleCanvas = document.createElement('canvas');
+            this.particleCanvas.id = 'particles-canvas';
+            this.particleCtx = this.particleCanvas.getContext('2d');
+            this.particleCanvas.width = viewport.width;
+            this.particleCanvas.height = viewport.height;
+            
+            this.particleCanvas.style.cssText = `
                 position: fixed;
                 top: 0;
                 left: 0;
@@ -461,7 +480,9 @@
                 z-index: 999999;
             `;
             
-            document.body.insertBefore(this.canvas, document.body.firstChild);
+            // 先插入底层canvas，再插入顶层canvas
+            document.body.insertBefore(this.staticCanvas, document.body.firstChild);
+            document.body.insertBefore(this.particleCanvas, document.body.firstChild);
         }
 
         createParticles() {
@@ -509,8 +530,12 @@
 
         handleResize() {
             const viewport = getViewportSize();
-            this.canvas.width = viewport.width;
-            this.canvas.height = viewport.height;
+            
+            // 调整两个canvas的大小
+            this.staticCanvas.width = viewport.width;
+            this.staticCanvas.height = viewport.height;
+            this.particleCanvas.width = viewport.width;
+            this.particleCanvas.height = viewport.height;
             
             // 重新生成静态星星以适应新尺寸
             this.createStaticStars();
@@ -523,23 +548,26 @@
 
             const viewport = getViewportSize();
             
-            // 清空画布
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            // 清空静态星星画布
+            this.staticCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
             
-            // 先绘制静态星星（在最底层）
+            // 清空移动星星画布
+            this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
+            
+            // 绘制静态星星到底层canvas
             this.staticStars.forEach(star => {
                 star.update();
                 // Check if star completed full cycle and should reset
                 if (star.shouldReset()) {
                     star.resetWithNewPosition();
                 }
-                star.draw(this.ctx);
+                star.draw(this.staticCtx);
             });
             
-            // 再绘制移动流星
+            // 绘制移动流星到顶层canvas
             this.particles.forEach(particle => {
                 particle.update(viewport.width, viewport.height);
-                particle.draw(this.ctx);
+                particle.draw(this.particleCtx);
             });
 
             this.animationId = requestAnimationFrame(() => this.animate());
@@ -561,8 +589,11 @@
 
         destroy() {
             this.pause();
-            if (this.canvas && this.canvas.parentNode) {
-                this.canvas.parentNode.removeChild(this.canvas);
+            if (this.staticCanvas && this.staticCanvas.parentNode) {
+                this.staticCanvas.parentNode.removeChild(this.staticCanvas);
+            }
+            if (this.particleCanvas && this.particleCanvas.parentNode) {
+                this.particleCanvas.parentNode.removeChild(this.particleCanvas);
             }
         }
 
@@ -594,7 +625,7 @@
     }
 
     function initParticles() {
-        if (document.getElementById('particles-canvas')) {
+        if (document.getElementById('particles-canvas') || document.getElementById('static-stars-canvas')) {
             console.log('粒子效果已存在');
             return;
         }
