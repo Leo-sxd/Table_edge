@@ -1082,16 +1082,47 @@
             this.mouseCtx.lineWidth = CONFIG.connectionLineWidth;
             this.mouseCtx.lineCap = 'round';
             
-            // 在被捕获的粒子之间绘制连线
+            const maxConnections = CONFIG.maxConnectionsPerParticle;
+            const drawnPairs = new Set(); // 记录已绘制的连线对，避免重复
+            
+            // 为每个粒子计算最近的连接
             for (let i = 0; i < connectableParticles.length; i++) {
-                for (let j = i + 1; j < connectableParticles.length; j++) {
-                    const p1 = connectableParticles[i];
-                    const p2 = connectableParticles[j];
+                const p1 = connectableParticles[i];
+                
+                // 计算该粒子到所有其他可连接粒子的距离
+                const distances = [];
+                for (let j = 0; j < connectableParticles.length; j++) {
+                    if (i === j) continue;
                     
-                    this.mouseCtx.beginPath();
-                    this.mouseCtx.moveTo(p1.x, p1.y);
-                    this.mouseCtx.lineTo(p2.x, p2.y);
-                    this.mouseCtx.stroke();
+                    const p2 = connectableParticles[j];
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    distances.push({
+                        index: j,
+                        particle: p2,
+                        distance: distance
+                    });
+                }
+                
+                // 按距离排序，取最近的maxConnections个
+                distances.sort((a, b) => a.distance - b.distance);
+                const nearestConnections = distances.slice(0, maxConnections);
+                
+                // 绘制连线（确保不重复绘制）
+                for (const conn of nearestConnections) {
+                    // 创建唯一的连线标识（较小的索引在前）
+                    const pairKey = i < conn.index ? `${i}-${conn.index}` : `${conn.index}-${i}`;
+                    
+                    if (!drawnPairs.has(pairKey)) {
+                        drawnPairs.add(pairKey);
+                        
+                        this.mouseCtx.beginPath();
+                        this.mouseCtx.moveTo(p1.x, p1.y);
+                        this.mouseCtx.lineTo(conn.particle.x, conn.particle.y);
+                        this.mouseCtx.stroke();
+                    }
                 }
             }
             
