@@ -104,7 +104,7 @@
         friction: 0.98,                 // 摩擦力
         
         // 粒子连线配置
-        connectionLineOpacity: 0.4,     // 连线透明度
+        connectionLineOpacity: 0.1,     // 连线透明度
         connectionLineColor: '255, 255, 255', // 连线颜色（白色）
         connectionLineWidth: 1,         // 连线宽度
         connectionReleaseDelay: 1000    // 挣脱后保持连线时间（毫秒）
