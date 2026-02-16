@@ -662,468 +662,560 @@ function setBackground(bg) {
     }
 }
 
-// 天气和位置初始化
-function initWeatherAndLocation() {
-    // 等待AMap加载完成
-    waitForAMap().then(() => {
-        // 获取位置信息
+    // ==================== 2. 地理位置和天气信息 ====================
+    const locationText = document.getElementById('location-text');
+    const temperature = document.getElementById('temperature');
+    const weatherDesc = document.getElementById('weather-description');
+    const cityName = document.getElementById('city-name');
+    const districtName = document.getElementById('district-name');
+    const weatherIcon = document.getElementById('weather-icon');
+    
+    // 存储当前位置信息
+    let currentPosition = { lat: 39.9042, lon: 116.4074 };
+    
+    // 获取地理位置和天气
+    async function getGeolocationAndWeather() {
+        // 首先尝试从本地存储获取位置
+        const savedLocation = localStorage.getItem('userLocation');
+        
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                async (position) => {
                     const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
+                    const lon = position.coords.longitude;
+                    currentPosition = { lat, lon };
                     
                     // 更新位置显示
-                    updateLocationInfo(lat, lng);
+                    locationText.textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+                    cityName.textContent = '位置获取中';
+                    
+                    // 保存位置
+                    localStorage.setItem('userLocation', JSON.stringify({
+                        lat: lat,
+                        lon: lon,
+                        timestamp: Date.now()
+                    }));
                     
                     // 获取天气信息
-                    getWeatherInfo(lat, lng);
+                    await getWeather(lat, lon);
+                    
+                    // 使用高德地图逆地理编码获取城市和区域信息
+                    await getLocationInfoFromAMap(lon, lat);
+                    
+                    // 初始化地图中心点
+                    if (window.map) {
+                        window.map.setCenter([lon, lat]);
+                        addUserMarker(lon, lat);
+                    }
                 },
                 (error) => {
-                    console.error('定位失败:', error);
-                    document.getElementById('location-text').textContent = '定位失败';
-                    document.getElementById('city-name').textContent = '定位失败';
-                    document.getElementById('district-name').textContent = '--';
+                    console.log('获取位置失败，使用默认位置:', error);
+                    // 使用默认位置（北京）
+                    const defaultLat = 39.9042;
+                    const defaultLon = 116.4074;
+                    currentPosition = { lat: defaultLat, lon: defaultLon };
                     
-                    // 使用默认位置（北京）获取天气
-                    getWeatherInfo(39.9042, 116.4074);
+                    locationText.textContent = `纬度: ${defaultLat.toFixed(2)}, 经度: ${defaultLon.toFixed(2)} (默认)`;
+                    getWeather(defaultLat, defaultLon);
+                    
+                    // 使用默认位置获取城市信息
+                    getLocationInfoFromAMap(defaultLon, defaultLat);
+                    
+                    if (window.map) {
+                        window.map.setCenter([defaultLon, defaultLat]);
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
                 }
             );
         } else {
-            document.getElementById('location-text').textContent = '浏览器不支持定位';
-            getWeatherInfo(39.9042, 116.4074);
+            // 浏览器不支持地理定位
+            locationText.textContent = '浏览器不支持地理定位';
+            getWeather(39.9042, 116.4074); // 默认北京
+            getLocationInfoFromAMap(116.4074, 39.9042);
         }
-    }).catch((error) => {
-        console.error('AMap加载失败:', error);
-        document.getElementById('location-text').textContent = '地图服务加载失败';
-    });
-}
-
-// 等待AMap加载完成
-function waitForAMap() {
-    return new Promise((resolve, reject) => {
-        // 如果AMap已加载，直接resolve
-        if (typeof AMap !== 'undefined') {
-            resolve();
-            return;
-        }
-        
-        // 监听地图加载完成事件
-        const onAmapLoaded = (e) => {
-            window.removeEventListener('amapLoaded', onAmapLoaded);
-            resolve();
-        };
-        window.addEventListener('amapLoaded', onAmapLoaded);
-        
-        // 超时处理
-        setTimeout(() => {
-            window.removeEventListener('amapLoaded', onAmapLoaded);
-            if (typeof AMap !== 'undefined') {
-                resolve();
-            } else {
-                reject(new Error('AMap加载超时'));
-            }
-        }, 10000); // 10秒超时
-    });
-}
-
-// 更新位置信息
-function updateLocationInfo(lat, lng) {
-    if (typeof AMap === 'undefined') {
-        document.getElementById('location-text').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        document.getElementById('city-name').textContent = '位置未获取';
-        document.getElementById('district-name').textContent = '--';
-        return;
     }
     
-    // 使用高德地图逆地理编码
-    AMap.plugin('AMap.Geocoder', function() {
-        const geocoder = new AMap.Geocoder({
-            radius: 1000,
-            extensions: 'all'
-        });
-        
-        geocoder.getAddress([lng, lat], function(status, result) {
-            if (status === 'complete' && result.regeocode) {
-                const address = result.regeocode.addressComponent;
-                const province = address.province || '';
-                const city = address.city || address.province || '';
-                const district = address.district || '';
-                const street = address.street || '';
-                const streetNumber = address.streetNumber || '';
-                
-                // 更新位置显示
-                const locationText = `${province} ${city} ${district} ${street}${streetNumber}`;
-                document.getElementById('location-text').textContent = locationText.trim();
-                document.getElementById('city-name').textContent = city || province || '未知城市';
-                document.getElementById('district-name').textContent = district || '';
-            } else {
-                console.error('逆地理编码失败:', status, result);
-                document.getElementById('location-text').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                document.getElementById('city-name').textContent = '位置未获取';
-                document.getElementById('district-name').textContent = '--';
-            }
-        });
-    });
-}
-
-// 获取天气信息
-async function getWeatherInfo(lat, lng) {
-    try {
-        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=auto`);
-        
-        if (!response.ok) {
-            throw new Error('天气API请求失败');
-        }
-        
-        const data = await response.json();
-        
-        if (data.current) {
-            const temp = Math.round(data.current.temperature_2m);
-            const weatherCode = data.current.weather_code;
-            
-            // 更新温度
-            document.getElementById('temperature').textContent = `${temp}°C`;
-            
-            // 更新天气描述和图标
-            const weatherInfo = getWeatherDescription(weatherCode);
-            document.getElementById('weather-description').textContent = weatherInfo.description;
-            document.getElementById('weather-icon').className = `fas ${weatherInfo.icon}`;
-        }
-    } catch (error) {
-        console.error('获取天气信息失败:', error);
-        document.getElementById('temperature').textContent = '--°C';
-        document.getElementById('weather-description').textContent = '获取失败';
-    }
-}
-
-// 天气代码转描述和图标
-function getWeatherDescription(code) {
-    const weatherMap = {
-        0: { description: '晴朗', icon: 'fa-sun' },
-        1: { description: '多云', icon: 'fa-cloud-sun' },
-        2: { description: '多云', icon: 'fa-cloud-sun' },
-        3: { description: '阴天', icon: 'fa-cloud' },
-        45: { description: '雾', icon: 'fa-smog' },
-        48: { description: '雾凇', icon: 'fa-smog' },
-        51: { description: '毛毛雨', icon: 'fa-cloud-rain' },
-        53: { description: '小雨', icon: 'fa-cloud-rain' },
-        55: { description: '中雨', icon: 'fa-cloud-showers-heavy' },
-        61: { description: '小雨', icon: 'fa-cloud-rain' },
-        63: { description: '中雨', icon: 'fa-cloud-showers-heavy' },
-        65: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
-        71: { description: '小雪', icon: 'fa-snowflake' },
-        73: { description: '中雪', icon: 'fa-snowflake' },
-        75: { description: '大雪', icon: 'fa-snowflake' },
-        95: { description: '雷雨', icon: 'fa-bolt' },
-        96: { description: '雷阵雨', icon: 'fa-bolt' },
-        99: { description: '强雷雨', icon: 'fa-bolt' }
-    };
-    
-    return weatherMap[code] || { description: '未知', icon: 'fa-question' };
-}
-
-// 待办事项功能
-function initTodoList() {
-    const addTodoBtn = document.getElementById('add-todo-btn');
-    const todoInputArea = document.getElementById('todo-input-area');
-    const todoSubmit = document.getElementById('todo-submit');
-    const todoCancel = document.getElementById('todo-cancel');
-    const todoInput = document.getElementById('todo-input');
-    const todoList = document.getElementById('todo-list');
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    
-    let todos = JSON.parse(localStorage.getItem('todos')) || [];
-    let currentFilter = 'all';
-    
-    // 显示/隐藏输入区域
-    addTodoBtn.addEventListener('click', () => {
-        todoInputArea.style.display = todoInputArea.style.display === 'none' ? 'block' : 'none';
-        if (todoInputArea.style.display === 'block') {
-            todoInput.focus();
-        }
-    });
-    
-    // 取消按钮
-    todoCancel.addEventListener('click', () => {
-        todoInputArea.style.display = 'none';
-        clearTodoForm();
-    });
-    
-    // 提交待办事项
-    todoSubmit.addEventListener('click', addTodo);
-    
-    // 筛选按钮
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            renderTodos();
-        });
-    });
-    
-    function addTodo() {
-        const text = todoInput.value.trim();
-        const startTime = document.getElementById('start-time').value;
-        const endTime = document.getElementById('end-time').value;
-        
-        if (!text) {
-            alert('请输入待办事项内容');
-            return;
-        }
-        
-        const todo = {
-            id: Date.now(),
-            text: text,
-            startTime: startTime,
-            endTime: endTime,
-            completed: false,
-            urgent: false
-        };
-        
-        todos.push(todo);
-        saveTodos();
-        renderTodos();
-        clearTodoForm();
-        todoInputArea.style.display = 'none';
-    }
-    
-    function clearTodoForm() {
-        todoInput.value = '';
-        document.getElementById('start-time').value = '';
-        document.getElementById('end-time').value = '';
-    }
-    
-    function saveTodos() {
-        localStorage.setItem('todos', JSON.stringify(todos));
-        updateFilterCounts();
-    }
-    
-    function renderTodos() {
-        todoList.innerHTML = '';
-        
-        let filteredTodos = todos;
-        if (currentFilter === 'pending') {
-            filteredTodos = todos.filter(t => !t.completed);
-        } else if (currentFilter === 'completed') {
-            filteredTodos = todos.filter(t => t.completed);
-        } else if (currentFilter === 'urgent') {
-            filteredTodos = todos.filter(t => t.urgent);
-        }
-        
-        filteredTodos.forEach(todo => {
-            const li = document.createElement('li');
-            li.className = `todo-item ${todo.urgent ? 'urgent' : ''} ${todo.completed ? 'completed' : ''}`;
-            li.innerHTML = `
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
-                <div class="todo-content">
-                    <div class="todo-title">${todo.text}</div>
-                    <div class="todo-time">
-                        ${todo.startTime ? '开始: ' + new Date(todo.startTime).toLocaleString('zh-CN') : ''}
-                        ${todo.endTime ? '<br>截止: ' + new Date(todo.endTime).toLocaleString('zh-CN') : ''}
-                    </div>
-                </div>
-                <button class="delete-todo"><i class="fas fa-trash"></i></button>
-            `;
-            
-            // 复选框事件
-            const checkbox = li.querySelector('.todo-checkbox');
-            checkbox.addEventListener('change', () => {
-                todo.completed = checkbox.checked;
-                saveTodos();
-                renderTodos();
-            });
-            
-            // 删除按钮事件
-            const deleteBtn = li.querySelector('.delete-todo');
-            deleteBtn.addEventListener('click', () => {
-                todos = todos.filter(t => t.id !== todo.id);
-                saveTodos();
-                renderTodos();
-            });
-            
-            todoList.appendChild(li);
-        });
-    }
-    
-    function updateFilterCounts() {
-        const all = todos.length;
-        const pending = todos.filter(t => !t.completed).length;
-        const completed = todos.filter(t => t.completed).length;
-        const urgent = todos.filter(t => t.urgent).length;
-        
-        filterBtns[0].textContent = `全部 (${all})`;
-        filterBtns[1].textContent = `未完成 (${pending})`;
-        filterBtns[2].textContent = `已完成 (${completed})`;
-        filterBtns[3].textContent = `紧急 (${urgent})`;
-    }
-    
-    // 初始化渲染
-    renderTodos();
-    updateFilterCounts();
-}
-
-// 地图初始化
-function initMap() {
-    // 使用AMapLoader加载高德地图
-    // 注意：安全密钥已在HTML中通过 _AMapSecurityConfig 配置
-    if (typeof AMapLoader !== 'undefined') {
-        AMapLoader.load({
-            version: '2.0',
-            plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']
-        }).then((AMap) => {
-            // 确保地图容器有明确的高度
-            const mapContainer = document.getElementById('map');
-            if (mapContainer) {
-                mapContainer.style.height = '100%';
-                mapContainer.style.width = '100%';
+    // 使用高德地图逆地理编码获取城市和区域信息
+    async function getLocationInfoFromAMap(lng, lat) {
+        try {
+            // 等待AMap加载完成
+            if (typeof AMap === 'undefined') {
+                console.log('AMap未加载，等待中...');
+                setTimeout(() => getLocationInfoFromAMap(lng, lat), 1000);
+                return;
             }
             
-            const map = new AMap.Map('map', {
-                zoom: 11,
-                center: [116.397428, 39.90923],
-                viewMode: '2D',
-                resizeEnable: true
-            });
-            
-            // 添加控件
-            map.addControl(new AMap.ToolBar({
-                position: 'RB'
-            }));
-            map.addControl(new AMap.Scale());
-            
-            // 定位按钮
-            const locateBtn = document.getElementById('locate-me');
-            if (locateBtn) {
-                locateBtn.addEventListener('click', () => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                const lng = position.coords.longitude;
-                                const lat = position.coords.latitude;
-                                map.setCenter([lng, lat]);
-                                new AMap.Marker({
-                                    position: [lng, lat],
-                                    map: map
-                                });
-                            },
-                            (error) => {
-                                console.error('定位失败:', error);
-                                alert('定位失败，请检查定位权限');
-                            }
-                        );
-                    }
-                });
-            }
-            
-            // 搜索功能
-            const searchBtn = document.getElementById('map-search-btn');
-            const searchInput = document.getElementById('map-search-input');
-            
-            if (searchBtn && searchInput) {
-                searchBtn.addEventListener('click', () => {
-                    const keyword = searchInput.value.trim();
-                    if (keyword) {
-                        AMap.plugin('AMap.PlaceSearch', () => {
-                            const placeSearch = new AMap.PlaceSearch({
-                                map: map,
-                                pageSize: 5,
-                                pageIndex: 1
-                            });
-                            placeSearch.search(keyword);
-                        });
-                    }
+            // 加载逆地理编码插件
+            AMap.plugin(['AMap.Geocoder'], function() {
+                const geocoder = new AMap.Geocoder({
+                    radius: 1000,
+                    extensions: 'all'
                 });
                 
-                // 回车搜索
-                searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        searchBtn.click();
+                geocoder.getAddress([lng, lat], function(status, result) {
+                    if (status === 'complete' && result.regeocode) {
+                        const addressComponent = result.regeocode.addressComponent;
+                        const province = addressComponent.province || '';
+                        const city = addressComponent.city || addressComponent.province || '未知城市';
+                        const district = addressComponent.district || '';
+                        const street = addressComponent.street || '';
+                        const streetNumber = addressComponent.streetNumber || '';
+                        
+                        // 更新城市名称
+                        cityName.textContent = city;
+                        
+                        // 更新区域名称
+                        if (district) {
+                            districtName.textContent = district;
+                            districtName.style.display = 'block';
+                        } else {
+                            districtName.style.display = 'none';
+                        }
+                        
+                        // 更新位置显示
+                        const locationDetail = `${province} ${city} ${district} ${street}${streetNumber}`.trim();
+                        locationText.textContent = locationDetail || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        
+                        console.log('位置信息:', { province, city, district, street, streetNumber });
+                    } else {
+                        console.log('逆地理编码失败:', status, result);
+                        cityName.textContent = '位置获取失败';
+                        districtName.style.display = 'none';
                     }
                 });
+            });
+        } catch (error) {
+            console.error('获取位置信息失败:', error);
+            cityName.textContent = '位置获取失败';
+            districtName.style.display = 'none';
+        }
+    }
+    
+    // 获取天气和城市信息
+    async function getWeather(lat, lon) {
+        try {
+            // 使用Open-Meteo作为天气API（免费无需密钥）
+            const openMeteoResponse = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
+            );
+            
+            if (!openMeteoResponse.ok) {
+                throw new Error('天气API请求失败');
             }
             
-            // 保存map实例供其他功能使用
-            window.amapInstance = map;
-            window.AMap = AMap;
-            
-            console.log('高德地图初始化完成');
-            
-            // 触发自定义事件通知其他组件地图已加载
-            window.dispatchEvent(new CustomEvent('amapLoaded', { detail: { AMap: AMap, map: map } }));
-        }).catch((error) => {
-            console.error('高德地图加载失败:', error);
-            const mapContainer = document.getElementById('map');
-            if (mapContainer) {
-                mapContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">地图加载失败</div>';
+            const openMeteoData = await openMeteoResponse.json();
+            if (openMeteoData.current) {
+                const temp = Math.round(openMeteoData.current.temperature_2m);
+                const weatherCode = openMeteoData.current.weather_code;
+                
+                temperature.textContent = `${temp}°C`;
+                const { description, icon } = getWeatherInfo(weatherCode);
+                weatherDesc.textContent = description;
+                weatherIcon.className = `fas ${icon}`;
             }
-        });
-    } else {
-        console.error('AMapLoader未加载');
+        } catch (error) {
+            console.error('获取天气信息失败:', error);
+            // 使用模拟数据作为最终后备
+            temperature.textContent = '25°C';
+            weatherDesc.textContent = '晴朗';
+            weatherIcon.className = 'fas fa-sun';
+        }
+    }
+    
+    // 根据天气代码获取描述和图标
+    function getWeatherInfo(code) {
+        const weatherMap = {
+            0: { description: '晴朗', icon: 'fa-sun' },
+            1: { description: '大部分晴朗', icon: 'fa-sun' },
+            2: { description: '部分多云', icon: 'fa-cloud-sun' },
+            3: { description: '多云', icon: 'fa-cloud' },
+            45: { description: '雾', icon: 'fa-smog' },
+            48: { description: '雾', icon: 'fa-smog' },
+            51: { description: '小雨', icon: 'fa-cloud-rain' },
+            53: { description: '中雨', icon: 'fa-cloud-rain' },
+            55: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
+            61: { description: '小雨', icon: 'fa-cloud-rain' },
+            63: { description: '中雨', icon: 'fa-cloud-rain' },
+            65: { description: '大雨', icon: 'fa-cloud-showers-heavy' },
+            71: { description: '小雪', icon: 'fa-snowflake' },
+            73: { description: '中雪', icon: 'fa-snowflake' },
+            75: { description: '大雪', icon: 'fa-snowflake' },
+            80: { description: '阵雨', icon: 'fa-cloud-rain' },
+            81: { description: '强阵雨', icon: 'fa-cloud-showers-heavy' },
+            82: { description: '暴雨', icon: 'fa-poo-storm' },
+            85: { description: '阵雪', icon: 'fa-snowflake' },
+            86: { description: '强阵雪', icon: 'fa-snowflake' },
+            95: { description: '雷雨', icon: 'fa-bolt' },
+            96: { description: '雷暴雨', icon: 'fa-bolt' },
+            99: { description: '强雷暴雨', icon: 'fa-bolt' }
+        };
+        
+        return weatherMap[code] || { description: '未知', icon: 'fa-question' };
+    }
+    
+    // 初始化地理位置和天气
+    getGeolocationAndWeather();
+    
+
+    // ==================== 5. 高德地图功能 ====================
+    let map = null;
+    let userMarker = null;
+    let trafficLayer = null;
+    
+    // 显示地图错误信息
+    function showMapError(message) {
         const mapContainer = document.getElementById('map');
         if (mapContainer) {
-            mapContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">地图加载失败</div>';
+            mapContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%); border-radius: 10px; padding: 30px; color: white;">
+                    <i class="fas fa-map-marked-alt" style="font-size: 64px; margin-bottom: 20px; opacity: 0.9;"></i>
+                    <h3 style="margin-bottom: 15px; font-size: 1.5rem;">地图服务暂时不可用</h3>
+                    <p style="text-align: center; margin-bottom: 20px; font-size: 1rem; opacity: 0.9;">${message}</p>
+                    
+                    <div style="background: rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px); max-width: 500px; width: 100%;">
+                        <h4 style="margin-bottom: 15px; font-size: 1.1rem;">配置指南：</h4>
+                        <ol style="text-align: left; margin-left: 20px; font-size: 0.9rem; line-height: 1.6;">
+                            <li style="margin-bottom: 10px;">
+                                <strong>获取API密钥：</strong><br>
+                                访问 <a href="https://lbs.amap.com/" target="_blank" style="color: #a8c5ff; text-decoration: underline;">高德开放平台</a> 
+                                注册账号  控制台  创建新应用  添加Key
+                            </li>
+                            <li style="margin-bottom: 10px;">
+                                <strong>配置密钥：</strong><br>
+                                在 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">index.html</code> 中<br>
+                                替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_SECURITY_CODE_HERE</code> 为你的安全密钥
+                            </li>
+                            <li style="margin-bottom: 10px;">
+                                <strong>Key配置：</strong><br>
+                                在JS代码中替换 <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">YOUR_AMAP_KEY_HERE</code> 为你的应用Key
+                            </li>
+                            <li>
+                                <strong>服务类型：</strong><br>
+                                创建应用时选择 "Web端(JS API)"
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <button onclick="location.reload()" style="margin-top: 25px; padding: 10px 25px; background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); color: white; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
+                        <i class="fas fa-redo" style="margin-right: 8px;"></i>重新加载地图
+                    </button>
+                </div>
+            `;
         }
     }
-}
-
-// 智能助手初始化
-function initAssistant() {
+    
+    // 添加用户标记
+    function addUserMarker(lng, lat) {
+        if (!window.map) return;
+        
+        if (userMarker) {
+            window.map.remove(userMarker);
+        }
+        
+        userMarker = new AMap.Marker({
+            position: [lng, lat],
+            title: '我的位置',
+            icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+            zIndex: 1000
+        });
+        
+        window.map.add(userMarker);
+        
+        // 信息窗口
+        const infoWindow = new AMap.InfoWindow({
+            content: `<div style="padding: 10px; min-width: 200px;">
+                <h4 style="margin: 0 0 5px 0;">我的位置</h4>
+                <p style="margin: 0; font-size: 12px; color: #666;">经度: ${lng.toFixed(6)}</p>
+                <p style="margin: 0; font-size: 12px; color: #666;">纬度: ${lat.toFixed(6)}</p>
+            </div>`,
+            offset: new AMap.Pixel(0, -30)
+        });
+        
+        infoWindow.open(window.map, [lng, lat]);
+    }
+    
+    // 搜索地点
+    function searchPlace() {
+        if (!window.map) return;
+        
+        const keyword = document.getElementById('map-search-input').value.trim();
+        if (!keyword) {
+            alert('请输入搜索关键词');
+            return;
+        }
+        
+        // 清除之前的标记
+        if (userMarker) {
+            window.map.remove(userMarker);
+            userMarker = null;
+        }
+        
+        // 使用插件方式加载PlaceSearch
+        AMap.plugin(['AMap.PlaceSearch'], function() {
+            const placeSearch = new AMap.PlaceSearch({
+                pageSize: 10,
+                pageIndex: 1,
+                city: '全国',
+                map: window.map
+            });
+            
+            placeSearch.search(keyword, function(status, result) {
+                if (status === 'complete' && result.info === 'OK') {
+                    const pois = result.poiList.pois;
+                    if (pois.length > 0) {
+                        const poi = pois[0];
+                        
+                        // 添加标记
+                        userMarker = new AMap.Marker({
+                            position: [poi.location.lng, poi.location.lat],
+                            title: poi.name,
+                            icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_red.png'
+                        });
+                        
+                        window.map.add(userMarker);
+                        window.map.setCenter([poi.location.lng, poi.location.lat]);
+                        window.map.setZoom(15);
+                        
+                        // 信息窗口
+                        const infoWindow = new AMap.InfoWindow({
+                            content: `<div style="padding: 10px; min-width: 200px;">
+                                <h4 style="margin: 0 0 5px 0;">${poi.name}</h4>
+                                <p style="margin: 0; font-size: 12px; color: #666;">${poi.address || '地址未提供'}</p>
+                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${poi.tel || '电话未提供'}</p>
+                            </div>`,
+                            offset: new AMap.Pixel(0, -30)
+                        });
+                        
+                        infoWindow.open(window.map, userMarker.getPosition());
+                    }
+                } else {
+                    alert('未找到相关地点');
+                }
+            });
+        });
+    }
+    
+    // 初始化地图 - 使用JS API Loader
+    function initMap() {
+        // 检查AMapLoader是否可用
+        if (typeof AMapLoader === 'undefined') {
+            showMapError('高德地图加载器未加载，请检查网络连接');
+            return;
+        }
+        
+        // 使用JS API Loader加载地图
+        AMapLoader.load({
+            key: "9e661689052df99b5468cfbabfa35824", // 申请好的Web端开发者 Key，调用 load 时必填
+            version: "2.0", //指定要加载的 JS API 的版本，缺省时默认为 1.4.15
+            plugins: ['AMap.PlaceSearch', 'AMap.TileLayer.Traffic', 'AMap.Geocoder'] // 需要使用的插件列表
+        })
+        .then((AMap) => {
+            // 初始化地图 - 使用用户位置或默认位置
+            const savedLocation = localStorage.getItem('userLocation');
+            let center = [116.397428, 39.90923]; // 北京默认
+            
+            if (savedLocation) {
+                try {
+                    const location = JSON.parse(savedLocation);
+                    center = [location.lon || location.lng || 116.397428, location.lat || 39.90923];
+                } catch (e) {
+                    console.error('解析保存的位置失败:', e);
+                }
+            }
+            
+            // 创建地图实例 - JS API 2.0 默认自带缩放控件，无需手动添加
+            window.map = new AMap.Map('map', {
+                zoom: 13,
+                center: center,
+                viewMode: '2D'
+            });
+            
+            console.log('高德地图初始化成功');
+            
+            // 如果已有用户位置，添加标记并获取位置信息
+            if (savedLocation) {
+                try {
+                    const location = JSON.parse(savedLocation);
+                    addUserMarker(location.lon || location.lng, location.lat);
+                    // 获取位置信息
+                    getLocationInfoFromAMap(location.lon || location.lng, location.lat);
+                } catch (e) {
+                    console.error('添加用户标记失败:', e);
+                }
+            }
+            
+            // 定位按钮
+            document.getElementById('locate-me').addEventListener('click', function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const lng = position.coords.longitude;
+                        const lat = position.coords.latitude;
+                        currentPosition = { lat, lon: lng };
+                        
+                        // 更新地图中心
+                        window.map.setCenter([lng, lat]);
+                        window.map.setZoom(15);
+                        
+                        // 添加标记
+                        addUserMarker(lng, lat);
+                        
+                        // 更新位置显示
+                        locationText.textContent = `纬度: ${lat.toFixed(2)}, 经度: ${lng.toFixed(2)}`;
+                        
+                        // 获取天气信息
+                        getWeather(lat, lng);
+                        
+                        // 获取城市和区域信息
+                        getLocationInfoFromAMap(lng, lat);
+                        
+                        // 保存位置
+                        localStorage.setItem('userLocation', JSON.stringify({
+                            lat: lat,
+                            lon: lng,
+                            timestamp: Date.now()
+                        }));
+                        
+                    }, function(error) {
+                        alert('无法获取您的位置: ' + error.message);
+                    });
+                } else {
+                    alert('您的浏览器不支持地理定位功能');
+                }
+            });
+            
+            // 实时路况切换
+            document.getElementById('traffic-toggle').addEventListener('click', function() {
+                if (!trafficLayer) {
+                    trafficLayer = new AMap.TileLayer.Traffic({
+                        zIndex: 10
+                    });
+                    window.map.add(trafficLayer);
+                    this.style.backgroundColor = '#4a6fa5';
+                    this.style.color = 'white';
+                } else {
+                    window.map.remove(trafficLayer);
+                    trafficLayer = null;
+                    this.style.backgroundColor = '';
+                    this.style.color = '';
+                }
+            });
+            
+            // 搜索功能
+            document.getElementById('map-search-btn').addEventListener('click', searchPlace);
+            document.getElementById('map-search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchPlace();
+                }
+            });
+        })
+        .catch((e) => {
+            console.error('高德地图加载失败:', e);
+            showMapError('高德地图加载失败: ' + (e.message || '请检查Key和安全密钥配置'));
+        });
+    }
+    
+    // 延迟初始化地图，确保页面完全加载
+    setTimeout(initMap, 500);
+    
+    // ==================== 6. DeepSeek AI 集成 ====================
     const assistantInput = document.getElementById('assistant-input');
     const assistantSend = document.getElementById('assistant-send');
     const assistantMessages = document.getElementById('assistant-messages');
-    const saveApiKeyBtn = document.getElementById('save-api-key');
+    const statusDot = document.getElementById('assistant-status-dot');
+    const statusText = document.getElementById('assistant-status-text');
     const apiKeyInput = document.getElementById('deepseek-api-key');
+    const saveApiKeyBtn = document.getElementById('save-api-key');
     
     // 加载保存的API密钥
-    const savedApiKey = localStorage.getItem('deepseekApiKey');
+    const savedApiKey = localStorage.getItem('deepseekApiKey') || '';
     if (savedApiKey) {
         apiKeyInput.value = savedApiKey;
-        updateStatus('在线', true);
+        updateAssistantStatus(true);
     }
     
     // 保存API密钥
-    saveApiKeyBtn.addEventListener('click', () => {
+    saveApiKeyBtn.addEventListener('click', function() {
         const apiKey = apiKeyInput.value.trim();
         if (apiKey) {
             localStorage.setItem('deepseekApiKey', apiKey);
-            updateStatus('在线', true);
-            alert('API密钥已保存');
+            alert('API密钥已保存到本地');
+            updateAssistantStatus(true);
+        } else {
+            alert('请输入API密钥');
         }
     });
     
-    // 更新状态显示
-    function updateStatus(text, isOnline) {
-        const statusDot = document.getElementById('assistant-status-dot');
-        const statusText = document.getElementById('assistant-status-text');
-        
-        if (statusDot && statusText) {
-            statusDot.className = 'status-dot' + (isOnline ? ' online' : '');
-            statusText.textContent = text;
+    // 更新助手状态
+    function updateAssistantStatus(connected) {
+        if (connected) {
+            statusDot.classList.add('online');
+            statusText.textContent = '在线';
+            statusText.style.color = '#8c00ff';
+        } else {
+            statusDot.classList.remove('online');
+            statusText.textContent = '离线';
+            statusText.style.color = '#e74c3c';
         }
     }
     
-    // 添加消息到聊天区域
+    // 添加消息到对话
     function addMessage(content, isUser = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+        
+        const avatarIcon = isUser ? 'fas fa-user' : 'fas fa-robot';
+        const timestamp = new Date().toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
         messageDiv.innerHTML = `
             <div class="avatar">
-                <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
+                <i class="${avatarIcon}"></i>
             </div>
             <div class="content">
                 <p>${content}</p>
-                <div class="message-time">${new Date().toLocaleTimeString('zh-CN')}</div>
+                <div class="message-time">${timestamp}</div>
             </div>
         `;
+        
         assistantMessages.appendChild(messageDiv);
         assistantMessages.scrollTop = assistantMessages.scrollHeight;
+        
+        // 添加动画
+        messageDiv.style.opacity = '0';
+        messageDiv.style.transform = isUser ? 'translateX(20px)' : 'translateX(-20px)';
+        
+        setTimeout(() => {
+            messageDiv.style.opacity = '1';
+            messageDiv.style.transform = 'translateX(0)';
+        }, 10);
+        
         return messageDiv;
     }
     
-    // 调用Deepseek API
+    // 调用DeepSeek API
     async function callDeepseekAPI(userMessage, apiKey) {
+        // 如果没有API密钥，使用模拟响应
+        if (!apiKey) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const responses = [
+                        `您的问题是："${userMessage}"。这是一个很有价值的问题，让我为您详细解答。目前我使用的是模拟响应，请配置API密钥以获取真实AI响应。`,
+                        `关于"${userMessage}"，我建议您从以下几个方面考虑：首先明确目标，然后制定计划，最后执行并评估结果。`,
+                        `"${userMessage}"是一个有趣的话题，我可以为您提供一些见解。不过要获取更准确的信息，建议您配置API密钥。`,
+                        `感谢您的问题！关于"${userMessage}"，我认为重要的是保持开放的心态，多角度思考问题。`
+                    ];
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    resolve(randomResponse);
+                }, 1000);
+            });
+        }
+        
         try {
             const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
                 method: 'POST',
@@ -1172,11 +1264,6 @@ function initAssistant() {
         // 获取API密钥
         const apiKey = localStorage.getItem('deepseekApiKey') || '';
         
-        if (!apiKey) {
-            addMessage('请先输入并保存Deepseek API密钥。');
-            return;
-        }
-        
         // 显示正在输入
         const typingIndicator = addMessage('正在输入...');
         
@@ -1205,275 +1292,5 @@ function initAssistant() {
             sendMessage();
         }
     });
-}
-
-// 视图切换功能
-function initViewSwitch() {
-    const viewSwitchBtn = document.getElementById('view-switch-btn');
-    const viewSwitchContainer = document.getElementById('view-switch-container');
-    
-    if (viewSwitchBtn) {
-        viewSwitchBtn.addEventListener('click', () => {
-            document.body.classList.toggle('desktop-mode');
-            const isDesktop = document.body.classList.contains('desktop-mode');
-            viewSwitchBtn.innerHTML = isDesktop ? 
-                '<i class="fas fa-mobile-alt"></i><span>手机版</span>' : 
-                '<i class="fas fa-desktop"></i><span>电脑版</span>';
-        });
-    }
-}
 
 
-/* ========== poem.js ========== */
-
-/**
- * 自定义诗句模块
- * Poem Module JavaScript
- * 
- * 功能：允许用户输入、编辑、保存自定义诗句
- * 数据持久化：使用localStorage保存
- */
-
-(function() {
-    'use strict';
-
-    // 诗句模块配置
-    const POEM_CONFIG = {
-        storageKey: 'user_custom_poem',
-        defaultText: '点击编辑您的专属诗句...',
-        maxLength: 100
-    };
-
-    // DOM元素引用
-    let poemDisplay, poemText, poemInputArea, poemInput, 
-        poemSubmit, poemCancel;
-
-    /**
-     * 初始化诗句模块
-     */
-    function initPoemModule() {
-        // 获取DOM元素
-        poemDisplay = document.getElementById('poem-display');
-        poemText = document.getElementById('poem-text');
-        poemInputArea = document.getElementById('poem-input-area');
-        poemInput = document.getElementById('poem-input');
-        poemSubmit = document.getElementById('poem-submit');
-        poemCancel = document.getElementById('poem-cancel');
-
-        if (!poemDisplay || !poemText) {
-            console.log('诗句模块元素未找到，跳过初始化');
-            return;
-        }
-
-        // 加载保存的诗句
-        loadPoem();
-
-        // 绑定事件
-        bindEvents();
-
-        console.log('诗句模块初始化完成');
-    }
-
-    /**
-     * 绑定事件处理
-     */
-    function bindEvents() {
-        // 点击显示区域进入编辑模式
-        poemDisplay.addEventListener('click', enterEditMode);
-
-        // 保存按钮
-        poemSubmit.addEventListener('click', savePoem);
-
-        // 取消按钮
-        poemCancel.addEventListener('click', cancelEdit);
-
-        // 输入框回车保存（Ctrl+Enter）
-        poemInput.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'Enter') {
-                savePoem();
-            } else if (e.key === 'Escape') {
-                cancelEdit();
-            }
-        });
-
-        // 输入框实时字符计数
-        poemInput.addEventListener('input', function() {
-            const currentLength = this.value.length;
-            if (currentLength >= POEM_CONFIG.maxLength) {
-                this.style.borderColor = '#ff6b6b';
-            } else {
-                this.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-            }
-        });
-    }
-
-    /**
-     * 进入编辑模式
-     */
-    function enterEditMode() {
-        const currentText = poemText.textContent;
-        
-        // 如果显示的是默认文本，输入框留空
-        if (currentText === POEM_CONFIG.defaultText) {
-            poemInput.value = '';
-        } else {
-            poemInput.value = currentText;
-        }
-
-        // 切换显示
-        poemDisplay.style.display = 'none';
-        poemInputArea.style.display = 'flex';
-
-        // 聚焦输入框
-        setTimeout(() => {
-            poemInput.focus();
-            poemInput.select();
-        }, 10);
-    }
-
-    /**
-     * 保存诗句
-     */
-    function savePoem() {
-        const text = poemInput.value.trim();
-
-        // 输入验证
-        if (!text) {
-            // 空内容，显示提示
-            poemInput.style.borderColor = '#ff6b6b';
-            poemInput.placeholder = '请输入内容后再保存...';
-            
-            // 3秒后恢复
-            setTimeout(() => {
-                poemInput.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                poemInput.placeholder = '请输入您的诗句...';
-            }, 3000);
-            return;
-        }
-
-        // 长度验证
-        if (text.length > POEM_CONFIG.maxLength) {
-            alert('诗句长度不能超过' + POEM_CONFIG.maxLength + '个字符');
-            return;
-        }
-
-        // 保存到localStorage
-        try {
-            localStorage.setItem(POEM_CONFIG.storageKey, text);
-            console.log('诗句已保存');
-        } catch (e) {
-            console.warn('localStorage不可用，诗句仅在当前会话有效');
-        }
-
-        // 更新显示
-        poemText.textContent = text;
-
-        // 切换回显示模式
-        exitEditMode();
-
-        // 显示保存成功动画
-        showSaveAnimation();
-    }
-
-    /**
-     * 取消编辑
-     */
-    function cancelEdit() {
-        exitEditMode();
-    }
-
-    /**
-     * 退出编辑模式
-     */
-    function exitEditMode() {
-        poemInputArea.style.display = 'none';
-        poemDisplay.style.display = 'block';
-    }
-
-    /**
-     * 加载保存的诗句
-     */
-    function loadPoem() {
-        let savedPoem = null;
-
-        try {
-            savedPoem = localStorage.getItem(POEM_CONFIG.storageKey);
-        } catch (e) {
-            console.warn('无法访问localStorage');
-        }
-
-        if (savedPoem && savedPoem.trim()) {
-            poemText.textContent = savedPoem;
-        } else {
-            poemText.textContent = POEM_CONFIG.defaultText;
-        }
-    }
-
-    /**
-     * 显示保存成功动画
-     */
-    function showSaveAnimation() {
-        poemText.style.transition = 'all 0.3s ease';
-        poemText.style.textShadow = '0 0 20px rgba(102, 126, 234, 0.8)';
-        
-        setTimeout(() => {
-            poemText.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
-        }, 1000);
-    }
-
-    /**
-     * 公共API - 供外部调用
-     */
-    window.PoemModule = {
-        /**
-         * 获取当前诗句
-         * @returns {string} 当前诗句内容
-         */
-        getPoem: function() {
-            const text = poemText.textContent;
-            return text === POEM_CONFIG.defaultText ? '' : text;
-        },
-
-        /**
-         * 设置诗句
-         * @param {string} text - 诗句内容
-         */
-        setPoem: function(text) {
-            if (text && text.trim()) {
-                poemText.textContent = text.trim();
-                try {
-                    localStorage.setItem(POEM_CONFIG.storageKey, text.trim());
-                } catch (e) {
-                    console.warn('无法保存到localStorage');
-                }
-            }
-        },
-
-        /**
-         * 清除诗句
-         */
-        clearPoem: function() {
-            poemText.textContent = POEM_CONFIG.defaultText;
-            try {
-                localStorage.removeItem(POEM_CONFIG.storageKey);
-            } catch (e) {
-                console.warn('无法清除localStorage');
-            }
-        },
-
-        /**
-         * 进入编辑模式
-         */
-        edit: function() {
-            enterEditMode();
-        }
-    };
-
-    // DOM加载完成后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPoemModule);
-    } else {
-        initPoemModule();
-    }
-
-})();
