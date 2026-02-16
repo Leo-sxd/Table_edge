@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta name="msvalidate.01" content="C48BE0F8A13E763DD4C338229FC520B5" />
@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简约多功能面板</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 整合后的样式文件 -->
     <link rel="stylesheet" href="/Table_edge/style.css">
 <!-- 高德地图API - 使用JS API Loader加载 -->
 <script type="text/javascript">
@@ -45,6 +46,21 @@
                     <span id="location-text">正在获取位置...</span>
                 </p>
             </div>
+            
+            <!-- 自定义诗句模块 -->
+            <div class="poem-section">
+                <div class="poem-display" id="poem-display">
+                    <p class="poem-text" id="poem-text">点击编辑您的专属诗句...</p>
+                </div>
+                <div class="poem-input-area" id="poem-input-area" style="display: none;">
+                    <textarea id="poem-input" placeholder="请输入您的诗句..." maxlength="100"></textarea>
+                    <div class="poem-actions">
+                        <button id="poem-submit" class="poem-btn">保存</button>
+                        <button id="poem-cancel" class="poem-btn cancel">取消</button>
+                    </div>
+                </div>
+            </div>
+            
             <div class="header-right">
                 <div class="weather-info">
                     <div class="weather-icon">
@@ -195,7 +211,7 @@
         </button>
     </div>
     
-    <script src="/Table_edge/particles.js"></script>
+    <!-- 整合后的JavaScript文件 -->
     <script src="/Table_edge/script.js"></script>
 </body>
 </html>
