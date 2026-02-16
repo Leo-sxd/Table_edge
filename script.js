@@ -59,7 +59,7 @@
         staticStarColor: '255, 255, 255', // 静态星星颜色
         
         // 彩色布朗运动粒子配置
-        brownianParticleCount: 25,      // 布朗粒子数量
+        brownianParticleCount: 50,      // 布朗粒子数量
         brownianParticleSize: 3,        // 粒子大小（3像素）
         brownianParticleOpacity: 0.9,   // 粒子透明度（高透明度确保清晰可见）
         brownianMovementSpeed: 0.8,     // 布朗运动速度
