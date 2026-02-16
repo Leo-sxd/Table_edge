@@ -1,10 +1,11 @@
 /**
- * 星星粒子效果 - 轻量级 Canvas 实现（优化版 + 精确拖尾效果）
+ * 星星粒子效果 - 轻量级 Canvas 实现（优化版 + 精确拖尾效果 + 静态闪烁星星）
  * 特性：
  * - 2.4-6像素大小的星星形状（放大20%）
  * - 30%-70%透明度
- * - 随机漂浮动画
+ * - 随机漂浮动画（移动流星效果）
  * - 精确控制拖尾长度：星星本体宽度的8-12倍
+ * - 静态闪烁星星效果：在页面80%高度范围内随机位置闪烁
  * - 性能优化：requestAnimationFrame
  * - 移动端优化：解决初始加载边缘聚集问题
  */
@@ -14,7 +15,8 @@
 
     // 粒子系统配置
     const CONFIG = {
-        particleCount: 10,        // 粒子数量（适中，不影响性能）
+        // 移动流星（Particle）配置
+        particleCount: 60,        // 粒子数量（适中，不影响性能）
         minSize: 2.4,             // 最小粒子大小（像素）- 放大20%
         maxSize: 6,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
@@ -29,7 +31,18 @@
         trailOpacity: 0.35,       // 拖尾透明度
         trailWidth: 1.5,          // 拖尾基础宽度
         trailLengthMin: 8,        // 拖尾长度倍数（最小）
-        trailLengthMax: 12        // 拖尾长度倍数（最大）
+        trailLengthMax: 12,       // 拖尾长度倍数（最大）
+        
+        // 静态闪烁星星（StaticStar）配置
+        staticStarCount: 40,      // 静态星星数量
+        staticStarMinSize: 1.5,   // 静态星星最小大小
+        staticStarMaxSize: 3.5,   // 静态星星最大大小
+        staticStarMinOpacity: 0.1,// 静态星星最小透明度
+        staticStarMaxOpacity: 0.8,// 静态星星最大透明度
+        staticStarHeightPercent: 0.8, // 出现范围：页面高度的80%
+        staticStarTwinkleMin: 0.01,   // 最小闪烁速度
+        staticStarTwinkleMax: 0.03,   // 最大闪烁速度
+        staticStarColor: '255, 255, 255' // 静态星星颜色
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -45,7 +58,7 @@
         return { width, height };
     }
 
-    // 粒子类
+    // ==================== 移动流星类（原有效果，完全保留）====================
     class Particle {
         constructor(canvasWidth, canvasHeight) {
             this.canvasWidth = canvasWidth;
@@ -296,12 +309,159 @@
         }
     }
 
-    // 粒子系统管理器
+    // ==================== 静态闪烁星星类（新增效果）====================
+    /**
+     * StaticStar - 静态闪烁星星类
+     * 特性：
+     * - 在页面80%高度范围内随机位置出现
+     * - 仅呈现静态闪烁效果，无移动
+     * - 若隐若现的呼吸式透明度变化
+     */
+    class StaticStar {
+        constructor(canvasWidth, canvasHeight) {
+            this.canvasWidth = canvasWidth;
+            this.canvasHeight = canvasHeight;
+            this.reset();
+        }
+
+        reset() {
+            const viewport = getViewportSize();
+            
+            // 在100%宽度范围内随机位置
+            this.x = Math.random() * viewport.width;
+            
+            // 在80%高度范围内随机位置（从上到下80%）
+            const maxHeight = viewport.height * CONFIG.staticStarHeightPercent;
+            this.y = Math.random() * maxHeight;
+
+            // 星星大小
+            this.size = Math.random() * 
+                (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + 
+                CONFIG.staticStarMinSize;
+
+            // 基础透明度
+            this.baseOpacity = Math.random() * 
+                (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + 
+                CONFIG.staticStarMinOpacity;
+
+            // 闪烁参数
+            this.twinkleSpeed = Math.random() * 
+                (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + 
+                CONFIG.staticStarTwinkleMin;
+            this.twinklePhase = Math.random() * Math.PI * 2;
+            
+            // 旋转角度（静态星星也可以有轻微旋转）
+            this.angle = Math.random() * Math.PI * 2;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.005; // 非常缓慢的旋转
+
+            // 生命周期（可选：星星可以周期性消失重现）
+            this.lifeTime = 0;
+            this.maxLifeTime = Math.random() * 300 + 200; // 200-500帧的生命周期
+            this.fadeState = 'alive'; // 'alive', 'fading', 'respawning'
+            this.fadeProgress = 0;
+        }
+
+        update() {
+            // 更新闪烁相位
+            this.twinklePhase += this.twinkleSpeed;
+            
+            // 轻微旋转
+            this.angle += this.rotationSpeed;
+
+            // 生命周期管理
+            this.lifeTime++;
+            
+            if (this.fadeState === 'alive' && this.lifeTime > this.maxLifeTime) {
+                // 开始淡出
+                this.fadeState = 'fading';
+                this.fadeProgress = 0;
+            } else if (this.fadeState === 'fading') {
+                this.fadeProgress += 0.02;
+                if (this.fadeProgress >= 1) {
+                    // 完全消失，准备重生
+                    this.fadeState = 'respawning';
+                    this.fadeProgress = 0;
+                    // 重新定位
+                    const viewport = getViewportSize();
+                    this.x = Math.random() * viewport.width;
+                    const maxHeight = viewport.height * CONFIG.staticStarHeightPercent;
+                    this.y = Math.random() * maxHeight;
+                }
+            } else if (this.fadeState === 'respawning') {
+                this.fadeProgress += 0.02;
+                if (this.fadeProgress >= 1) {
+                    // 完全显现
+                    this.fadeState = 'alive';
+                    this.lifeTime = 0;
+                    this.maxLifeTime = Math.random() * 300 + 200;
+                }
+            }
+        }
+
+        draw(ctx) {
+            // 计算当前透明度（闪烁 + 生命周期淡入淡出）
+            const twinkle = Math.sin(this.twinklePhase) * 0.3; // 闪烁幅度±30%
+            let currentOpacity = this.baseOpacity + twinkle;
+            
+            // 应用生命周期淡入淡出
+            if (this.fadeState === 'fading') {
+                currentOpacity *= (1 - this.fadeProgress);
+            } else if (this.fadeState === 'respawning') {
+                currentOpacity *= this.fadeProgress;
+            }
+            
+            // 限制透明度范围
+            currentOpacity = Math.max(0, Math.min(1, currentOpacity));
+
+            // 如果完全透明，不绘制
+            if (currentOpacity <= 0.01) return;
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            this.drawStar(ctx, 0, 0, this.size, currentOpacity);
+            ctx.restore();
+        }
+
+        drawStar(ctx, cx, cy, size, opacity) {
+            const spikes = 4;
+            const outerRadius = size;
+            const innerRadius = size * 0.4;
+
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${opacity})`;
+
+            for (let i = 0; i < spikes * 2; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const angle = (i * Math.PI) / spikes;
+                const x = cx + Math.cos(angle) * radius;
+                const y = cy + Math.sin(angle) * radius;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.closePath();
+            ctx.fill();
+
+            // 添加柔和发光效果
+            ctx.shadowBlur = size * 1.5;
+            ctx.shadowColor = `rgba(${CONFIG.staticStarColor}, ${opacity * 0.6})`;
+        }
+    }
+
+    // ==================== 粒子系统管理器（集成两种效果）====================
     class ParticleSystem {
         constructor() {
             this.canvas = null;
             this.ctx = null;
+            // 移动流星（原有效果）
             this.particles = [];
+            // 静态闪烁星星（新增效果）
+            this.staticStars = [];
             this.animationId = null;
             this.isActive = false;
             this.isInitialized = false;
@@ -355,8 +515,9 @@
                 if (stableCount >= 3) {
                     this.setCanvasSize(viewport.width, viewport.height);
                     this.createParticles();
+                    this.createStaticStars();
                     this.start();
-                    console.log('✨ 粒子效果已启动（精确拖尾长度控制：本体宽度8-12倍）');
+                    console.log('✨ 粒子效果已启动（移动流星 + 静态闪烁星星）');
                 } else {
                     setTimeout(checkStability, 100);
                 }
@@ -374,6 +535,7 @@
                 const viewport = getViewportSize();
                 this.setCanvasSize(viewport.width, viewport.height);
                 this.redistributeParticles();
+                this.redistributeStaticStars();
             }, 250);
         }
 
@@ -389,16 +551,39 @@
             });
         }
 
+        redistributeStaticStars() {
+            const viewport = getViewportSize();
+            this.staticStars.forEach(star => {
+                // 保持相对位置比例
+                star.x = (star.x / star.canvasWidth) * viewport.width;
+                const maxHeight = viewport.height * CONFIG.staticStarHeightPercent;
+                const currentMaxHeight = star.canvasHeight * CONFIG.staticStarHeightPercent;
+                star.y = (star.y / currentMaxHeight) * maxHeight;
+                star.canvasWidth = viewport.width;
+                star.canvasHeight = viewport.height;
+            });
+        }
+
         setCanvasSize(width, height) {
             this.canvas.width = width;
             this.canvas.height = height;
         }
 
+        // 创建移动流星（原有效果）
         createParticles() {
             const viewport = getViewportSize();
             this.particles = [];
             for (let i = 0; i < CONFIG.particleCount; i++) {
                 this.particles.push(new Particle(viewport.width, viewport.height));
+            }
+        }
+
+        // 创建静态闪烁星星（新增效果）
+        createStaticStars() {
+            const viewport = getViewportSize();
+            this.staticStars = [];
+            for (let i = 0; i < CONFIG.staticStarCount; i++) {
+                this.staticStars.push(new StaticStar(viewport.width, viewport.height));
             }
         }
 
@@ -420,6 +605,13 @@
 
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+            // 先绘制静态闪烁星星（作为背景层）
+            this.staticStars.forEach(star => {
+                star.update();
+                star.draw(this.ctx);
+            });
+
+            // 再绘制移动流星（作为前景层）
             this.particles.forEach(particle => {
                 particle.update(this.canvas.width, this.canvas.height);
                 particle.draw(this.ctx);
@@ -428,9 +620,16 @@
             this.animationId = requestAnimationFrame(() => this.animate());
         }
 
+        // 设置移动流星数量
         setParticleCount(count) {
             CONFIG.particleCount = count;
             this.createParticles();
+        }
+
+        // 设置静态星星数量
+        setStaticStarCount(count) {
+            CONFIG.staticStarCount = count;
+            this.createStaticStars();
         }
 
         setOpacityRange(min, max) {
@@ -470,6 +669,6 @@
     }
 
     if (typeof module !== 'undefined' && module.exports) {
-        module.exports = { ParticleSystem, Particle, CONFIG };
+        module.exports = { ParticleSystem, Particle, StaticStar, CONFIG };
     }
 })();
