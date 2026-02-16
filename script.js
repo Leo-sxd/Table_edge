@@ -82,9 +82,26 @@
         mouseTrailLength: 20,           // 轨迹点数量
         mouseTrailDecay: 0.05,          // 衰减速度
         
-        // 鼠标跟随粒子配置
-        mouseFollowRadius: 50,          // 粒子活动半径（50px）
-        mouseFollowSpeed: 0.5           // 跟随速度
+        // 增强彩色粒子配置
+        enhancedParticleCount: 15,      // 粒子数量
+        enhancedParticleSize: 4,        // 粒子大小
+        enhancedParticleMinSpeed: 0.5,  // 最小速度
+        enhancedParticleMaxSpeed: 2.0,  // 最大速度
+        
+        // 引力配置
+        gravityStrength: 0.8,           // 引力强度
+        gravityRadius: 120,             // 引力作用半径（px）
+        gravityMinDistance: 10,         // 最小引力距离（防止除零）
+        
+        // 挣脱配置
+        escapeAngleMin: 120,            // 挣脱角度最小值（度）
+        escapeAngleMax: 150,            // 挣脱角度最大值（度）
+        escapeSpeedMultiplier: 1.5,     // 挣脱速度倍数
+        mouseSpeedThreshold: 15,        // 鼠标快速移动阈值（px/frame）
+        
+        // 布朗运动配置
+        brownianForce: 0.3,             // 布朗运动力度
+        friction: 0.98                  // 摩擦力
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -459,74 +476,160 @@
         }
     }
 
-    // ==================== 彩色鼠标跟随粒子类 ====================
-    class MouseFollowParticle {
-        constructor(canvasWidth, canvasHeight, mouseX, mouseY) {
+    // ==================== 增强彩色粒子类 ====================
+    class EnhancedParticle {
+        constructor(canvasWidth, canvasHeight) {
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
-            this.mouseX = mouseX;
-            this.mouseY = mouseY;
             this.reset();
         }
         
         reset() {
-            // 在鼠标周围随机位置（50px范围内）
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * CONFIG.mouseFollowRadius;
-            this.offsetX = Math.cos(angle) * distance;
-            this.offsetY = Math.sin(angle) * distance;
-            
-            this.x = this.mouseX + this.offsetX;
-            this.y = this.mouseY + this.offsetY;
+            // 在画布范围内随机位置
+            this.x = Math.random() * this.canvasWidth;
+            this.y = Math.random() * this.canvasHeight;
             
             // 粒子属性
-            this.size = CONFIG.brownianParticleSize;
-            this.opacity = CONFIG.brownianParticleOpacity;
+            this.size = CONFIG.enhancedParticleSize;
+            this.opacity = 0.8;
             
             // 随机选择一种颜色
             const colorIndex = Math.floor(Math.random() * CONFIG.brownianColors.length);
             this.color = CONFIG.brownianColors[colorIndex];
             
-            // 布朗运动参数
-            this.vx = 0;
-            this.vy = 0;
-            this.maxSpeed = CONFIG.brownianMovementSpeed;
+            // 速度向量
+            this.vx = (Math.random() - 0.5) * CONFIG.enhancedParticleMaxSpeed;
+            this.vy = (Math.random() - 0.5) * CONFIG.enhancedParticleMaxSpeed;
+            
+            // 质量（用于碰撞计算）
+            this.mass = 1.0;
         }
         
-        update(mouseX, mouseY) {
-            this.mouseX = mouseX;
-            this.mouseY = mouseY;
+        update(mouseX, mouseY, mouseSpeed, mouseVx, mouseVy) {
+            // 1. 布朗运动 - 随机力和速度变化
+            this.vx += (Math.random() - 0.5) * CONFIG.brownianForce;
+            this.vy += (Math.random() - 0.5) * CONFIG.brownianForce;
             
-            // 布朗运动：随机改变速度方向
-            this.vx += (Math.random() - 0.5) * 0.3;
-            this.vy += (Math.random() - 0.5) * 0.3;
+            // 2. 鼠标引力捕获效果
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const distanceToMouse = Math.sqrt(dx * dx + dy * dy);
             
-            // 限制最大速度
+            // 检查是否在引力作用范围内
+            if (distanceToMouse < CONFIG.gravityRadius && distanceToMouse > CONFIG.gravityMinDistance) {
+                // 计算引力 - 距离越近引力越强（非线性）
+                const gravityFactor = Math.pow(1 - distanceToMouse / CONFIG.gravityRadius, 2);
+                const gravityForce = CONFIG.gravityStrength * gravityFactor;
+                
+                // 引力方向
+                const angleToMouse = Math.atan2(dy, dx);
+                
+                // 应用引力
+                this.vx += Math.cos(angleToMouse) * gravityForce;
+                this.vy += Math.sin(angleToMouse) * gravityForce;
+            }
+            
+            // 3. 快速移动挣脱引力效果
+            if (mouseSpeed > CONFIG.mouseSpeedThreshold && distanceToMouse < CONFIG.gravityRadius) {
+                // 计算挣脱角度（120-150度，相对于鼠标移动方向）
+                const mouseAngle = Math.atan2(mouseVy, mouseVx);
+                const escapeAngleOffset = (CONFIG.escapeAngleMin + Math.random() * 
+                    (CONFIG.escapeAngleMax - CONFIG.escapeAngleMin)) * Math.PI / 180;
+                
+                // 随机选择左侧或右侧挣脱
+                const escapeAngle = mouseAngle + (Math.random() > 0.5 ? escapeAngleOffset : -escapeAngleOffset);
+                
+                // 挣脱速度与鼠标速度正相关
+                const escapeSpeed = mouseSpeed * CONFIG.escapeSpeedMultiplier * (1 + Math.random() * 0.5);
+                
+                // 应用挣脱速度
+                this.vx += Math.cos(escapeAngle) * escapeSpeed;
+                this.vy += Math.sin(escapeAngle) * escapeSpeed;
+            }
+            
+            // 4. 应用摩擦力
+            this.vx *= CONFIG.friction;
+            this.vy *= CONFIG.friction;
+            
+            // 5. 限制最大速度
             const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-            if (speed > this.maxSpeed) {
-                this.vx = (this.vx / speed) * this.maxSpeed;
-                this.vy = (this.vy / speed) * this.maxSpeed;
+            if (speed > CONFIG.enhancedParticleMaxSpeed) {
+                const scale = CONFIG.enhancedParticleMaxSpeed / speed;
+                this.vx *= scale;
+                this.vy *= scale;
             }
             
-            // 更新相对于鼠标的偏移位置
-            this.offsetX += this.vx;
-            this.offsetY += this.vy;
+            // 6. 更新位置
+            this.x += this.vx;
+            this.y += this.vy;
             
-            // 限制在50px半径内
-            const distanceFromMouse = Math.sqrt(this.offsetX * this.offsetX + this.offsetY * this.offsetY);
-            if (distanceFromMouse > CONFIG.mouseFollowRadius) {
-                // 拉回范围内
-                const scale = CONFIG.mouseFollowRadius / distanceFromMouse;
-                this.offsetX *= scale;
-                this.offsetY *= scale;
-                // 反弹速度
-                this.vx *= -0.5;
-                this.vy *= -0.5;
+            // 7. 边界反弹
+            if (this.x < this.size) {
+                this.x = this.size;
+                this.vx = Math.abs(this.vx) * 0.8;
+            } else if (this.x > this.canvasWidth - this.size) {
+                this.x = this.canvasWidth - this.size;
+                this.vx = -Math.abs(this.vx) * 0.8;
             }
             
-            // 计算实际位置
-            this.x = this.mouseX + this.offsetX;
-            this.y = this.mouseY + this.offsetY;
+            if (this.y < this.size) {
+                this.y = this.size;
+                this.vy = Math.abs(this.vy) * 0.8;
+            } else if (this.y > this.canvasHeight - this.size) {
+                this.y = this.canvasHeight - this.size;
+                this.vy = -Math.abs(this.vy) * 0.8;
+            }
+        }
+        
+        // 处理与其他粒子的碰撞
+        resolveCollision(other) {
+            const dx = other.x - this.x;
+            const dy = other.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = this.size + other.size;
+            
+            if (distance < minDistance && distance > 0) {
+                // 计算碰撞角度
+                const angle = Math.atan2(dy, dx);
+                
+                // 分离粒子
+                const overlap = minDistance - distance;
+                const separationX = Math.cos(angle) * overlap * 0.5;
+                const separationY = Math.sin(angle) * overlap * 0.5;
+                
+                this.x -= separationX;
+                this.y -= separationY;
+                other.x += separationX;
+                other.y += separationY;
+                
+                // 弹性碰撞 - 交换速度分量
+                const normalX = dx / distance;
+                const normalY = dy / distance;
+                
+                // 相对速度
+                const relativeVelocityX = this.vx - other.vx;
+                const relativeVelocityY = this.vy - other.vy;
+                
+                // 沿法线方向的速度
+                const velocityAlongNormal = relativeVelocityX * normalX + relativeVelocityY * normalY;
+                
+                if (velocityAlongNormal > 0) return;
+                
+                // 弹性系数
+                const restitution = 0.7;
+                
+                // 冲量
+                const impulse = -(1 + restitution) * velocityAlongNormal / (1/this.mass + 1/other.mass);
+                
+                // 应用冲量
+                const impulseX = impulse * normalX;
+                const impulseY = impulse * normalY;
+                
+                this.vx += impulseX / this.mass;
+                this.vy += impulseY / this.mass;
+                other.vx -= impulseX / other.mass;
+                other.vy -= impulseY / other.mass;
+            }
         }
         
         draw(ctx) {
@@ -637,6 +740,9 @@
             this.mouseTrail = null;        // 鼠标轨迹
             this.mouseX = window.innerWidth / 2;  // 鼠标X位置
             this.mouseY = window.innerHeight / 2; // 鼠标Y位置
+            this.lastMouseX = this.mouseX;        // 上一帧鼠标X
+            this.lastMouseY = this.mouseY;        // 上一帧鼠标Y
+            this.lastMouseTime = Date.now();      // 上一帧时间
             this.animationId = null;
             this.isActive = true;
             
@@ -737,9 +843,9 @@
             const viewport = getViewportSize();
             this.mouseFollowParticles = [];
             
-            for (let i = 0; i < CONFIG.brownianParticleCount; i++) {
-                this.mouseFollowParticles.push(new MouseFollowParticle(
-                    viewport.width, viewport.height, this.mouseX, this.mouseY
+            for (let i = 0; i < CONFIG.enhancedParticleCount; i++) {
+                this.mouseFollowParticles.push(new EnhancedParticle(
+                    viewport.width, viewport.height
                 ));
             }
         }
@@ -847,9 +953,38 @@
                 this.mouseTrail.draw(this.mouseCtx);
             }
             
-            // 更新和绘制鼠标跟随粒子
+            // 计算鼠标速度
+            const currentTime = Date.now();
+            const deltaTime = currentTime - this.lastMouseTime;
+            let mouseSpeed = 0;
+            let mouseVx = 0;
+            let mouseVy = 0;
+            
+            if (deltaTime > 0 && this.lastMouseX !== undefined) {
+                mouseVx = (this.mouseX - this.lastMouseX) / deltaTime * 16; // 归一化到每帧
+                mouseVy = (this.mouseY - this.lastMouseY) / deltaTime * 16;
+                mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
+            }
+            
+            this.lastMouseX = this.mouseX;
+            this.lastMouseY = this.mouseY;
+            this.lastMouseTime = currentTime;
+            
+            // 更新和绘制增强粒子
+            // 先更新所有粒子位置
             this.mouseFollowParticles.forEach(particle => {
-                particle.update(this.mouseX, this.mouseY);
+                particle.update(this.mouseX, this.mouseY, mouseSpeed, mouseVx, mouseVy);
+            });
+            
+            // 处理粒子间碰撞
+            for (let i = 0; i < this.mouseFollowParticles.length; i++) {
+                for (let j = i + 1; j < this.mouseFollowParticles.length; j++) {
+                    this.mouseFollowParticles[i].resolveCollision(this.mouseFollowParticles[j]);
+                }
+            }
+            
+            // 绘制所有粒子
+            this.mouseFollowParticles.forEach(particle => {
                 particle.draw(this.mouseCtx);
             });
             
