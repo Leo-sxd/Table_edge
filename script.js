@@ -101,7 +101,13 @@
         
         // 布朗运动配置
         brownianForce: 0.3,             // 布朗运动力度
-        friction: 0.98                  // 摩擦力
+        friction: 0.98,                 // 摩擦力
+        
+        // 粒子连线配置
+        connectionLineOpacity: 0.4,     // 连线透明度
+        connectionLineColor: '255, 255, 255', // 连线颜色（白色）
+        connectionLineWidth: 1,         // 连线宽度
+        connectionReleaseDelay: 1000    // 挣脱后保持连线时间（毫秒）
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -503,6 +509,10 @@
             
             // 质量（用于碰撞计算）
             this.mass = 1.0;
+            
+            // 捕获状态追踪
+            this.isCaptured = false;           // 是否被捕获
+            this.captureReleaseTime = 0;       // 挣脱时间戳
         }
         
         update(mouseX, mouseY, mouseSpeed, mouseVx, mouseVy) {
@@ -516,6 +526,9 @@
             const distanceToMouse = Math.sqrt(dx * dx + dy * dy);
             
             // 检查是否在引力作用范围内
+            const wasCaptured = this.isCaptured;
+            this.isCaptured = false;
+            
             if (distanceToMouse < CONFIG.gravityRadius && distanceToMouse > CONFIG.gravityMinDistance) {
                 // 计算引力 - 距离越近引力越强（非线性）
                 const gravityFactor = Math.pow(1 - distanceToMouse / CONFIG.gravityRadius, 2);
@@ -527,6 +540,14 @@
                 // 应用引力
                 this.vx += Math.cos(angleToMouse) * gravityForce;
                 this.vy += Math.sin(angleToMouse) * gravityForce;
+                
+                // 标记为被捕获
+                this.isCaptured = true;
+            }
+            
+            // 如果刚刚挣脱（之前被捕获，现在未被捕获）
+            if (wasCaptured && !this.isCaptured) {
+                this.captureReleaseTime = Date.now();
             }
             
             // 3. 快速移动挣脱引力效果
@@ -630,6 +651,19 @@
                 other.vx -= impulseX / other.mass;
                 other.vy -= impulseY / other.mass;
             }
+        }
+        
+        // 检查是否可以参与连线
+        canConnect() {
+            if (this.isCaptured) {
+                return true;
+            }
+            // 挣脱后1秒内仍然可以连线
+            if (this.captureReleaseTime > 0) {
+                const timeSinceRelease = Date.now() - this.captureReleaseTime;
+                return timeSinceRelease < CONFIG.connectionReleaseDelay;
+            }
+            return false;
         }
         
         draw(ctx) {
@@ -983,6 +1017,9 @@
                 }
             }
             
+            // 绘制被捕获粒子之间的连线
+            this.drawParticleConnections();
+            
             // 绘制所有粒子
             this.mouseFollowParticles.forEach(particle => {
                 particle.draw(this.mouseCtx);
@@ -1024,6 +1061,33 @@
             }
         }
 
+        // 绘制粒子之间的连线
+        drawParticleConnections() {
+            const connectableParticles = this.mouseFollowParticles.filter(p => p.canConnect());
+            
+            if (connectableParticles.length < 2) return;
+            
+            this.mouseCtx.save();
+            this.mouseCtx.strokeStyle = `rgba(${CONFIG.connectionLineColor}, ${CONFIG.connectionLineOpacity})`;
+            this.mouseCtx.lineWidth = CONFIG.connectionLineWidth;
+            this.mouseCtx.lineCap = 'round';
+            
+            // 在被捕获的粒子之间绘制连线
+            for (let i = 0; i < connectableParticles.length; i++) {
+                for (let j = i + 1; j < connectableParticles.length; j++) {
+                    const p1 = connectableParticles[i];
+                    const p2 = connectableParticles[j];
+                    
+                    this.mouseCtx.beginPath();
+                    this.mouseCtx.moveTo(p1.x, p1.y);
+                    this.mouseCtx.lineTo(p2.x, p2.y);
+                    this.mouseCtx.stroke();
+                }
+            }
+            
+            this.mouseCtx.restore();
+        }
+        
         // 公共API
         setParticleCount(count) {
             CONFIG.particleCount = count;
