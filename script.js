@@ -59,8 +59,8 @@
         staticStarColor: '255, 255, 255', // 静态星星颜色
         
         // 彩色布朗运动粒子配置
-        brownianParticleCount: 80,      // 布朗粒子数量
-        brownianParticleSize: 2,        // 粒子大小（非常小）
+        brownianParticleCount: 10,      // 布朗粒子数量
+        brownianParticleSize: 3,        // 粒子大小（3像素）
         brownianParticleOpacity: 0.9,   // 粒子透明度（高透明度确保清晰可见）
         brownianMovementSpeed: 0.8,     // 布朗运动速度
         brownianAreaPercent: 0.5,       // 运动区域：屏幕下半50%
@@ -744,6 +744,9 @@
                 }
                 star.draw(this.staticCtx);
             });
+            
+            // 清空布朗粒子画布（防止轨迹）
+            this.brownianCtx.clearRect(0, 0, this.brownianCanvas.width, this.brownianCanvas.height);
             
             // 绘制布朗粒子到中层canvas
             this.brownianParticles.forEach(particle => {
