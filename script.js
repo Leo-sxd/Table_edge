@@ -90,7 +90,7 @@
         
         // 引力配置
         gravityStrength: 2.0,           // 引力强度
-        gravityRadius: 450,             // 引力作用半径（px）
+        gravityRadius: 300,             // 引力作用半径（px）
         gravityMinDistance: 10,         // 最小引力距离（防止除零）
         
         // 挣脱配置
