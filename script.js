@@ -580,6 +580,158 @@ document.addEventListener('DOMContentLoaded', function() {
     initWeatherAndLocation();
 });
 
+
+// 待办事项功能
+function initTodoList() {
+    const addTodoBtn = document.getElementById('add-todo-btn');
+    const todoInputArea = document.getElementById('todo-input-area');
+    const todoSubmit = document.getElementById('todo-submit');
+    const todoCancel = document.getElementById('todo-cancel');
+    const todoInput = document.getElementById('todo-input');
+    const todoList = document.getElementById('todo-list');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    
+    let todos = JSON.parse(localStorage.getItem('todos')) || [];
+    let currentFilter = 'all';
+    
+    // 显示/隐藏输入区域
+    addTodoBtn.addEventListener('click', () => {
+        todoInputArea.style.display = todoInputArea.style.display === 'none' ? 'block' : 'none';
+        if (todoInputArea.style.display === 'block') {
+            todoInput.focus();
+        }
+    });
+    
+    // 取消按钮
+    todoCancel.addEventListener('click', () => {
+        todoInputArea.style.display = 'none';
+        clearTodoForm();
+    });
+    
+    // 提交待办事项
+    todoSubmit.addEventListener('click', addTodo);
+    
+    // 筛选按钮
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            renderTodos();
+        });
+    });
+    
+    function addTodo() {
+        const text = todoInput.value.trim();
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+        
+        if (!text) {
+            alert('请输入待办事项内容');
+            return;
+        }
+        
+        const todo = {
+            id: Date.now(),
+            text: text,
+            startTime: startTime,
+            endTime: endTime,
+            completed: false,
+            urgent: false
+        };
+        
+        todos.push(todo);
+        saveTodos();
+        renderTodos();
+        clearTodoForm();
+        todoInputArea.style.display = 'none';
+    }
+    
+    function clearTodoForm() {
+        todoInput.value = '';
+        document.getElementById('start-time').value = '';
+        document.getElementById('end-time').value = '';
+    }
+    
+    function saveTodos() {
+        localStorage.setItem('todos', JSON.stringify(todos));
+        updateFilterCounts();
+    }
+    
+    function renderTodos() {
+        todoList.innerHTML = '';
+        
+        let filteredTodos = todos;
+        if (currentFilter === 'pending') {
+            filteredTodos = todos.filter(t => !t.completed);
+        } else if (currentFilter === 'completed') {
+            filteredTodos = todos.filter(t => t.completed);
+        } else if (currentFilter === 'urgent') {
+            filteredTodos = todos.filter(t => t.urgent);
+        }
+        
+        filteredTodos.forEach(todo => {
+            const li = document.createElement('li');
+            li.className = `todo-item ${todo.urgent ? 'urgent' : ''} ${todo.completed ? 'completed' : ''}`;
+            li.innerHTML = `
+                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
+                <div class="todo-content">
+                    <div class="todo-title">${todo.text}</div>
+                    <div class="todo-time">
+                        ${todo.startTime ? '开始: ' + new Date(todo.startTime).toLocaleString('zh-CN') : ''}
+                        ${todo.endTime ? '<br>截止: ' + new Date(todo.endTime).toLocaleString('zh-CN') : ''}
+                    </div>
+                </div>
+                <button class="delete-todo"><i class="fas fa-trash"></i></button>
+            `;
+            
+            // 复选框事件
+            const checkbox = li.querySelector('.todo-checkbox');
+            checkbox.addEventListener('change', () => {
+                todo.completed = checkbox.checked;
+                saveTodos();
+                renderTodos();
+            });
+            
+            // 删除按钮事件
+            const deleteBtn = li.querySelector('.delete-todo');
+            deleteBtn.addEventListener('click', () => {
+                todos = todos.filter(t => t.id !== todo.id);
+                saveTodos();
+                renderTodos();
+            });
+            
+            todoList.appendChild(li);
+        });
+    }
+    
+    function updateFilterCounts() {
+        const all = todos.length;
+        const pending = todos.filter(t => !t.completed).length;
+        const completed = todos.filter(t => t.completed).length;
+        const urgent = todos.filter(t => t.urgent).length;
+        
+        filterBtns[0].textContent = `全部 (${all})`;
+        filterBtns[1].textContent = `未完成 (${pending})`;
+        filterBtns[2].textContent = `已完成 (${completed})`;
+        filterBtns[3].textContent = `紧急 (${urgent})`;
+    }
+    
+    // 初始化渲染
+    renderTodos();
+    updateFilterCounts();
+}
+
+// 地图初始化
+function initMap() {
+    // 使用AMapLoader加载高德地图
+    if (typeof AMapLoader !== 'undefined') {
+        AMapLoader.load({
+            key: '8fd12b82c18d08935bd8d829dcdb9135',
+            version: '2.0',
+            plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.ToolBar', 'AMap.Scale']
+        }).then((AMap) => {
+
 // 更新时间函数
 function updateTime() {
     const now = new Date();
