@@ -1709,3 +1709,249 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+
+
+
+(function() {
+    'use strict';
+
+    // 诗句模块配置
+    const POEM_CONFIG = {
+        storageKey: 'user_custom_poem',
+        defaultText: '点击编辑您的专属诗句...',
+        maxLength: 100
+    };
+
+    // DOM元素引用
+    let poemDisplay, poemText, poemInputArea, poemInput, 
+        poemSubmit, poemCancel;
+
+    /**
+     * 初始化诗句模块
+     */
+    function initPoemModule() {
+        // 获取DOM元素
+        poemDisplay = document.getElementById('poem-display');
+        poemText = document.getElementById('poem-text');
+        poemInputArea = document.getElementById('poem-input-area');
+        poemInput = document.getElementById('poem-input');
+        poemSubmit = document.getElementById('poem-submit');
+        poemCancel = document.getElementById('poem-cancel');
+
+        if (!poemDisplay || !poemText) {
+            console.log('诗句模块元素未找到，跳过初始化');
+            return;
+        }
+
+        // 加载保存的诗句
+        loadPoem();
+
+        // 绑定事件
+        bindEvents();
+
+        console.log('诗句模块初始化完成');
+    }
+
+    /**
+     * 绑定事件处理
+     */
+    function bindEvents() {
+        // 点击显示区域进入编辑模式
+        poemDisplay.addEventListener('click', enterEditMode);
+
+        // 保存按钮
+        poemSubmit.addEventListener('click', savePoem);
+
+        // 取消按钮
+        poemCancel.addEventListener('click', cancelEdit);
+
+        // 输入框回车保存（Ctrl+Enter）
+        poemInput.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                savePoem();
+            } else if (e.key === 'Escape') {
+                cancelEdit();
+            }
+        });
+
+        // 输入框实时字符计数
+        poemInput.addEventListener('input', function() {
+            const currentLength = this.value.length;
+            if (currentLength >= POEM_CONFIG.maxLength) {
+                this.style.borderColor = '#ff6b6b';
+            } else {
+                this.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }
+        });
+    }
+
+    /**
+     * 进入编辑模式
+     */
+    function enterEditMode() {
+        const currentText = poemText.textContent;
+        
+        // 如果显示的是默认文本，输入框留空
+        if (currentText === POEM_CONFIG.defaultText) {
+            poemInput.value = '';
+        } else {
+            poemInput.value = currentText;
+        }
+
+        // 切换显示
+        poemDisplay.style.display = 'none';
+        poemInputArea.style.display = 'flex';
+
+        // 聚焦输入框
+        setTimeout(() => {
+            poemInput.focus();
+            poemInput.select();
+        }, 10);
+    }
+
+    /**
+     * 保存诗句
+     */
+    function savePoem() {
+        const text = poemInput.value.trim();
+
+        // 输入验证
+        if (!text) {
+            // 空内容，显示提示
+            poemInput.style.borderColor = '#ff6b6b';
+            poemInput.placeholder = '请输入内容后再保存...';
+            
+            // 3秒后恢复
+            setTimeout(() => {
+                poemInput.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                poemInput.placeholder = '请输入您的诗句...';
+            }, 3000);
+            return;
+        }
+
+        // 长度验证
+        if (text.length > POEM_CONFIG.maxLength) {
+            alert('诗句长度不能超过' + POEM_CONFIG.maxLength + '个字符');
+            return;
+        }
+
+        // 保存到localStorage
+        try {
+            localStorage.setItem(POEM_CONFIG.storageKey, text);
+            console.log('诗句已保存');
+        } catch (e) {
+            console.warn('localStorage不可用，诗句仅在当前会话有效');
+        }
+
+        // 更新显示
+        poemText.textContent = text;
+
+        // 切换回显示模式
+        exitEditMode();
+
+        // 显示保存成功动画
+        showSaveAnimation();
+    }
+
+    /**
+     * 取消编辑
+     */
+    function cancelEdit() {
+        exitEditMode();
+    }
+
+    /**
+     * 退出编辑模式
+     */
+    function exitEditMode() {
+        poemInputArea.style.display = 'none';
+        poemDisplay.style.display = 'block';
+    }
+
+    /**
+     * 加载保存的诗句
+     */
+    function loadPoem() {
+        let savedPoem = null;
+
+        try {
+            savedPoem = localStorage.getItem(POEM_CONFIG.storageKey);
+        } catch (e) {
+            console.warn('无法访问localStorage');
+        }
+
+        if (savedPoem && savedPoem.trim()) {
+            poemText.textContent = savedPoem;
+        } else {
+            poemText.textContent = POEM_CONFIG.defaultText;
+        }
+    }
+
+    /**
+     * 显示保存成功动画
+     */
+    function showSaveAnimation() {
+        poemText.style.transition = 'all 0.3s ease';
+        poemText.style.textShadow = '0 0 20px rgba(102, 126, 234, 0.8)';
+        
+        setTimeout(() => {
+            poemText.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
+        }, 1000);
+    }
+
+    /**
+     * 公共API - 供外部调用
+     */
+    window.PoemModule = {
+        /**
+         * 获取当前诗句
+         * @returns {string} 当前诗句内容
+         */
+        getPoem: function() {
+            const text = poemText.textContent;
+            return text === POEM_CONFIG.defaultText ? '' : text;
+        },
+
+        /**
+         * 设置诗句
+         * @param {string} text - 诗句内容
+         */
+        setPoem: function(text) {
+            if (text && text.trim()) {
+                poemText.textContent = text.trim();
+                try {
+                    localStorage.setItem(POEM_CONFIG.storageKey, text.trim());
+                } catch (e) {
+                    console.warn('无法保存到localStorage');
+                }
+            }
+        },
+
+        /**
+         * 清除诗句
+         */
+        clearPoem: function() {
+            poemText.textContent = POEM_CONFIG.defaultText;
+            try {
+                localStorage.removeItem(POEM_CONFIG.storageKey);
+            } catch (e) {
+                console.warn('无法清除localStorage');
+            }
+        },
+
+        /**
+         * 进入编辑模式
+         */
+        edit: function() {
+            enterEditMode();
+        }
+    };
+
+    // DOM加载完成后初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPoemModule);
+    } else {
+        initPoemModule();
+    }
+
+})();
