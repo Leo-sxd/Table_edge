@@ -320,10 +320,20 @@
             
             this.twinkleSpeed = Math.random() * (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + CONFIG.staticStarTwinkleMin;
             this.twinklePhase = Math.random() * Math.PI * 2;
+            
+            // 周期计数器：记录已完成的闪烁周期数
+            this.cycleCount = 0;
         }
 
         update() {
+            // 检测是否完成一个完整周期（相位跨越2π边界）
+            const prevPhase = this.twinklePhase;
             this.twinklePhase += this.twinkleSpeed;
+            
+            // 当相位从大于2π变为小于2π时，表示完成了一个周期
+            if (Math.floor(prevPhase / (Math.PI * 2)) !== Math.floor(this.twinklePhase / (Math.PI * 2))) {
+                this.cycleCount++;
+            }
         }
         
         /**
@@ -331,13 +341,13 @@
          * Ensures star completes full twinkling animation before disappearing
          */
         shouldReset() {
-            // Get current twinkle value
+            // 只有当星星完成7个完整闪烁周期后才重置
+            // 确保在最低亮度时执行，实现平滑过渡
             const twinkle = Math.sin(this.twinklePhase) * 0.3;
             const currentOpacity = this.baseOpacity + twinkle;
             
-            // Only reset when star is at minimum brightness (near end of fade-out)
-            // and has completed at least one full cycle
-            return currentOpacity < 0.1 && this.twinklePhase > Math.PI * 2;
+            // 完成7个周期且在最低亮度时重置
+            return this.cycleCount >= 7 && currentOpacity < 0.15;
         }
         
         /**
@@ -345,7 +355,7 @@
          * Called only when star has completed full animation cycle
          */
         resetWithNewPosition() {
-            // Generate new random position
+            // Generate new random position (在80%高度范围内)
             this.x = Math.random() * this.canvasWidth;
             this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
             
@@ -356,6 +366,9 @@
             this.size = Math.random() * (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + CONFIG.staticStarMinSize;
             this.baseOpacity = Math.random() * (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + CONFIG.staticStarMinOpacity;
             this.twinkleSpeed = Math.random() * (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + CONFIG.staticStarTwinkleMin;
+            
+            // 重置周期计数器
+            this.cycleCount = 0;
         }
         
         /**
@@ -555,9 +568,17 @@
             this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
             
             // 绘制静态星星到底层canvas
+            // 确保始终有50颗星星，如果数量不足则补充
+            while (this.staticStars.length < CONFIG.staticStarCount) {
+                this.staticStars.push(new StaticStar(
+                    this.staticCanvas.width, 
+                    this.staticCanvas.height
+                ));
+            }
+            
             this.staticStars.forEach(star => {
                 star.update();
-                // Check if star completed full cycle and should reset
+                // 检查是否完成7个周期，如果是则重置位置
                 if (star.shouldReset()) {
                     star.resetWithNewPosition();
                 }
