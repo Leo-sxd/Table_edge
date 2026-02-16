@@ -21,10 +21,13 @@
         maxSize: 8,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
         maxOpacity: 0.7,          // 最大透明度（70%）
-        // 速度配置：2cm/s ≈ 75.6像素/秒（基于96 PPI标准屏幕）
-        // 60fps下：75.6 / 60 ≈ 1.26 像素/帧
-        baseSpeed: 1.3,           // 基础速度：2cm/s对应的像素速度
-        speedVariation: 0.3,      // 速度变化范围（±30%）
+        // 速度配置：随机速度范围
+        // 原2cm/s ≈ 1.3像素/帧作为中等速度参考
+        // 最慢速度：0.5cm/s (约0.3像素/帧) - 显著慢于普通速度
+        // 最快速度：5cm/s (约3.2像素/帧) - 明显快于普通速度
+        minSpeed: 0.3,            // 最慢速度（像素/帧）
+        maxSpeed: 3.2,            // 最快速度（像素/帧）
+        speedVariation: 0.3,      // 速度变化范围（±30%，用于动态调整）
         rotationSpeed: 0.02,      // 旋转速度
         connectionDistance: 100,  // 连线距离（可选功能）
         color: '255, 255, 255',   // 白色粒子
@@ -82,9 +85,9 @@
                 (CONFIG.trailLengthMax - CONFIG.trailLengthMin) + CONFIG.trailLengthMin;
             this.targetTrailLength = bodyWidth * trailLengthMultiplier;
             
-            // 设置移动速度：约2cm/s
-            const speedVariation = 1 + (Math.random() - 0.5) * CONFIG.speedVariation;
-            this.speed = CONFIG.baseSpeed * speedVariation;
+            // 设置移动速度：在minSpeed和maxSpeed之间随机取值
+            // 使用线性随机确保速度分布均匀
+            this.speed = Math.random() * (CONFIG.maxSpeed - CONFIG.minSpeed) + CONFIG.minSpeed;
             
             // 随机选择从哪条边进入（0:上, 1:右, 2:下, 3:左）
             const edge = Math.floor(Math.random() * 4);
@@ -575,7 +578,11 @@
         }
 
         setSpeed(factor) {
-            CONFIG.baseSpeed = 1.3 * factor;
+            // factor: 速度倍数，调整最小和最大速度
+            const baseMin = 0.3;  // 原始最慢速度
+            const baseMax = 3.2;  // 原始最快速度
+            CONFIG.minSpeed = baseMin * factor;
+            CONFIG.maxSpeed = baseMax * factor;
             this.createParticles(); // 重新生成以应用新速度
         }
     }
