@@ -321,17 +321,39 @@
         }
 
         update() {
-            // Store previous phase to detect cycle completion
-            const prevPhase = this.twinklePhase;
             this.twinklePhase += this.twinkleSpeed;
+        }
+        
+        /**
+         * Check if star should reset (complete cycle at minimum brightness)
+         * Ensures star completes full twinkling animation before disappearing
+         */
+        shouldReset() {
+            // Get current twinkle value
+            const twinkle = Math.sin(this.twinklePhase) * 0.3;
+            const currentOpacity = this.baseOpacity + twinkle;
             
-            // Check if twinkling cycle completed (crossed 2π boundary)
-            // A complete breathing cycle is when phase goes from 0 to 2π
-            // We detect this by checking if phase wrapped around
-            if (Math.floor(prevPhase / (Math.PI * 2)) !== Math.floor(this.twinklePhase / (Math.PI * 2))) {
-                // Cycle completed, randomize position
-                this.randomizePosition();
-            }
+            // Only reset when star is at minimum brightness (near end of fade-out)
+            // and has completed at least one full cycle
+            return currentOpacity < 0.1 && this.twinklePhase > Math.PI * 2;
+        }
+        
+        /**
+         * Reset star with new random position
+         * Called only when star has completed full animation cycle
+         */
+        resetWithNewPosition() {
+            // Generate new random position
+            this.x = Math.random() * this.canvasWidth;
+            this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
+            
+            // Reset phase to start of cycle with random offset for variety
+            this.twinklePhase = Math.random() * Math.PI * 0.5;
+            
+            // Randomize other properties for variety
+            this.size = Math.random() * (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + CONFIG.staticStarMinSize;
+            this.baseOpacity = Math.random() * (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + CONFIG.staticStarMinOpacity;
+            this.twinkleSpeed = Math.random() * (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + CONFIG.staticStarTwinkleMin;
         }
         
         /**
@@ -346,7 +368,9 @@
 
         draw(ctx) {
             const twinkle = Math.sin(this.twinklePhase) * 0.3;
-            const currentOpacity = Math.max(0.05, Math.min(1, this.baseOpacity + twinkle));
+            // Ensure minimum visibility to prevent sudden disappearance
+            // Use higher minimum (0.15 instead of 0.05) to keep star always visible
+            const currentOpacity = Math.max(0.15, Math.min(1, this.baseOpacity + twinkle));
 
             ctx.save();
             
@@ -503,6 +527,10 @@
             // 先绘制静态星星（在最底层）
             this.staticStars.forEach(star => {
                 star.update();
+                // Check if star completed full cycle and should reset
+                if (star.shouldReset()) {
+                    star.resetWithNewPosition();
+                }
                 star.draw(this.ctx);
             });
             
