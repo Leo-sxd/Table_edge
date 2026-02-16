@@ -73,7 +73,18 @@
             '100, 255, 255',   // 青色
             '255, 200, 100',   // 橙色
             '200, 100, 255'    // 粉色
-        ]
+        ],
+        
+        // 鼠标轨迹配置
+        mouseTrailEnabled: true,        // 启用鼠标轨迹
+        mouseTrailColor: '255, 255, 255', // 白色
+        mouseTrailOpacity: 0.3,         // 透明度0.3
+        mouseTrailLength: 20,           // 轨迹点数量
+        mouseTrailDecay: 0.05,          // 衰减速度
+        
+        // 鼠标跟随粒子配置
+        mouseFollowRadius: 50,          // 粒子活动半径（50px）
+        mouseFollowSpeed: 0.5           // 跟随速度
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -448,19 +459,25 @@
         }
     }
 
-    // ==================== 彩色布朗运动粒子类 ====================
-    class BrownianParticle {
-        constructor(canvasWidth, canvasHeight) {
+    // ==================== 彩色鼠标跟随粒子类 ====================
+    class MouseFollowParticle {
+        constructor(canvasWidth, canvasHeight, mouseX, mouseY) {
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
+            this.mouseX = mouseX;
+            this.mouseY = mouseY;
             this.reset();
         }
         
         reset() {
-            // 在屏幕下半部分随机位置
-            const startY = this.canvasHeight * (1 - CONFIG.brownianAreaPercent);
-            this.x = Math.random() * this.canvasWidth;
-            this.y = startY + Math.random() * (this.canvasHeight - startY);
+            // 在鼠标周围随机位置（50px范围内）
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * CONFIG.mouseFollowRadius;
+            this.offsetX = Math.cos(angle) * distance;
+            this.offsetY = Math.sin(angle) * distance;
+            
+            this.x = this.mouseX + this.offsetX;
+            this.y = this.mouseY + this.offsetY;
             
             // 粒子属性
             this.size = CONFIG.brownianParticleSize;
@@ -474,15 +491,15 @@
             this.vx = 0;
             this.vy = 0;
             this.maxSpeed = CONFIG.brownianMovementSpeed;
-            
-            // 边界限制
-            this.minY = this.canvasHeight * (1 - CONFIG.brownianAreaPercent);
         }
         
-        update() {
+        update(mouseX, mouseY) {
+            this.mouseX = mouseX;
+            this.mouseY = mouseY;
+            
             // 布朗运动：随机改变速度方向
-            this.vx += (Math.random() - 0.5) * 0.2;
-            this.vy += (Math.random() - 0.5) * 0.2;
+            this.vx += (Math.random() - 0.5) * 0.3;
+            this.vy += (Math.random() - 0.5) * 0.3;
             
             // 限制最大速度
             const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
@@ -491,25 +508,25 @@
                 this.vy = (this.vy / speed) * this.maxSpeed;
             }
             
-            // 更新位置
-            this.x += this.vx;
-            this.y += this.vy;
+            // 更新相对于鼠标的偏移位置
+            this.offsetX += this.vx;
+            this.offsetY += this.vy;
             
-            // 边界处理：X轴循环
-            if (this.x < 0) {
-                this.x = this.canvasWidth;
-            } else if (this.x > this.canvasWidth) {
-                this.x = 0;
+            // 限制在50px半径内
+            const distanceFromMouse = Math.sqrt(this.offsetX * this.offsetX + this.offsetY * this.offsetY);
+            if (distanceFromMouse > CONFIG.mouseFollowRadius) {
+                // 拉回范围内
+                const scale = CONFIG.mouseFollowRadius / distanceFromMouse;
+                this.offsetX *= scale;
+                this.offsetY *= scale;
+                // 反弹速度
+                this.vx *= -0.5;
+                this.vy *= -0.5;
             }
             
-            // 边界处理：Y轴限制在下半部分
-            if (this.y < this.minY) {
-                this.y = this.minY;
-                this.vy = Math.abs(this.vy); // 向下反弹
-            } else if (this.y > this.canvasHeight) {
-                this.y = this.canvasHeight;
-                this.vy = -Math.abs(this.vy); // 向上反弹
-            }
+            // 计算实际位置
+            this.x = this.mouseX + this.offsetX;
+            this.y = this.mouseY + this.offsetY;
         }
         
         draw(ctx) {
@@ -537,32 +554,89 @@
             
             ctx.restore();
         }
+    }
+
+    // ==================== 鼠标轨迹效果类 ====================
+    class MouseTrail {
+        constructor() {
+            this.points = [];  // 轨迹点数组
+            this.maxLength = CONFIG.mouseTrailLength;
+        }
         
-        resize(canvasWidth, canvasHeight) {
-            this.canvasWidth = canvasWidth;
-            this.canvasHeight = canvasHeight;
-            this.minY = this.canvasHeight * (1 - CONFIG.brownianAreaPercent);
+        addPoint(x, y) {
+            this.points.push({
+                x: x,
+                y: y,
+                opacity: CONFIG.mouseTrailOpacity,
+                life: 1.0  // 生命值，用于衰减
+            });
             
-            // 如果粒子超出新边界，重置位置
-            if (this.y < this.minY || this.y > this.canvasHeight) {
-                this.y = this.minY + Math.random() * (this.canvasHeight - this.minY);
+            // 限制轨迹长度
+            if (this.points.length > this.maxLength) {
+                this.points.shift();
             }
-            if (this.x > this.canvasWidth) {
-                this.x = Math.random() * this.canvasWidth;
+        }
+        
+        update() {
+            // 更新每个点的生命值和透明度
+            for (let i = this.points.length - 1; i >= 0; i--) {
+                const point = this.points[i];
+                point.life -= CONFIG.mouseTrailDecay;
+                point.opacity = point.life * CONFIG.mouseTrailOpacity;
+                
+                // 移除消失的点
+                if (point.life <= 0) {
+                    this.points.splice(i, 1);
+                }
             }
+        }
+        
+        draw(ctx) {
+            if (this.points.length < 2) return;
+            
+            ctx.save();
+            
+            // 绘制轨迹线条
+            for (let i = 1; i < this.points.length; i++) {
+                const prevPoint = this.points[i - 1];
+                const currPoint = this.points[i];
+                
+                ctx.beginPath();
+                ctx.moveTo(prevPoint.x, prevPoint.y);
+                ctx.lineTo(currPoint.x, currPoint.y);
+                
+                // 使用平均透明度
+                const avgOpacity = (prevPoint.opacity + currPoint.opacity) / 2;
+                ctx.strokeStyle = `rgba(${CONFIG.mouseTrailColor}, ${avgOpacity})`;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+        
+        clear() {
+            this.points = [];
         }
     }
 
     // ==================== 粒子系统管理器 ====================
     class ParticleSystem {
         constructor() {
-            this.staticCanvas = null;      // 静止星星和布朗粒子canvas (底层)
+            this.staticCanvas = null;      // 静止星星canvas (底层)
             this.staticCtx = null;
+            this.mouseCanvas = null;       // 鼠标效果canvas (中层)
+            this.mouseCtx = null;
             this.particleCanvas = null;    // 移动星星canvas (顶层)
             this.particleCtx = null;
             this.particles = [];
             this.staticStars = [];
-            this.brownianParticles = [];   // 布朗粒子数组
+            this.mouseFollowParticles = []; // 鼠标跟随粒子数组
+            this.mouseTrail = null;        // 鼠标轨迹
+            this.mouseX = window.innerWidth / 2;  // 鼠标X位置
+            this.mouseY = window.innerHeight / 2; // 鼠标Y位置
             this.animationId = null;
             this.isActive = true;
             
@@ -573,7 +647,8 @@
             this.createCanvas();
             this.createParticles();
             this.createStaticStars();
-            this.createBrownianParticles();
+            this.createMouseFollowParticles();
+            this.mouseTrail = new MouseTrail();
             this.bindEvents();
             this.animate();
             
@@ -600,6 +675,23 @@
                 z-index: 0;
             `;
             
+            // 创建鼠标效果canvas (中层, z-index: 100)
+            this.mouseCanvas = document.createElement('canvas');
+            this.mouseCanvas.id = 'mouse-effects-canvas';
+            this.mouseCtx = this.mouseCanvas.getContext('2d');
+            this.mouseCanvas.width = viewport.width;
+            this.mouseCanvas.height = viewport.height;
+            
+            this.mouseCanvas.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 100;
+            `;
+            
             // 创建移动星星canvas (顶层, z-index: 999999)
             this.particleCanvas = document.createElement('canvas');
             this.particleCanvas.id = 'particles-canvas';
@@ -617,8 +709,9 @@
                 z-index: 999999;
             `;
             
-            // 按顺序插入canvas：底层 -> 顶层
+            // 按顺序插入canvas：底层 -> 中层 -> 顶层
             document.body.insertBefore(this.staticCanvas, document.body.firstChild);
+            document.body.insertBefore(this.mouseCanvas, document.body.firstChild);
             document.body.insertBefore(this.particleCanvas, document.body.firstChild);
         }
 
@@ -640,12 +733,14 @@
             }
         }
         
-        createBrownianParticles() {
+        createMouseFollowParticles() {
             const viewport = getViewportSize();
-            this.brownianParticles = [];
+            this.mouseFollowParticles = [];
             
             for (let i = 0; i < CONFIG.brownianParticleCount; i++) {
-                this.brownianParticles.push(new BrownianParticle(viewport.width, viewport.height));
+                this.mouseFollowParticles.push(new MouseFollowParticle(
+                    viewport.width, viewport.height, this.mouseX, this.mouseY
+                ));
             }
         }
 
@@ -672,24 +767,44 @@
             window.addEventListener('orientationchange', () => {
                 setTimeout(() => this.handleResize(), 100);
             });
+            
+            // 鼠标移动监听
+            document.addEventListener('mousemove', (e) => {
+                this.mouseX = e.clientX;
+                this.mouseY = e.clientY;
+                
+                // 添加轨迹点
+                if (this.mouseTrail && CONFIG.mouseTrailEnabled) {
+                    this.mouseTrail.addPoint(e.clientX, e.clientY);
+                }
+            });
+            
+            // 触摸移动监听（移动端）
+            document.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    this.mouseX = e.touches[0].clientX;
+                    this.mouseY = e.touches[0].clientY;
+                    
+                    if (this.mouseTrail && CONFIG.mouseTrailEnabled) {
+                        this.mouseTrail.addPoint(this.mouseX, this.mouseY);
+                    }
+                }
+            }, { passive: true });
         }
 
         handleResize() {
             const viewport = getViewportSize();
             
-            // 调整两个canvas的大小
+            // 调整三个canvas的大小
             this.staticCanvas.width = viewport.width;
             this.staticCanvas.height = viewport.height;
+            this.mouseCanvas.width = viewport.width;
+            this.mouseCanvas.height = viewport.height;
             this.particleCanvas.width = viewport.width;
             this.particleCanvas.height = viewport.height;
             
             // 重新生成静态星星以适应新尺寸
             this.createStaticStars();
-            
-            // 调整布朗粒子位置
-            this.brownianParticles.forEach(particle => {
-                particle.resize(viewport.width, viewport.height);
-            });
             
             // 移动流星会继续飞行并在飞出屏幕后重新生成
         }
@@ -723,10 +838,19 @@
                 star.draw(this.staticCtx);
             });
             
-            // 绘制布朗粒子到底层canvas（和静止星星同一层）
-            this.brownianParticles.forEach(particle => {
-                particle.update();
-                particle.draw(this.staticCtx);
+            // 清空鼠标效果画布
+            this.mouseCtx.clearRect(0, 0, this.mouseCanvas.width, this.mouseCanvas.height);
+            
+            // 更新和绘制鼠标轨迹
+            if (this.mouseTrail && CONFIG.mouseTrailEnabled) {
+                this.mouseTrail.update();
+                this.mouseTrail.draw(this.mouseCtx);
+            }
+            
+            // 更新和绘制鼠标跟随粒子
+            this.mouseFollowParticles.forEach(particle => {
+                particle.update(this.mouseX, this.mouseY);
+                particle.draw(this.mouseCtx);
             });
             
             // 绘制移动流星到顶层canvas
@@ -756,6 +880,9 @@
             this.pause();
             if (this.staticCanvas && this.staticCanvas.parentNode) {
                 this.staticCanvas.parentNode.removeChild(this.staticCanvas);
+            }
+            if (this.mouseCanvas && this.mouseCanvas.parentNode) {
+                this.mouseCanvas.parentNode.removeChild(this.mouseCanvas);
             }
             if (this.particleCanvas && this.particleCanvas.parentNode) {
                 this.particleCanvas.parentNode.removeChild(this.particleCanvas);
@@ -791,7 +918,8 @@
 
     function initParticles() {
         if (document.getElementById('particles-canvas') || 
-            document.getElementById('static-stars-canvas')) {
+            document.getElementById('static-stars-canvas') ||
+            document.getElementById('mouse-effects-canvas')) {
             console.log('粒子效果已存在');
             return;
         }
