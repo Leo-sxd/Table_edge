@@ -798,7 +798,7 @@
         createCanvas() {
             const viewport = getViewportSize();
             
-            // 创建静止星星canvas (底层, z-index: 0)
+            // 创建静止星星canvas (底层, z-index: 1)
             this.staticCanvas = document.createElement('canvas');
             this.staticCanvas.id = 'static-stars-canvas';
             this.staticCtx = this.staticCanvas.getContext('2d');
@@ -812,10 +812,10 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none;
-                z-index: 0;
+                z-index: 1;
             `;
             
-            // 创建鼠标效果canvas (中层, z-index: 100)
+            // 创建鼠标效果canvas (最底层, z-index: 2)
             this.mouseCanvas = document.createElement('canvas');
             this.mouseCanvas.id = 'mouse-effects-canvas';
             this.mouseCtx = this.mouseCanvas.getContext('2d');
@@ -829,7 +829,7 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none;
-                z-index: 100;
+                z-index: 2;
             `;
             
             // 创建移动星星canvas (顶层, z-index: 999999)
@@ -846,7 +846,7 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none;
-                z-index: 999999;
+                z-index: 10;
             `;
             
             // 按顺序插入canvas：底层 -> 中层 -> 顶层
