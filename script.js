@@ -512,6 +512,7 @@
             
             // 捕获状态追踪
             this.isCaptured = false;           // 是否被捕获
+            this.captureStartTime = 0;         // 捕获开始时间戳
             this.captureReleaseTime = 0;       // 挣脱时间戳
         }
         
@@ -543,6 +544,11 @@
                 
                 // 标记为被捕获
                 this.isCaptured = true;
+                
+                // 如果刚刚被捕获，记录捕获开始时间
+                if (!wasCaptured) {
+                    this.captureStartTime = Date.now();
+                }
             }
             
             // 如果刚刚挣脱（之前被捕获，现在未被捕获）
@@ -655,14 +661,18 @@
         
         // 检查是否可以参与连线
         canConnect() {
+            // 当前被捕获状态：检查捕获时长是否超过阈值
             if (this.isCaptured) {
-                return true;
+                const captureDuration = Date.now() - this.captureStartTime;
+                return captureDuration >= CONFIG.minCaptureDuration;
             }
-            // 挣脱后1秒内仍然可以连线
+            
+            // 挣脱后1秒内仍然可以连线（前提是之前已经满足捕获时长）
             if (this.captureReleaseTime > 0) {
                 const timeSinceRelease = Date.now() - this.captureReleaseTime;
                 return timeSinceRelease < CONFIG.connectionReleaseDelay;
             }
+            
             return false;
         }
         
