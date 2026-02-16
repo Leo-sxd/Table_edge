@@ -16,9 +16,9 @@
     // 粒子系统配置
     const CONFIG = {
         // 移动流星（Particle）配置
-        particleCount: 60,        // 粒子数量（适中，不影响性能）
-        minSize: 2.4,             // 最小粒子大小（像素）- 放大20%
-        maxSize: 6,               // 最大粒子大小（像素）- 放大20%
+        particleCount: 7,        // 粒子数量（适中，不影响性能）
+        minSize: 4,             // 最小粒子大小（像素）- 放大20%
+        maxSize: 8,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
         maxOpacity: 0.7,          // 最大透明度（70%）
         // 速度配置：2cm/s ≈ 75.6像素/秒（基于96 PPI标准屏幕）
@@ -34,11 +34,11 @@
         trailLengthMax: 12,       // 拖尾长度倍数（最大）
         
         // 静态闪烁星星（StaticStar）配置
-        staticStarCount: 40,      // 静态星星数量
-        staticStarMinSize: 1.5,   // 静态星星最小大小
-        staticStarMaxSize: 3.5,   // 静态星星最大大小
+        staticStarCount: 60,      // 静态星星数量
+        staticStarMinSize: 3,   // 静态星星最小大小
+        staticStarMaxSize: 6,   // 静态星星最大大小
         staticStarMinOpacity: 0.1,// 静态星星最小透明度
-        staticStarMaxOpacity: 0.8,// 静态星星最大透明度
+        staticStarMaxOpacity: 0.9,// 静态星星最大透明度
         staticStarHeightPercent: 0.8, // 出现范围：页面高度的80%
         staticStarTwinkleMin: 0.01,   // 最小闪烁速度
         staticStarTwinkleMax: 0.03,   // 最大闪烁速度
