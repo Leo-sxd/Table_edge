@@ -56,7 +56,24 @@
         staticStarHeightPercent: 0.8, // 出现范围：页面高度的80%
         staticStarTwinkleMin: 0.01,   // 最小闪烁速度
         staticStarTwinkleMax: 0.03,   // 最大闪烁速度
-        staticStarColor: '255, 255, 255' // 静态星星颜色
+        staticStarColor: '255, 255, 255', // 静态星星颜色
+        
+        // 彩色布朗运动粒子配置
+        brownianParticleCount: 80,      // 布朗粒子数量
+        brownianParticleSize: 2,        // 粒子大小（非常小）
+        brownianParticleOpacity: 0.9,   // 粒子透明度（高透明度确保清晰可见）
+        brownianMovementSpeed: 0.8,     // 布朗运动速度
+        brownianAreaPercent: 0.5,       // 运动区域：屏幕下半50%
+        brownianColors: [               // 彩色粒子颜色数组
+            '255, 100, 100',   // 红色
+            '100, 255, 100',   // 绿色
+            '100, 100, 255',   // 蓝色
+            '255, 255, 100',   // 黄色
+            '255, 100, 255',   // 紫色
+            '100, 255, 255',   // 青色
+            '255, 200, 100',   // 橙色
+            '200, 100, 255'    // 粉色
+        ]
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -431,15 +448,123 @@
         }
     }
 
+    // ==================== 彩色布朗运动粒子类 ====================
+    class BrownianParticle {
+        constructor(canvasWidth, canvasHeight) {
+            this.canvasWidth = canvasWidth;
+            this.canvasHeight = canvasHeight;
+            this.reset();
+        }
+        
+        reset() {
+            // 在屏幕下半部分随机位置
+            const startY = this.canvasHeight * (1 - CONFIG.brownianAreaPercent);
+            this.x = Math.random() * this.canvasWidth;
+            this.y = startY + Math.random() * (this.canvasHeight - startY);
+            
+            // 粒子属性
+            this.size = CONFIG.brownianParticleSize;
+            this.opacity = CONFIG.brownianParticleOpacity;
+            
+            // 随机选择一种颜色
+            const colorIndex = Math.floor(Math.random() * CONFIG.brownianColors.length);
+            this.color = CONFIG.brownianColors[colorIndex];
+            
+            // 布朗运动参数
+            this.vx = 0;
+            this.vy = 0;
+            this.maxSpeed = CONFIG.brownianMovementSpeed;
+            
+            // 边界限制
+            this.minY = this.canvasHeight * (1 - CONFIG.brownianAreaPercent);
+        }
+        
+        update() {
+            // 布朗运动：随机改变速度方向
+            this.vx += (Math.random() - 0.5) * 0.2;
+            this.vy += (Math.random() - 0.5) * 0.2;
+            
+            // 限制最大速度
+            const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            if (speed > this.maxSpeed) {
+                this.vx = (this.vx / speed) * this.maxSpeed;
+                this.vy = (this.vy / speed) * this.maxSpeed;
+            }
+            
+            // 更新位置
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            // 边界处理：X轴循环
+            if (this.x < 0) {
+                this.x = this.canvasWidth;
+            } else if (this.x > this.canvasWidth) {
+                this.x = 0;
+            }
+            
+            // 边界处理：Y轴限制在下半部分
+            if (this.y < this.minY) {
+                this.y = this.minY;
+                this.vy = Math.abs(this.vy); // 向下反弹
+            } else if (this.y > this.canvasHeight) {
+                this.y = this.canvasHeight;
+                this.vy = -Math.abs(this.vy); // 向上反弹
+            }
+        }
+        
+        draw(ctx) {
+            ctx.save();
+            
+            // 绘制粒子主体（发光效果）
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+            ctx.fill();
+            
+            // 添加光晕效果让粒子更清晰
+            const gradient = ctx.createRadialGradient(
+                this.x, this.y, 0,
+                this.x, this.y, this.size * 4
+            );
+            gradient.addColorStop(0, `rgba(${this.color}, ${this.opacity * 0.6})`);
+            gradient.addColorStop(0.5, `rgba(${this.color}, ${this.opacity * 0.2})`);
+            gradient.addColorStop(1, `rgba(${this.color}, 0)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        resize(canvasWidth, canvasHeight) {
+            this.canvasWidth = canvasWidth;
+            this.canvasHeight = canvasHeight;
+            this.minY = this.canvasHeight * (1 - CONFIG.brownianAreaPercent);
+            
+            // 如果粒子超出新边界，重置位置
+            if (this.y < this.minY || this.y > this.canvasHeight) {
+                this.y = this.minY + Math.random() * (this.canvasHeight - this.minY);
+            }
+            if (this.x > this.canvasWidth) {
+                this.x = Math.random() * this.canvasWidth;
+            }
+        }
+    }
+
     // ==================== 粒子系统管理器 ====================
     class ParticleSystem {
         constructor() {
             this.staticCanvas = null;      // 静止星星canvas (底层)
             this.staticCtx = null;
+            this.brownianCanvas = null;    // 布朗粒子canvas (中层)
+            this.brownianCtx = null;
             this.particleCanvas = null;    // 移动星星canvas (顶层)
             this.particleCtx = null;
             this.particles = [];
             this.staticStars = [];
+            this.brownianParticles = [];   // 布朗粒子数组
             this.animationId = null;
             this.isActive = true;
             
@@ -450,6 +575,7 @@
             this.createCanvas();
             this.createParticles();
             this.createStaticStars();
+            this.createBrownianParticles();
             this.bindEvents();
             this.animate();
             
@@ -476,6 +602,23 @@
                 z-index: 0;
             `;
             
+            // 创建布朗粒子canvas (中层, z-index: 500)
+            this.brownianCanvas = document.createElement('canvas');
+            this.brownianCanvas.id = 'brownian-particles-canvas';
+            this.brownianCtx = this.brownianCanvas.getContext('2d');
+            this.brownianCanvas.width = viewport.width;
+            this.brownianCanvas.height = viewport.height;
+            
+            this.brownianCanvas.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 500;
+            `;
+            
             // 创建移动星星canvas (顶层, z-index: 999999)
             this.particleCanvas = document.createElement('canvas');
             this.particleCanvas.id = 'particles-canvas';
@@ -493,8 +636,9 @@
                 z-index: 999999;
             `;
             
-            // 先插入底层canvas，再插入顶层canvas
+            // 按顺序插入canvas：底层 -> 中层 -> 顶层
             document.body.insertBefore(this.staticCanvas, document.body.firstChild);
+            document.body.insertBefore(this.brownianCanvas, document.body.firstChild);
             document.body.insertBefore(this.particleCanvas, document.body.firstChild);
         }
 
@@ -513,6 +657,15 @@
             
             for (let i = 0; i < CONFIG.staticStarCount; i++) {
                 this.staticStars.push(new StaticStar(viewport.width, viewport.height));
+            }
+        }
+        
+        createBrownianParticles() {
+            const viewport = getViewportSize();
+            this.brownianParticles = [];
+            
+            for (let i = 0; i < CONFIG.brownianParticleCount; i++) {
+                this.brownianParticles.push(new BrownianParticle(viewport.width, viewport.height));
             }
         }
 
@@ -544,14 +697,21 @@
         handleResize() {
             const viewport = getViewportSize();
             
-            // 调整两个canvas的大小
+            // 调整三个canvas的大小
             this.staticCanvas.width = viewport.width;
             this.staticCanvas.height = viewport.height;
+            this.brownianCanvas.width = viewport.width;
+            this.brownianCanvas.height = viewport.height;
             this.particleCanvas.width = viewport.width;
             this.particleCanvas.height = viewport.height;
             
             // 重新生成静态星星以适应新尺寸
             this.createStaticStars();
+            
+            // 调整布朗粒子位置
+            this.brownianParticles.forEach(particle => {
+                particle.resize(viewport.width, viewport.height);
+            });
             
             // 移动流星会继续飞行并在飞出屏幕后重新生成
         }
@@ -585,6 +745,12 @@
                 star.draw(this.staticCtx);
             });
             
+            // 绘制布朗粒子到中层canvas
+            this.brownianParticles.forEach(particle => {
+                particle.update();
+                particle.draw(this.brownianCtx);
+            });
+            
             // 绘制移动流星到顶层canvas
             this.particles.forEach(particle => {
                 particle.update(viewport.width, viewport.height);
@@ -612,6 +778,9 @@
             this.pause();
             if (this.staticCanvas && this.staticCanvas.parentNode) {
                 this.staticCanvas.parentNode.removeChild(this.staticCanvas);
+            }
+            if (this.brownianCanvas && this.brownianCanvas.parentNode) {
+                this.brownianCanvas.parentNode.removeChild(this.brownianCanvas);
             }
             if (this.particleCanvas && this.particleCanvas.parentNode) {
                 this.particleCanvas.parentNode.removeChild(this.particleCanvas);
@@ -646,7 +815,9 @@
     }
 
     function initParticles() {
-        if (document.getElementById('particles-canvas') || document.getElementById('static-stars-canvas')) {
+        if (document.getElementById('particles-canvas') || 
+            document.getElementById('static-stars-canvas') ||
+            document.getElementById('brownian-particles-canvas')) {
             console.log('粒子效果已存在');
             return;
         }
