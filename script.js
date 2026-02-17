@@ -2528,7 +2528,8 @@ class SettingsManager {
     init() {
         // 获取DOM元素
         this.settingsBtn = document.getElementById('settings-btn');
-        this.settingsPanel = document.getElementById('settings-panel');
+        this.modalOverlay = document.getElementById('settings-modal-overlay');
+        this.modalBackdrop = document.getElementById('modal-backdrop');
         this.closeBtn = document.getElementById('close-settings');
         
         // 获取开关和滑块元素
@@ -2582,10 +2583,12 @@ class SettingsManager {
         this.settingsBtn.addEventListener('click', () => this.togglePanel());
         this.closeBtn.addEventListener('click', () => this.closePanel());
         
-        // 点击外部关闭
-        document.addEventListener('click', (e) => {
-            if (!this.settingsBtn.contains(e.target) && 
-                !this.settingsPanel.contains(e.target)) {
+        // 点击遮罩层关闭
+        this.modalBackdrop.addEventListener('click', () => this.closePanel());
+        
+        // ESC键关闭
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.modalOverlay.classList.contains('show')) {
                 this.closePanel();
             }
         });
@@ -2625,13 +2628,24 @@ class SettingsManager {
     }
     
     togglePanel() {
-        this.settingsPanel.classList.toggle('show');
-        this.settingsBtn.classList.toggle('active');
+        const isOpen = this.modalOverlay.classList.contains('show');
+        if (isOpen) {
+            this.closePanel();
+        } else {
+            this.openPanel();
+        }
+    }
+    
+    openPanel() {
+        this.modalOverlay.classList.add('show');
+        this.modalBackdrop.classList.add('show');
+        document.body.classList.add('modal-open');
     }
     
     closePanel() {
-        this.settingsPanel.classList.remove('show');
-        this.settingsBtn.classList.remove('active');
+        this.modalOverlay.classList.remove('show');
+        this.modalBackdrop.classList.remove('show');
+        document.body.classList.remove('modal-open');
     }
     
     applySettings() {

@@ -23,14 +23,18 @@
         <button class="settings-btn" id="settings-btn" title="背景特效设置">
             <i class="fas fa-cog"></i>
         </button>
-        <div class="settings-panel" id="settings-panel">
-            <div class="settings-header">
-                <h3>背景特效设置</h3>
+    </div>
+    
+    <!-- 全屏设置模态框 -->
+    <div class="settings-modal-overlay" id="settings-modal-overlay">
+        <div class="settings-modal" id="settings-modal">
+            <div class="settings-modal-header">
+                <h2>背景特效设置</h2>
                 <button class="close-settings" id="close-settings">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="settings-content">
+            <div class="settings-modal-content">
                 <!-- 背景图片选择 -->
                 <div class="settings-section">
                     <h4>背景图片</h4>
@@ -140,6 +144,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- 遮罩层点击关闭 -->
+    <div class="modal-backdrop" id="modal-backdrop"></div>
     
 
     <!-- 主容器 -->
