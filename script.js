@@ -687,6 +687,12 @@
             this.animationId = null;
             this.isActive = true;
             
+            // 特效开关状态 - 与设置面板同步
+            this.staticEnabled = true;      // 静止闪烁星星
+            this.meteorEnabled = true;      // 运动拖尾流星
+            this.particlesEnabled = true;   // 彩色布朗粒子
+            this.connectionsEnabled = true; // 粒子连线
+            
             this.init();
         }
 
@@ -763,14 +769,13 @@
         }
 
         createParticles() {
-            // 如果特效被禁用，清空粒子数组
-            if (!this.meteorEnabled) {
-                this.particles = [];
-                return;
-            }
-            
             const viewport = getViewportSize();
             this.particles = [];
+            
+            // 如果特效被禁用，不创建粒子
+            if (this.meteorEnabled === false) {
+                return;
+            }
             
             for (let i = 0; i < CONFIG.particleCount; i++) {
                 this.particles.push(new Particle(viewport.width, viewport.height));
@@ -778,14 +783,13 @@
         }
 
         createStaticStars() {
-            // 如果特效被禁用，清空星星数组
-            if (!this.staticEnabled) {
-                this.staticStars = [];
-                return;
-            }
-            
             const viewport = getViewportSize();
             this.staticStars = [];
+            
+            // 如果特效被禁用，不创建星星
+            if (this.staticEnabled === false) {
+                return;
+            }
             
             for (let i = 0; i < CONFIG.staticStarCount; i++) {
                 this.staticStars.push(new StaticStar(viewport.width, viewport.height));
@@ -793,14 +797,13 @@
         }
         
         createMouseFollowParticles() {
-            // 如果特效被禁用，清空粒子数组
-            if (!this.particlesEnabled) {
-                this.mouseFollowParticles = [];
-                return;
-            }
-            
             const viewport = getViewportSize();
             this.mouseFollowParticles = [];
+            
+            // 如果特效被禁用，不创建粒子
+            if (this.particlesEnabled === false) {
+                return;
+            }
             
             // 使用配置值创建粒子
             for (let i = 0; i < CONFIG.enhancedParticleCount; i++) {
