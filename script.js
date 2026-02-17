@@ -2486,3 +2486,136 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 })();
+
+// ==================== 设置面板控制 ====================
+class SettingsManager {
+    constructor() {
+        this.settings = {
+            background: true,
+            staticStars: true,
+            meteor: true,
+            particles: true,
+            connections: true
+        };
+        this.init();
+    }
+    
+    init() {
+        // 获取DOM元素
+        this.settingsBtn = document.getElementById('settings-btn');
+        this.settingsPanel = document.getElementById('settings-panel');
+        this.closeBtn = document.getElementById('close-settings');
+        
+        // 获取开关元素
+        this.toggles = {
+            background: document.getElementById('bg-toggle'),
+            staticStars: document.getElementById('static-stars-toggle'),
+            meteor: document.getElementById('meteor-toggle'),
+            particles: document.getElementById('particles-toggle'),
+            connections: document.getElementById('connections-toggle')
+        };
+        
+        // 绑定事件
+        this.bindEvents();
+        
+        // 应用初始设置
+        this.applySettings();
+    }
+    
+    bindEvents() {
+        // 打开/关闭面板
+        this.settingsBtn.addEventListener('click', () => this.togglePanel());
+        this.closeBtn.addEventListener('click', () => this.closePanel());
+        
+        // 点击外部关闭
+        document.addEventListener('click', (e) => {
+            if (!this.settingsBtn.contains(e.target) && 
+                !this.settingsPanel.contains(e.target)) {
+                this.closePanel();
+            }
+        });
+        
+        // 开关事件
+        this.toggles.background.addEventListener('change', (e) => {
+            this.settings.background = e.target.checked;
+            this.toggleBackground();
+        });
+        
+        this.toggles.staticStars.addEventListener('change', (e) => {
+            this.settings.staticStars = e.target.checked;
+            this.toggleStaticStars();
+        });
+        
+        this.toggles.meteor.addEventListener('change', (e) => {
+            this.settings.meteor = e.target.checked;
+            this.toggleMeteor();
+        });
+        
+        this.toggles.particles.addEventListener('change', (e) => {
+            this.settings.particles = e.target.checked;
+            this.toggleParticles();
+        });
+        
+        this.toggles.connections.addEventListener('change', (e) => {
+            this.settings.connections = e.target.checked;
+            this.toggleConnections();
+        });
+    }
+    
+    togglePanel() {
+        this.settingsPanel.classList.toggle('show');
+        this.settingsBtn.classList.toggle('active');
+    }
+    
+    closePanel() {
+        this.settingsPanel.classList.remove('show');
+        this.settingsBtn.classList.remove('active');
+    }
+    
+    applySettings() {
+        this.toggleBackground();
+        this.toggleStaticStars();
+        this.toggleMeteor();
+        this.toggleParticles();
+        this.toggleConnections();
+    }
+    
+    toggleBackground() {
+        const bgCanvas = document.getElementById('static-stars-canvas');
+        if (bgCanvas) {
+            bgCanvas.style.display = this.settings.background ? 'block' : 'none';
+        }
+    }
+    
+    toggleStaticStars() {
+        // 静止星星在static-stars-canvas中绘制
+        if (window.particleSystem) {
+            window.particleSystem.staticEnabled = this.settings.staticStars;
+        }
+    }
+    
+    toggleMeteor() {
+        if (window.particleSystem) {
+            window.particleSystem.meteorEnabled = this.settings.meteor;
+        }
+    }
+    
+    toggleParticles() {
+        const mouseCanvas = document.getElementById('mouse-effects-canvas');
+        if (mouseCanvas) {
+            mouseCanvas.style.display = this.settings.particles ? 'block' : 'none';
+        }
+    }
+    
+    toggleConnections() {
+        if (window.particleSystem) {
+            window.particleSystem.connectionsEnabled = this.settings.connections;
+        }
+    }
+}
+
+// 初始化设置管理器
+document.addEventListener('DOMContentLoaded', () => {
+    window.settingsManager = new SettingsManager();
+});
+

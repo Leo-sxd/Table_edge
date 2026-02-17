@@ -18,6 +18,59 @@
 <base target="_blank">
 </head>
 <body>
+    <!-- 设置按钮 -->
+    <div class="settings-container">
+        <button class="settings-btn" id="settings-btn" title="设置">
+            <i class="fas fa-cog"></i>
+        </button>
+        <div class="settings-panel" id="settings-panel">
+            <div class="settings-header">
+                <h3>效果设置</h3>
+                <button class="close-settings" id="close-settings">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <span class="setting-label">背景显示</span>
+                    <label class="switch">
+                        <input type="checkbox" id="bg-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">静止星星</span>
+                    <label class="switch">
+                        <input type="checkbox" id="static-stars-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">动态流星</span>
+                    <label class="switch">
+                        <input type="checkbox" id="meteor-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">彩色粒子</span>
+                    <label class="switch">
+                        <input type="checkbox" id="particles-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">连线效果</span>
+                    <label class="switch">
+                        <input type="checkbox" id="connections-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
     <!-- 背景图片选择器 -->
     <div class="bg-selector" id="bg-selector">
         <button id="change-bg-btn" title="更换背景">
