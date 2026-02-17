@@ -711,14 +711,38 @@
 
         init() {
             this.createCanvas();
-            this.createParticles();
-            this.createStaticStars();
-            this.createMouseFollowParticles();
+            // 不在这里创建粒子，等待SettingsManager应用设置后再创建
             this.mouseTrail = new MouseTrail();
             this.bindEvents();
             this.animate();
             
-            console.log('粒子系统初始化完成');
+            console.log('粒子系统初始化完成，等待设置应用...');
+        }
+        
+        // 根据设置初始化粒子
+        initFromSettings(settings) {
+            console.log('根据设置初始化粒子:', settings);
+            
+            // 静止星星
+            this.staticEnabled = settings.staticStars.enabled && settings.staticStars.count > 0;
+            if (this.staticEnabled) {
+                this.createStaticStars();
+            }
+            
+            // 流星
+            this.meteorEnabled = settings.meteor.enabled && settings.meteor.count > 0;
+            if (this.meteorEnabled) {
+                this.createParticles();
+            }
+            
+            // 彩色粒子
+            this.particlesEnabled = settings.particles.enabled && settings.particles.count > 0;
+            if (this.particlesEnabled) {
+                this.createMouseFollowParticles();
+            }
+            
+            // 连线
+            this.connectionsEnabled = settings.connections.enabled && settings.connections.count > 0;
         }
 
         createCanvas() {
@@ -2640,6 +2664,11 @@ class SettingsManager {
         
         // 应用初始设置
         this.applySettings();
+        
+        // 如果粒子系统已存在，根据当前设置初始化
+        if (window.particleSystem) {
+            window.particleSystem.initFromSettings(this.settings);
+        }
     }
     
     initUI() {
@@ -2750,49 +2779,54 @@ class SettingsManager {
         CONFIG.colorParticleCount = this.settings.particles.count;
         CONFIG.particleConnectionMaxLines = this.settings.connections.count;
         
+        console.log('【应用设置】', {
+            静止星星: this.settings.staticStars,
+            流星: this.settings.meteor,
+            彩色粒子: this.settings.particles,
+            连线: this.settings.connections
+        });
+        
         // 应用到粒子系统
         if (window.particleSystem) {
             // 静止星星 - 控制显示/隐藏和重新生成
-            window.particleSystem.staticEnabled = this.settings.staticStars.enabled;
-            const staticCanvas = document.getElementById('static-stars-canvas');
-            if (staticCanvas) {
-                staticCanvas.style.display = this.settings.staticStars.enabled ? 'block' : 'none';
-            }
-            if (this.settings.staticStars.enabled) {
+            const shouldShowStatic = this.settings.staticStars.enabled && this.settings.staticStars.count > 0;
+            window.particleSystem.staticEnabled = shouldShowStatic;
+            
+            if (shouldShowStatic) {
                 window.particleSystem.createStaticStars();
             } else {
-                // 关闭时清空粒子数组
                 window.particleSystem.staticStars = [];
             }
             
             // 流星 - 控制显示/隐藏和重新生成
-            window.particleSystem.meteorEnabled = this.settings.meteor.enabled;
-            const particleCanvas = document.getElementById('particles-canvas');
-            if (particleCanvas) {
-                particleCanvas.style.display = this.settings.meteor.enabled ? 'block' : 'none';
-            }
-            if (this.settings.meteor.enabled) {
+            const shouldShowMeteor = this.settings.meteor.enabled && this.settings.meteor.count > 0;
+            window.particleSystem.meteorEnabled = shouldShowMeteor;
+            
+            if (shouldShowMeteor) {
                 window.particleSystem.createParticles();
             } else {
-                // 关闭时清空粒子数组
                 window.particleSystem.particles = [];
             }
             
             // 彩色粒子 - 控制显示/隐藏和重新生成
-            window.particleSystem.particlesEnabled = this.settings.particles.enabled;
-            const mouseCanvas = document.getElementById('mouse-effects-canvas');
-            if (mouseCanvas) {
-                mouseCanvas.style.display = this.settings.particles.enabled ? 'block' : 'none';
-            }
-            if (this.settings.particles.enabled) {
+            const shouldShowParticles = this.settings.particles.enabled && this.settings.particles.count > 0;
+            window.particleSystem.particlesEnabled = shouldShowParticles;
+            
+            if (shouldShowParticles) {
                 window.particleSystem.createMouseFollowParticles();
             } else {
-                // 关闭时清空粒子数组
                 window.particleSystem.mouseFollowParticles = [];
             }
             
             // 连线 - 仅控制是否绘制连线
-            window.particleSystem.connectionsEnabled = this.settings.connections.enabled;
+            window.particleSystem.connectionsEnabled = this.settings.connections.enabled && this.settings.connections.count > 0;
+            
+            console.log('【粒子系统状态】', {
+                staticEnabled: window.particleSystem.staticEnabled,
+                meteorEnabled: window.particleSystem.meteorEnabled,
+                particlesEnabled: window.particleSystem.particlesEnabled,
+                connectionsEnabled: window.particleSystem.connectionsEnabled
+            });
         }
     }
     
@@ -2891,13 +2925,5 @@ class SettingsManager {
 // 初始化设置管理器
 document.addEventListener('DOMContentLoaded', () => {
     window.settingsManager = new SettingsManager();
-    
-    // 延迟应用设置，确保ParticleSystem已初始化
-    setTimeout(() => {
-        if (window.settingsManager && window.particleSystem) {
-            window.settingsManager.applySettings();
-            console.log('设置已应用到粒子系统');
-        }
-    }, 100);
 });
 
