@@ -1090,17 +1090,44 @@
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     allPossibleConnections.push({
+                        p1Index: i,
+                        p2Index: j,
                         p1: p1,
                         p2: p2,
-                        distance: distance,
-                        pairKey: `${i}-${j}`
+                        distance: distance
                     });
                 }
             }
             
-            // 按距离排序，取最近的maxTotalConnections个
+            // 按距离排序
             allPossibleConnections.sort((a, b) => a.distance - b.distance);
-            const connectionsToDraw = allPossibleConnections.slice(0, CONFIG.maxTotalConnections);
+            
+            // 记录每个粒子的已连接数
+            const connectionCounts = new Array(connectableParticles.length).fill(0);
+            const selectedConnections = [];
+            
+            // 优先选择距离近的连线，同时满足两个限制：
+            // 1. 单个粒子最多5条连线
+            // 2. 全局最多10条连线
+            for (const conn of allPossibleConnections) {
+                // 检查全局限制
+                if (selectedConnections.length >= CONFIG.maxTotalConnections) {
+                    break;
+                }
+                
+                // 检查单个粒子限制
+                if (connectionCounts[conn.p1Index] >= CONFIG.maxConnectionsPerParticle) {
+                    continue;
+                }
+                if (connectionCounts[conn.p2Index] >= CONFIG.maxConnectionsPerParticle) {
+                    continue;
+                }
+                
+                // 选择这条连线
+                selectedConnections.push(conn);
+                connectionCounts[conn.p1Index]++;
+                connectionCounts[conn.p2Index]++;
+            }
             
             // 绘制选中的连线
             this.mouseCtx.save();
@@ -1108,7 +1135,7 @@
             this.mouseCtx.lineWidth = CONFIG.connectionLineWidth;
             this.mouseCtx.lineCap = 'round';
             
-            for (const conn of connectionsToDraw) {
+            for (const conn of selectedConnections) {
                 this.mouseCtx.beginPath();
                 this.mouseCtx.moveTo(conn.p1.x, conn.p1.y);
                 this.mouseCtx.lineTo(conn.p2.x, conn.p2.y);
