@@ -491,9 +491,10 @@
         }
         
         reset() {
-            // 在画布范围内随机位置
-            this.x = Math.random() * this.canvasWidth;
-            this.y = Math.random() * this.canvasHeight;
+            // 在画布范围内随机位置（确保在可视区域内）
+            const margin = CONFIG.enhancedParticleSize * 2;
+            this.x = margin + Math.random() * (this.canvasWidth - margin * 2);
+            this.y = margin + Math.random() * (this.canvasHeight - margin * 2);
             
             // 粒子属性
             this.size = CONFIG.enhancedParticleSize;
@@ -590,22 +591,30 @@
             this.x += this.vx;
             this.y += this.vy;
             
-            // 7. 边界反弹
-            if (this.x < this.size) {
-                this.x = this.size;
+            // 7. 边界反弹（严格限制在可视区域内）
+            const margin = this.size;
+            
+            // X轴边界检查
+            if (this.x < margin) {
+                this.x = margin;
                 this.vx = Math.abs(this.vx) * 0.8;
-            } else if (this.x > this.canvasWidth - this.size) {
-                this.x = this.canvasWidth - this.size;
+            } else if (this.x > this.canvasWidth - margin) {
+                this.x = this.canvasWidth - margin;
                 this.vx = -Math.abs(this.vx) * 0.8;
             }
             
-            if (this.y < this.size) {
-                this.y = this.size;
+            // Y轴边界检查
+            if (this.y < margin) {
+                this.y = margin;
                 this.vy = Math.abs(this.vy) * 0.8;
-            } else if (this.y > this.canvasHeight - this.size) {
-                this.y = this.canvasHeight - this.size;
+            } else if (this.y > this.canvasHeight - margin) {
+                this.y = this.canvasHeight - margin;
                 this.vy = -Math.abs(this.vy) * 0.8;
             }
+            
+            // 额外安全检查：确保粒子不会溢出
+            this.x = Math.max(margin, Math.min(this.x, this.canvasWidth - margin));
+            this.y = Math.max(margin, Math.min(this.y, this.canvasHeight - margin));
         }
         
         // 处理与其他粒子的碰撞
@@ -887,7 +896,10 @@
             const viewport = getViewportSize();
             this.mouseFollowParticles = [];
             
-            for (let i = 0; i < CONFIG.enhancedParticleCount; i++) {
+            // 限制粒子数量，确保不超过配置值
+            const particleCount = Math.min(CONFIG.enhancedParticleCount, 5);
+            
+            for (let i = 0; i < particleCount; i++) {
                 this.mouseFollowParticles.push(new EnhancedParticle(
                     viewport.width, viewport.height
                 ));
