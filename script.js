@@ -1403,31 +1403,9 @@ document.addEventListener('DOMContentLoaded', function() {
     getGeolocationAndWeather();
     
     // ==================== 3. 背景图片切换 ====================
-    const bgSelector = document.getElementById('bg-selector');
-    const changeBgBtn = document.getElementById('change-bg-btn');
-    const bgOptions = document.getElementById('bg-options');
-    const customBgBtn = document.getElementById('custom-bg-btn');
     const bgUpload = document.getElementById('bg-upload');
+    const settingsPanel = document.getElementById('settings-panel');
     
-    // 修复：添加点击展开/收起功能
-    changeBgBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        bgSelector.classList.toggle('expanded');
-    });
-    
-    // 点击其他地方收起
-    document.addEventListener('click', function(e) {
-        if (!bgSelector.contains(e.target)) {
-            bgSelector.classList.remove('expanded');
-        }
-    });
-    
-    // 防止点击选项区域收起
-    bgOptions.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-    
-    const bgPreviews = document.querySelectorAll('.bg-option:not([data-bg="custom"])');
     // 修改背景切换函数，确保使用正确的CSS属性
     function changeBackgroundImage(imageUrl) {
         document.body.style.backgroundImage = `url(${imageUrl})`;
@@ -1438,9 +1416,11 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('selectedBackground', imageUrl);
     }
 
-    bgPreviews.forEach(option => {
-        option.addEventListener('click', function() {
-            const bgType = this.getAttribute('data-bg');
+    // 新的背景选项事件绑定（使用事件委托）
+    document.addEventListener('click', function(e) {
+        const bgOption = e.target.closest('.bg-option-item');
+        if (bgOption && bgOption.getAttribute('data-bg') !== 'custom') {
+            const bgType = bgOption.getAttribute('data-bg');
             const bgImages = {
                 'nature1': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
                 'nature2': 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
@@ -1448,29 +1428,47 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             changeBackgroundImage(bgImages[bgType]);
-            bgSelector.classList.remove('expanded');
-        });
-    });
-    
-    // 自定义背景上传
-    customBgBtn.addEventListener('click', function() {
-        bgUpload.click();
-    });
-    
-    bgUpload.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                changeBackgroundImage(event.target.result);
-                bgSelector.classList.remove('expanded');
-            };
-            reader.readAsDataURL(file);
+            // 关闭设置面板
+            if (settingsPanel) {
+                settingsPanel.classList.remove('show');
+            }
+            const settingsBtn = document.getElementById('settings-btn');
+            if (settingsBtn) {
+                settingsBtn.classList.remove('active');
+            }
         }
     });
     
+    // 自定义背景上传
+    document.addEventListener('click', function(e) {
+        const customBtn = e.target.closest('#custom-bg-btn');
+        if (customBtn && bgUpload) {
+            bgUpload.click();
+        }
+    });
+    
+    if (bgUpload) {
+        bgUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    changeBackgroundImage(event.target.result);
+                    // 关闭设置面板
+                    if (settingsPanel) {
+                        settingsPanel.classList.remove('show');
+                    }
+                    const settingsBtn = document.getElementById('settings-btn');
+                    if (settingsBtn) {
+                        settingsBtn.classList.remove('active');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
     // 加载保存的背景
-    // 修改加载保存的背景函数
     function loadSavedBackground() {
         const savedBackground = localStorage.getItem('selectedBackground');
         if (savedBackground) {
