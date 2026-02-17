@@ -20,38 +20,123 @@
 <body>
     <!-- 设置按钮 -->
     <div class="settings-container">
-        <button class="settings-btn" id="settings-btn" title="背景设置">
-            <i class="fas fa-plus"></i>
+        <button class="settings-btn" id="settings-btn" title="背景特效设置">
+            <i class="fas fa-cog"></i>
         </button>
         <div class="settings-panel" id="settings-panel">
             <div class="settings-header">
-                <h3>背景设置</h3>
+                <h3>背景特效设置</h3>
                 <button class="close-settings" id="close-settings">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="settings-content">
-                <div class="bg-options-panel">
-                    <div class="bg-option-item" data-bg="nature1">
-                        <div class="bg-preview nature1-preview"></div>
-                        <span>自然风景1</span>
-                    </div>
-                    <div class="bg-option-item" data-bg="nature2">
-                        <div class="bg-preview nature2-preview"></div>
-                        <span>自然风景2</span>
-                    </div>
-                    <div class="bg-option-item" data-bg="nature3">
-                        <div class="bg-preview nature3-preview"></div>
-                        <span>自然风景3</span>
-                    </div>
-                    <div class="bg-option-item" data-bg="custom" id="custom-bg-btn">
-                        <div class="bg-preview custom-preview">
-                            <i class="fas fa-upload"></i>
+                <!-- 背景图片选择 -->
+                <div class="settings-section">
+                    <h4>背景图片</h4>
+                    <div class="bg-options-panel">
+                        <div class="bg-option-item" data-bg="nature1">
+                            <div class="bg-preview nature1-preview"></div>
+                            <span>自然风景1</span>
                         </div>
-                        <span>自定义上传</span>
+                        <div class="bg-option-item" data-bg="nature2">
+                            <div class="bg-preview nature2-preview"></div>
+                            <span>自然风景2</span>
+                        </div>
+                        <div class="bg-option-item" data-bg="nature3">
+                            <div class="bg-preview nature3-preview"></div>
+                            <span>自然风景3</span>
+                        </div>
+                        <div class="bg-option-item" data-bg="custom" id="custom-bg-btn">
+                            <div class="bg-preview custom-preview">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <span>自定义上传</span>
+                        </div>
+                    </div>
+                    <input type="file" id="bg-upload" accept="image/*" style="display: none;">
+                </div>
+                
+                <!-- 特效控制 -->
+                <div class="settings-section">
+                    <h4>特效控制</h4>
+                    
+                    <!-- 静止闪烁星星 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <span class="effect-name">静止闪烁星星</span>
+                            <label class="switch">
+                                <input type="checkbox" id="static-stars-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="slider-control">
+                            <span class="slider-label">数量: <span id="static-stars-value">50</span></span>
+                            <input type="range" id="static-stars-slider" min="1" max="100" value="50" class="range-slider">
+                            <div class="slider-range">
+                                <span>1</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 运动拖尾流星 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <span class="effect-name">运动拖尾流星</span>
+                            <label class="switch">
+                                <input type="checkbox" id="meteor-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="slider-control">
+                            <span class="slider-label">数量: <span id="meteor-value">15</span></span>
+                            <input type="range" id="meteor-slider" min="1" max="30" value="15" class="range-slider">
+                            <div class="slider-range">
+                                <span>1</span>
+                                <span>30</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 彩色布朗粒子 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <span class="effect-name">彩色布朗粒子</span>
+                            <label class="switch">
+                                <input type="checkbox" id="particles-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="slider-control">
+                            <span class="slider-label">数量: <span id="particles-value">5</span></span>
+                            <input type="range" id="particles-slider" min="1" max="100" value="5" class="range-slider">
+                            <div class="slider-range">
+                                <span>1</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 粒子连线 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <span class="effect-name">粒子连线</span>
+                            <label class="switch">
+                                <input type="checkbox" id="connections-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="slider-control">
+                            <span class="slider-label">最大连线: <span id="connections-value">10</span></span>
+                            <input type="range" id="connections-slider" min="1" max="30" value="10" class="range-slider">
+                            <div class="slider-range">
+                                <span>1</span>
+                                <span>30</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <input type="file" id="bg-upload" accept="image/*" style="display: none;">
             </div>
         </div>
     </div>

@@ -2488,14 +2488,41 @@ document.addEventListener('DOMContentLoaded', function() {
 // ==================== 设置面板控制 ====================
 class SettingsManager {
     constructor() {
-        this.settings = {
-            background: true,
-            staticStars: true,
-            meteor: true,
-            particles: true,
-            connections: true
-        };
+        // 从localStorage加载设置，或使用默认值
+        this.settings = this.loadSettings();
         this.init();
+    }
+    
+    // 默认设置
+    getDefaultSettings() {
+        return {
+            staticStars: { enabled: true, count: 50 },
+            meteor: { enabled: true, count: 15 },
+            particles: { enabled: true, count: 5 },
+            connections: { enabled: true, count: 10 }
+        };
+    }
+    
+    // 从localStorage加载设置
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('backgroundEffectSettings');
+            if (saved) {
+                return { ...this.getDefaultSettings(), ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.warn('加载设置失败:', e);
+        }
+        return this.getDefaultSettings();
+    }
+    
+    // 保存设置到localStorage
+    saveSettings() {
+        try {
+            localStorage.setItem('backgroundEffectSettings', JSON.stringify(this.settings));
+        } catch (e) {
+            console.warn('保存设置失败:', e);
+        }
     }
     
     init() {
@@ -2504,20 +2531,50 @@ class SettingsManager {
         this.settingsPanel = document.getElementById('settings-panel');
         this.closeBtn = document.getElementById('close-settings');
         
-        // 获取开关元素
-        this.toggles = {
-            background: document.getElementById('bg-toggle'),
-            staticStars: document.getElementById('static-stars-toggle'),
-            meteor: document.getElementById('meteor-toggle'),
-            particles: document.getElementById('particles-toggle'),
-            connections: document.getElementById('connections-toggle')
+        // 获取开关和滑块元素
+        this.controls = {
+            staticStars: {
+                toggle: document.getElementById('static-stars-toggle'),
+                slider: document.getElementById('static-stars-slider'),
+                value: document.getElementById('static-stars-value')
+            },
+            meteor: {
+                toggle: document.getElementById('meteor-toggle'),
+                slider: document.getElementById('meteor-slider'),
+                value: document.getElementById('meteor-value')
+            },
+            particles: {
+                toggle: document.getElementById('particles-toggle'),
+                slider: document.getElementById('particles-slider'),
+                value: document.getElementById('particles-value')
+            },
+            connections: {
+                toggle: document.getElementById('connections-toggle'),
+                slider: document.getElementById('connections-slider'),
+                value: document.getElementById('connections-value')
+            }
         };
+        
+        // 初始化UI状态
+        this.initUI();
         
         // 绑定事件
         this.bindEvents();
         
         // 应用初始设置
         this.applySettings();
+    }
+    
+    initUI() {
+        // 设置开关和滑块的初始值
+        Object.keys(this.controls).forEach(key => {
+            const control = this.controls[key];
+            const setting = this.settings[key];
+            
+            if (control.toggle) control.toggle.checked = setting.enabled;
+            if (control.slider) control.slider.value = setting.count;
+            if (control.value) control.value.textContent = setting.count;
+        });
     }
     
     bindEvents() {
@@ -2533,31 +2590,38 @@ class SettingsManager {
             }
         });
         
+        // 绑定各特效控制事件
+        this.bindEffectControl('staticStars', 'staticStars');
+        this.bindEffectControl('meteor', 'meteor');
+        this.bindEffectControl('particles', 'particles');
+        this.bindEffectControl('connections', 'connections');
+    }
+    
+    bindEffectControl(controlKey, settingKey) {
+        const control = this.controls[controlKey];
+        
         // 开关事件
-        this.toggles.background.addEventListener('change', (e) => {
-            this.settings.background = e.target.checked;
-            this.toggleBackground();
-        });
+        if (control.toggle) {
+            control.toggle.addEventListener('change', (e) => {
+                this.settings[settingKey].enabled = e.target.checked;
+                this.saveSettings();
+                this.applySettings();
+            });
+        }
         
-        this.toggles.staticStars.addEventListener('change', (e) => {
-            this.settings.staticStars = e.target.checked;
-            this.toggleStaticStars();
-        });
-        
-        this.toggles.meteor.addEventListener('change', (e) => {
-            this.settings.meteor = e.target.checked;
-            this.toggleMeteor();
-        });
-        
-        this.toggles.particles.addEventListener('change', (e) => {
-            this.settings.particles = e.target.checked;
-            this.toggleParticles();
-        });
-        
-        this.toggles.connections.addEventListener('change', (e) => {
-            this.settings.connections = e.target.checked;
-            this.toggleConnections();
-        });
+        // 滑块事件
+        if (control.slider) {
+            control.slider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                this.settings[settingKey].count = value;
+                if (control.value) control.value.textContent = value;
+            });
+            
+            control.slider.addEventListener('change', (e) => {
+                this.saveSettings();
+                this.applySettings();
+            });
+        }
     }
     
     togglePanel() {
@@ -2571,43 +2635,38 @@ class SettingsManager {
     }
     
     applySettings() {
-        this.toggleBackground();
-        this.toggleStaticStars();
-        this.toggleMeteor();
-        this.toggleParticles();
-        this.toggleConnections();
-    }
-    
-    toggleBackground() {
-        const bgCanvas = document.getElementById('static-stars-canvas');
-        if (bgCanvas) {
-            bgCanvas.style.display = this.settings.background ? 'block' : 'none';
-        }
-    }
-    
-    toggleStaticStars() {
-        // 静止星星在static-stars-canvas中绘制
+        // 更新CONFIG值
+        CONFIG.staticStarCount = this.settings.staticStars.count;
+        CONFIG.particleCount = this.settings.meteor.count;
+        CONFIG.enhancedParticleCount = this.settings.particles.count;
+        CONFIG.maxTotalConnections = this.settings.connections.count;
+        
+        // 应用到粒子系统
         if (window.particleSystem) {
-            window.particleSystem.staticEnabled = this.settings.staticStars;
-        }
-    }
-    
-    toggleMeteor() {
-        if (window.particleSystem) {
-            window.particleSystem.meteorEnabled = this.settings.meteor;
-        }
-    }
-    
-    toggleParticles() {
-        const mouseCanvas = document.getElementById('mouse-effects-canvas');
-        if (mouseCanvas) {
-            mouseCanvas.style.display = this.settings.particles ? 'block' : 'none';
-        }
-    }
-    
-    toggleConnections() {
-        if (window.particleSystem) {
-            window.particleSystem.connectionsEnabled = this.settings.connections;
+            // 静止星星
+            window.particleSystem.staticEnabled = this.settings.staticStars.enabled;
+            if (this.settings.staticStars.enabled) {
+                window.particleSystem.createStaticStars();
+            }
+            
+            // 流星
+            window.particleSystem.meteorEnabled = this.settings.meteor.enabled;
+            if (this.settings.meteor.enabled) {
+                window.particleSystem.createParticles();
+            }
+            
+            // 彩色粒子
+            window.particleSystem.particlesEnabled = this.settings.particles.enabled;
+            const mouseCanvas = document.getElementById('mouse-effects-canvas');
+            if (mouseCanvas) {
+                mouseCanvas.style.display = this.settings.particles.enabled ? 'block' : 'none';
+            }
+            if (this.settings.particles.enabled) {
+                window.particleSystem.createMouseFollowParticles();
+            }
+            
+            // 连线
+            window.particleSystem.connectionsEnabled = this.settings.connections.enabled;
         }
     }
 }
