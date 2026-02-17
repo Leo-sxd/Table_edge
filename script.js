@@ -484,231 +484,119 @@
 
     // ==================== 增强彩色粒子类 ====================
     class EnhancedParticle {
-        constructor(canvasWidth, canvasHeight) {
-            this.canvasWidth = canvasWidth;
-            this.canvasHeight = canvasHeight;
+        constructor(w, h) {
+            this.w = w;
+            this.h = h;
             this.reset();
         }
         
         reset() {
-            // 在画布范围内随机位置（确保在可视区域内）
-            const margin = CONFIG.enhancedParticleSize * 2;
-            this.x = margin + Math.random() * (this.canvasWidth - margin * 2);
-            this.y = margin + Math.random() * (this.canvasHeight - margin * 2);
-            
-            // 粒子属性
+            const m = CONFIG.enhancedParticleSize * 2;
+            this.x = m + Math.random() * (this.w - m * 2);
+            this.y = m + Math.random() * (this.h - m * 2);
             this.size = CONFIG.enhancedParticleSize;
-            this.opacity = 0.8;
-            
-            // 随机选择一种颜色
-            const colorIndex = Math.floor(Math.random() * CONFIG.brownianColors.length);
-            this.color = CONFIG.brownianColors[colorIndex];
-            
-            // 速度向量
+            this.color = CONFIG.brownianColors[Math.floor(Math.random() * CONFIG.brownianColors.length)];
             this.vx = (Math.random() - 0.5) * CONFIG.enhancedParticleMaxSpeed;
             this.vy = (Math.random() - 0.5) * CONFIG.enhancedParticleMaxSpeed;
-            
-            // 质量（用于碰撞计算）
-            this.mass = 1.0;
-            
-            // 捕获状态追踪
-            this.isCaptured = false;           // 是否被捕获
-            this.captureStartTime = 0;         // 捕获开始时间戳
-            this.captureReleaseTime = 0;       // 挣脱时间戳
+            this.isCaptured = false;
+            this.captureStartTime = 0;
+            this.captureReleaseTime = 0;
         }
         
-        update(mouseX, mouseY, mouseSpeed, mouseVx, mouseVy) {
-            // 1. 布朗运动 - 随机力和速度变化
+        update(mx, my, mSpeed, mVx, mVy) {
+            // 布朗运动
             this.vx += (Math.random() - 0.5) * CONFIG.brownianForce;
             this.vy += (Math.random() - 0.5) * CONFIG.brownianForce;
             
-            // 2. 鼠标引力捕获效果
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const distanceToMouse = Math.sqrt(dx * dx + dy * dy);
-            
-            // 检查是否在引力作用范围内
+            // 鼠标引力
+            const dx = mx - this.x, dy = my - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
             const wasCaptured = this.isCaptured;
             this.isCaptured = false;
             
-            if (distanceToMouse < CONFIG.gravityRadius && distanceToMouse > CONFIG.gravityMinDistance) {
-                // 计算引力 - 距离越近引力越强（非线性）
-                const gravityFactor = Math.pow(1 - distanceToMouse / CONFIG.gravityRadius, 2);
-                const gravityForce = CONFIG.gravityStrength * gravityFactor;
-                
-                // 引力方向
-                const angleToMouse = Math.atan2(dy, dx);
-                
-                // 应用引力
-                this.vx += Math.cos(angleToMouse) * gravityForce;
-                this.vy += Math.sin(angleToMouse) * gravityForce;
-                
-                // 标记为被捕获
+            if (dist < CONFIG.gravityRadius && dist > CONFIG.gravityMinDistance) {
+                const gFactor = (1 - dist / CONFIG.gravityRadius) ** 2;
+                const angle = Math.atan2(dy, dx);
+                this.vx += Math.cos(angle) * CONFIG.gravityStrength * gFactor;
+                this.vy += Math.sin(angle) * CONFIG.gravityStrength * gFactor;
                 this.isCaptured = true;
-                
-                // 如果刚刚被捕获，记录捕获开始时间
-                if (!wasCaptured) {
-                    this.captureStartTime = Date.now();
-                }
-            }
-            
-            // 如果刚刚挣脱（之前被捕获，现在未被捕获）
-            if (wasCaptured && !this.isCaptured) {
+                if (!wasCaptured) this.captureStartTime = Date.now();
+            } else if (wasCaptured) {
                 this.captureReleaseTime = Date.now();
             }
             
-            // 3. 快速移动挣脱引力效果
-            if (mouseSpeed > CONFIG.mouseSpeedThreshold && distanceToMouse < CONFIG.gravityRadius) {
-                // 计算挣脱角度（120-150度，相对于鼠标移动方向）
-                const mouseAngle = Math.atan2(mouseVy, mouseVx);
-                const escapeAngleOffset = (CONFIG.escapeAngleMin + Math.random() * 
+            // 挣脱效果
+            if (mSpeed > CONFIG.mouseSpeedThreshold && dist < CONFIG.gravityRadius) {
+                const mAngle = Math.atan2(mVy, mVx);
+                const escOffset = (CONFIG.escapeAngleMin + Math.random() * 
                     (CONFIG.escapeAngleMax - CONFIG.escapeAngleMin)) * Math.PI / 180;
-                
-                // 随机选择左侧或右侧挣脱
-                const escapeAngle = mouseAngle + (Math.random() > 0.5 ? escapeAngleOffset : -escapeAngleOffset);
-                
-                // 挣脱速度与鼠标速度正相关
-                const escapeSpeed = mouseSpeed * CONFIG.escapeSpeedMultiplier * (1 + Math.random() * 0.5);
-                
-                // 应用挣脱速度
-                this.vx += Math.cos(escapeAngle) * escapeSpeed;
-                this.vy += Math.sin(escapeAngle) * escapeSpeed;
+                const escAngle = mAngle + (Math.random() > 0.5 ? escOffset : -escOffset);
+                const escSpeed = mSpeed * CONFIG.escapeSpeedMultiplier * (1 + Math.random() * 0.5);
+                this.vx += Math.cos(escAngle) * escSpeed;
+                this.vy += Math.sin(escAngle) * escSpeed;
             }
             
-            // 4. 应用摩擦力
+            // 摩擦力与速度限制
             this.vx *= CONFIG.friction;
             this.vy *= CONFIG.friction;
-            
-            // 5. 限制最大速度
             const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
             if (speed > CONFIG.enhancedParticleMaxSpeed) {
-                const scale = CONFIG.enhancedParticleMaxSpeed / speed;
-                this.vx *= scale;
-                this.vy *= scale;
+                const s = CONFIG.enhancedParticleMaxSpeed / speed;
+                this.vx *= s;
+                this.vy *= s;
             }
             
-            // 6. 更新位置
+            // 更新位置与边界
             this.x += this.vx;
             this.y += this.vy;
-            
-            // 7. 边界反弹（严格限制在可视区域内）
-            const margin = this.size;
-            
-            // X轴边界检查
-            if (this.x < margin) {
-                this.x = margin;
-                this.vx = Math.abs(this.vx) * 0.8;
-            } else if (this.x > this.canvasWidth - margin) {
-                this.x = this.canvasWidth - margin;
-                this.vx = -Math.abs(this.vx) * 0.8;
-            }
-            
-            // Y轴边界检查
-            if (this.y < margin) {
-                this.y = margin;
-                this.vy = Math.abs(this.vy) * 0.8;
-            } else if (this.y > this.canvasHeight - margin) {
-                this.y = this.canvasHeight - margin;
-                this.vy = -Math.abs(this.vy) * 0.8;
-            }
-            
-            // 额外安全检查：确保粒子不会溢出
-            this.x = Math.max(margin, Math.min(this.x, this.canvasWidth - margin));
-            this.y = Math.max(margin, Math.min(this.y, this.canvasHeight - margin));
+            const m = this.size;
+            if (this.x < m) { this.x = m; this.vx = Math.abs(this.vx) * 0.8; }
+            else if (this.x > this.w - m) { this.x = this.w - m; this.vx = -Math.abs(this.vx) * 0.8; }
+            if (this.y < m) { this.y = m; this.vy = Math.abs(this.vy) * 0.8; }
+            else if (this.y > this.h - m) { this.y = this.h - m; this.vy = -Math.abs(this.vy) * 0.8; }
         }
         
-        // 处理与其他粒子的碰撞
-        resolveCollision(other) {
-            const dx = other.x - this.x;
-            const dy = other.y - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const minDistance = this.size + other.size;
-            
-            if (distance < minDistance && distance > 0) {
-                // 计算碰撞角度
+        resolveCollision(o) {
+            const dx = o.x - this.x, dy = o.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minD = this.size + o.size;
+            if (dist < minD && dist > 0) {
                 const angle = Math.atan2(dy, dx);
-                
-                // 分离粒子
-                const overlap = minDistance - distance;
-                const separationX = Math.cos(angle) * overlap * 0.5;
-                const separationY = Math.sin(angle) * overlap * 0.5;
-                
-                this.x -= separationX;
-                this.y -= separationY;
-                other.x += separationX;
-                other.y += separationY;
-                
-                // 弹性碰撞 - 交换速度分量
-                const normalX = dx / distance;
-                const normalY = dy / distance;
-                
-                // 相对速度
-                const relativeVelocityX = this.vx - other.vx;
-                const relativeVelocityY = this.vy - other.vy;
-                
-                // 沿法线方向的速度
-                const velocityAlongNormal = relativeVelocityX * normalX + relativeVelocityY * normalY;
-                
-                if (velocityAlongNormal > 0) return;
-                
-                // 弹性系数
-                const restitution = 0.7;
-                
-                // 冲量
-                const impulse = -(1 + restitution) * velocityAlongNormal / (1/this.mass + 1/other.mass);
-                
-                // 应用冲量
-                const impulseX = impulse * normalX;
-                const impulseY = impulse * normalY;
-                
-                this.vx += impulseX / this.mass;
-                this.vy += impulseY / this.mass;
-                other.vx -= impulseX / other.mass;
-                other.vy -= impulseY / other.mass;
+                const overlap = minD - dist;
+                const sx = Math.cos(angle) * overlap * 0.5;
+                const sy = Math.sin(angle) * overlap * 0.5;
+                this.x -= sx; this.y -= sy;
+                o.x += sx; o.y += sy;
+                const nx = dx / dist, ny = dy / dist;
+                const rvx = this.vx - o.vx, rvy = this.vy - o.vy;
+                const velAlong = rvx * nx + rvy * ny;
+                if (velAlong > 0) return;
+                const imp = -(1 + 0.7) * velAlong / 2;
+                const ix = imp * nx, iy = imp * ny;
+                this.vx += ix; this.vy += iy;
+                o.vx -= ix; o.vy -= iy;
             }
         }
         
-        // 检查是否可以参与连线
         canConnect() {
-            // 当前被捕获状态：检查捕获时长是否超过阈值
-            if (this.isCaptured) {
-                const captureDuration = Date.now() - this.captureStartTime;
-                return captureDuration >= CONFIG.minCaptureDuration;
-            }
-            
-            // 挣脱后1秒内仍然可以连线（前提是之前已经满足捕获时长）
-            if (this.captureReleaseTime > 0) {
-                const timeSinceRelease = Date.now() - this.captureReleaseTime;
-                return timeSinceRelease < CONFIG.connectionReleaseDelay;
-            }
-            
+            if (this.isCaptured) return Date.now() - this.captureStartTime >= CONFIG.minCaptureDuration;
+            if (this.captureReleaseTime > 0) return Date.now() - this.captureReleaseTime < CONFIG.connectionReleaseDelay;
             return false;
         }
         
         draw(ctx) {
-            ctx.save();
-            
-            // 绘制粒子主体（发光效果）
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
-            ctx.fill();
-            
-            // 添加光晕效果让粒子更清晰
-            const gradient = ctx.createRadialGradient(
-                this.x, this.y, 0,
-                this.x, this.y, this.size * 4
-            );
-            gradient.addColorStop(0, `rgba(${this.color}, ${this.opacity * 0.6})`);
-            gradient.addColorStop(0.5, `rgba(${this.color}, ${this.opacity * 0.2})`);
-            gradient.addColorStop(1, `rgba(${this.color}, 0)`);
-            
-            ctx.fillStyle = gradient;
+            const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 4);
+            g.addColorStop(0, `rgba(${this.color}, 0.48)`);
+            g.addColorStop(0.5, `rgba(${this.color}, 0.16)`);
+            g.addColorStop(1, `rgba(${this.color}, 0)`);
+            ctx.fillStyle = g;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size * 4, 0, Math.PI * 2);
             ctx.fill();
-            
-            ctx.restore();
+            ctx.fillStyle = `rgba(${this.color}, 0.8)`;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 
