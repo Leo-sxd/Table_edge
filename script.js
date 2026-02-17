@@ -2609,6 +2609,8 @@ class SettingsManager {
                 this.settings[settingKey].enabled = e.target.checked;
                 this.saveSettings();
                 this.applySettings();
+                // 显示切换提示
+                this.showToggleNotification(settingKey, e.target.checked);
             });
         }
         
@@ -2618,11 +2620,12 @@ class SettingsManager {
                 const value = parseInt(e.target.value);
                 this.settings[settingKey].count = value;
                 if (control.value) control.value.textContent = value;
+                // 实时更新粒子数量（预览效果）
+                this.updateParticleCount(settingKey, value);
             });
             
             control.slider.addEventListener('change', (e) => {
                 this.saveSettings();
-                this.applySettings();
             });
         }
     }
@@ -2648,6 +2651,18 @@ class SettingsManager {
         document.body.classList.remove('modal-open');
     }
     
+    // 显示切换提示
+    showToggleNotification(effectType, enabled) {
+        const names = {
+            staticStars: '静止闪烁星星',
+            meteor: '运动拖尾流星',
+            particles: '彩色布朗粒子',
+            connections: '粒子连线'
+        };
+        const status = enabled ? '已开启' : '已关闭';
+        console.log(`${names[effectType]} ${status}`);
+    }
+    
     applySettings() {
         // 更新CONFIG值
         CONFIG.staticStarCount = this.settings.staticStars.count;
@@ -2657,19 +2672,27 @@ class SettingsManager {
         
         // 应用到粒子系统
         if (window.particleSystem) {
-            // 静止星星
+            // 静止星星 - 控制显示/隐藏和重新生成
             window.particleSystem.staticEnabled = this.settings.staticStars.enabled;
+            const staticCanvas = document.getElementById('static-stars-canvas');
+            if (staticCanvas) {
+                staticCanvas.style.display = this.settings.staticStars.enabled ? 'block' : 'none';
+            }
             if (this.settings.staticStars.enabled) {
                 window.particleSystem.createStaticStars();
             }
             
-            // 流星
+            // 流星 - 控制显示/隐藏和重新生成
             window.particleSystem.meteorEnabled = this.settings.meteor.enabled;
+            const particleCanvas = document.getElementById('particles-canvas');
+            if (particleCanvas) {
+                particleCanvas.style.display = this.settings.meteor.enabled ? 'block' : 'none';
+            }
             if (this.settings.meteor.enabled) {
                 window.particleSystem.createParticles();
             }
             
-            // 彩色粒子
+            // 彩色粒子 - 控制显示/隐藏和重新生成
             window.particleSystem.particlesEnabled = this.settings.particles.enabled;
             const mouseCanvas = document.getElementById('mouse-effects-canvas');
             if (mouseCanvas) {
@@ -2679,8 +2702,35 @@ class SettingsManager {
                 window.particleSystem.createMouseFollowParticles();
             }
             
-            // 连线
+            // 连线 - 仅控制是否绘制连线
             window.particleSystem.connectionsEnabled = this.settings.connections.enabled;
+        }
+    }
+    
+    // 单独更新粒子数量（用于滑块实时预览）
+    updateParticleCount(effectType, count) {
+        switch(effectType) {
+            case 'staticStars':
+                CONFIG.staticStarCount = count;
+                if (window.particleSystem && this.settings.staticStars.enabled) {
+                    window.particleSystem.createStaticStars();
+                }
+                break;
+            case 'meteor':
+                CONFIG.particleCount = count;
+                if (window.particleSystem && this.settings.meteor.enabled) {
+                    window.particleSystem.createParticles();
+                }
+                break;
+            case 'particles':
+                CONFIG.enhancedParticleCount = count;
+                if (window.particleSystem && this.settings.particles.enabled) {
+                    window.particleSystem.createMouseFollowParticles();
+                }
+                break;
+            case 'connections':
+                CONFIG.maxTotalConnections = count;
+                break;
         }
     }
 }
