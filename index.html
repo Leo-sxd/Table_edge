@@ -20,73 +20,43 @@
 <body>
     <!-- 设置按钮 -->
     <div class="settings-container">
-        <button class="settings-btn" id="settings-btn" title="设置">
-            <i class="fas fa-cog"></i>
+        <button class="settings-btn" id="settings-btn" title="背景设置">
+            <i class="fas fa-plus"></i>
         </button>
         <div class="settings-panel" id="settings-panel">
             <div class="settings-header">
-                <h3>效果设置</h3>
+                <h3>背景设置</h3>
                 <button class="close-settings" id="close-settings">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="settings-content">
-                <div class="setting-item">
-                    <span class="setting-label">背景显示</span>
-                    <label class="switch">
-                        <input type="checkbox" id="bg-toggle" checked>
-                        <span class="slider"></span>
-                    </label>
+                <div class="bg-options-panel">
+                    <div class="bg-option-item" data-bg="nature1">
+                        <div class="bg-preview nature1-preview"></div>
+                        <span>自然风景1</span>
+                    </div>
+                    <div class="bg-option-item" data-bg="nature2">
+                        <div class="bg-preview nature2-preview"></div>
+                        <span>自然风景2</span>
+                    </div>
+                    <div class="bg-option-item" data-bg="nature3">
+                        <div class="bg-preview nature3-preview"></div>
+                        <span>自然风景3</span>
+                    </div>
+                    <div class="bg-option-item" data-bg="custom" id="custom-bg-btn">
+                        <div class="bg-preview custom-preview">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <span>自定义上传</span>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <span class="setting-label">静止星星</span>
-                    <label class="switch">
-                        <input type="checkbox" id="static-stars-toggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">动态流星</span>
-                    <label class="switch">
-                        <input type="checkbox" id="meteor-toggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">彩色粒子</span>
-                    <label class="switch">
-                        <input type="checkbox" id="particles-toggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">连线效果</span>
-                    <label class="switch">
-                        <input type="checkbox" id="connections-toggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                <input type="file" id="bg-upload" accept="image/*" style="display: none;">
             </div>
         </div>
     </div>
     
 
-    <!-- 背景图片选择器 -->
-    <div class="bg-selector" id="bg-selector">
-        <button id="change-bg-btn" title="更换背景">
-            <i class="fas fa-image"></i>
-        </button>
-        <div class="bg-options" id="bg-options">
-            <div class="bg-option" data-bg="nature1"></div>
-            <div class="bg-option" data-bg="nature2"></div>
-            <div class="bg-option" data-bg="nature3"></div>
-            <div class="bg-option" data-bg="custom" id="custom-bg-btn">
-                <i class="fas fa-upload"></i>
-            </div>
-        </div>
-        <input type="file" id="bg-upload" accept="image/*" style="display: none;">
-    </div>
-    
     <!-- 主容器 -->
     <div class="container">
         <!-- 头部时间显示区域 -->
