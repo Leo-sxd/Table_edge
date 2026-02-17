@@ -23,10 +23,23 @@
 (function() {
     'use strict';
 
-    // 粒子系统配置
+    // 粒子系统配置 - 用户可调节参数
     const CONFIG = {
-        // 移动流星（Particle）配置
-        particleCount: 7,        // 粒子数量（适中，不影响性能）
+        // 运动拖尾流星配置
+        meteorParticleCount: 15,     // 流星粒子数量（用户可调节，0为关闭）
+        
+        // 静止闪烁星星配置
+        staticStarParticleCount: 50, // 静止星星数量（用户可调节，0为关闭）
+        
+        // 彩色布朗粒子配置
+        colorParticleCount: 5,       // 彩色粒子数量（用户可调节，0为关闭）
+        
+        // 粒子连线配置
+        particleConnectionMaxLines: 10, // 最大连线数量（用户可调节，0为关闭）
+        
+        // 移动流星（Particle）其他配置
+        minSize: 4,             // 最小粒子大小（像素）- 放大20%
+        maxSize: 8,               // 最大粒子大小（像素）- 放大20%
         minSize: 4,             // 最小粒子大小（像素）- 放大20%
         maxSize: 8,               // 最大粒子大小（像素）- 放大20%
         minOpacity: 0.3,          // 最小透明度（30%）
@@ -48,7 +61,7 @@
         spawnMargin: 100,         // 屏幕外生成边距
         
         // 静态闪烁星星（StaticStar）配置
-        staticStarCount: 50,      // 静态星星数量
+        // staticStarParticleCount已定义在上面
         staticStarMinSize: 3,   // 静态星星最小大小
         staticStarMaxSize: 6,   // 静态星星最大大小
         staticStarMinOpacity: 0.1,// 静态星星最小透明度
@@ -83,7 +96,7 @@
         mouseTrailDecay: 0.05,          // 衰减速度
         
         // 增强彩色粒子配置
-        enhancedParticleCount: 15,      // 粒子数量
+        // colorParticleCount已定义在上面
         enhancedParticleSize: 4,        // 粒子大小
         enhancedParticleMinSpeed: 0.5,  // 最小速度
         enhancedParticleMaxSpeed: 2.0,  // 最大速度
@@ -772,12 +785,12 @@
             const viewport = getViewportSize();
             this.particles = [];
             
-            // 如果特效被禁用，不创建粒子
-            if (this.meteorEnabled === false) {
+            // 如果数量为0或特效被禁用，不创建粒子
+            if (CONFIG.meteorParticleCount <= 0 || this.meteorEnabled === false) {
                 return;
             }
             
-            for (let i = 0; i < CONFIG.particleCount; i++) {
+            for (let i = 0; i < CONFIG.meteorParticleCount; i++) {
                 this.particles.push(new Particle(viewport.width, viewport.height));
             }
         }
@@ -786,12 +799,12 @@
             const viewport = getViewportSize();
             this.staticStars = [];
             
-            // 如果特效被禁用，不创建星星
-            if (this.staticEnabled === false) {
+            // 如果数量为0或特效被禁用，不创建星星
+            if (CONFIG.staticStarParticleCount <= 0 || this.staticEnabled === false) {
                 return;
             }
             
-            for (let i = 0; i < CONFIG.staticStarCount; i++) {
+            for (let i = 0; i < CONFIG.staticStarParticleCount; i++) {
                 this.staticStars.push(new StaticStar(viewport.width, viewport.height));
             }
         }
@@ -800,13 +813,13 @@
             const viewport = getViewportSize();
             this.mouseFollowParticles = [];
             
-            // 如果特效被禁用，不创建粒子
-            if (this.particlesEnabled === false) {
+            // 如果数量为0或特效被禁用，不创建粒子
+            if (CONFIG.colorParticleCount <= 0 || this.particlesEnabled === false) {
                 return;
             }
             
             // 使用配置值创建粒子
-            for (let i = 0; i < CONFIG.enhancedParticleCount; i++) {
+            for (let i = 0; i < CONFIG.colorParticleCount; i++) {
                 this.mouseFollowParticles.push(new EnhancedParticle(
                     viewport.width, viewport.height
                 ));
@@ -889,15 +902,15 @@
                 this.staticCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
                 
                 // 确保数量符合配置
-                while (this.staticStars.length < CONFIG.staticStarCount) {
+                while (this.staticStars.length < CONFIG.staticStarParticleCount && CONFIG.staticStarParticleCount > 0) {
                     this.staticStars.push(new StaticStar(
                         this.staticCanvas.width, 
                         this.staticCanvas.height
                     ));
                 }
                 // 如果数量过多，截断数组
-                if (this.staticStars.length > CONFIG.staticStarCount) {
-                    this.staticStars.length = CONFIG.staticStarCount;
+                if (this.staticStars.length > CONFIG.staticStarParticleCount) {
+                    this.staticStars.length = CONFIG.staticStarParticleCount;
                 }
                 
                 // 绘制静态星星
@@ -919,11 +932,11 @@
                 this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
                 
                 // 确保数量符合配置
-                while (this.particles.length < CONFIG.particleCount) {
+                while (this.particles.length < CONFIG.meteorParticleCount && CONFIG.meteorParticleCount > 0) {
                     this.particles.push(new Particle(viewport.width, viewport.height));
                 }
-                if (this.particles.length > CONFIG.particleCount) {
-                    this.particles.length = CONFIG.particleCount;
+                if (this.particles.length > CONFIG.meteorParticleCount) {
+                    this.particles.length = CONFIG.meteorParticleCount;
                 }
                 
                 // 绘制移动流星
@@ -965,13 +978,13 @@
                 this.lastMouseTime = currentTime;
                 
                 // 确保粒子数量符合配置
-                while (this.mouseFollowParticles.length < CONFIG.enhancedParticleCount) {
+                while (this.mouseFollowParticles.length < CONFIG.colorParticleCount && CONFIG.colorParticleCount > 0) {
                     this.mouseFollowParticles.push(new EnhancedParticle(
                         this.mouseCanvas.width, this.mouseCanvas.height
                     ));
                 }
-                if (this.mouseFollowParticles.length > CONFIG.enhancedParticleCount) {
-                    this.mouseFollowParticles.length = CONFIG.enhancedParticleCount;
+                if (this.mouseFollowParticles.length > CONFIG.colorParticleCount) {
+                    this.mouseFollowParticles.length = CONFIG.colorParticleCount;
                 }
                 
                 // 更新所有粒子位置
@@ -1070,7 +1083,7 @@
             // 2. 全局最多10条连线
             for (const conn of allPossibleConnections) {
                 // 检查全局限制
-                if (selectedConnections.length >= CONFIG.maxTotalConnections) {
+                if (selectedConnections.length >= CONFIG.particleConnectionMaxLines) {
                     break;
                 }
                 
@@ -1106,12 +1119,12 @@
         
         // 公共API
         setParticleCount(count) {
-            CONFIG.particleCount = count;
+            CONFIG.meteorParticleCount = count;
             this.createParticles();
         }
 
         setStaticStarCount(count) {
-            CONFIG.staticStarCount = count;
+            CONFIG.staticStarParticleCount = count;
             this.createStaticStars();
         }
 
@@ -2555,9 +2568,13 @@ class SettingsManager {
     // 默认设置
     getDefaultSettings() {
         return {
+            // 静止闪烁星星：数量范围 0-100，0为关闭
             staticStars: { enabled: true, count: 50 },
+            // 运动拖尾流星：数量范围 0-30，0为关闭
             meteor: { enabled: true, count: 15 },
+            // 彩色布朗粒子：数量范围 0-100，0为关闭
             particles: { enabled: true, count: 5 },
+            // 粒子连线：数量范围 0-30，0为关闭
             connections: { enabled: true, count: 10 }
         };
     }
@@ -2724,10 +2741,10 @@ class SettingsManager {
     
     applySettings() {
         // 更新CONFIG值
-        CONFIG.staticStarCount = this.settings.staticStars.count;
-        CONFIG.particleCount = this.settings.meteor.count;
-        CONFIG.enhancedParticleCount = this.settings.particles.count;
-        CONFIG.maxTotalConnections = this.settings.connections.count;
+        CONFIG.staticStarParticleCount = this.settings.staticStars.count;
+        CONFIG.meteorParticleCount = this.settings.meteor.count;
+        CONFIG.colorParticleCount = this.settings.particles.count;
+        CONFIG.particleConnectionMaxLines = this.settings.connections.count;
         
         // 应用到粒子系统
         if (window.particleSystem) {
@@ -2768,62 +2785,72 @@ class SettingsManager {
     
     // 单独更新粒子数量（用于滑块实时预览）
     updateParticleCount(effectType, count) {
+        // 数量为0时自动关闭
+        if (count <= 0) {
+            count = 0;
+            if (this.controls[effectType] && this.controls[effectType].toggle) {
+                this.controls[effectType].toggle.checked = false;
+                this.settings[effectType].enabled = false;
+            }
+        }
+        
         switch(effectType) {
             case 'staticStars':
-                CONFIG.staticStarCount = count;
-                if (window.particleSystem) {
-                    // 无论开关状态如何，都更新配置
-                    // 实际渲染由animate方法根据staticEnabled控制
-                    if (window.particleSystem.staticEnabled) {
-                        // 动态调整数组长度
-                        while (window.particleSystem.staticStars.length < count) {
-                            window.particleSystem.staticStars.push(new StaticStar(
-                                window.particleSystem.staticCanvas.width,
-                                window.particleSystem.staticCanvas.height
-                            ));
-                        }
-                        if (window.particleSystem.staticStars.length > count) {
-                            window.particleSystem.staticStars.length = count;
-                        }
+                CONFIG.staticStarParticleCount = count;
+                if (window.particleSystem && count > 0) {
+                    // 动态调整数组长度
+                    while (window.particleSystem.staticStars.length < count) {
+                        window.particleSystem.staticStars.push(new StaticStar(
+                            window.particleSystem.staticCanvas.width,
+                            window.particleSystem.staticCanvas.height
+                        ));
                     }
+                    if (window.particleSystem.staticStars.length > count) {
+                        window.particleSystem.staticStars.length = count;
+                    }
+                } else if (window.particleSystem && count <= 0) {
+                    window.particleSystem.staticStars = [];
                 }
                 break;
             case 'meteor':
-                CONFIG.particleCount = count;
-                if (window.particleSystem) {
-                    if (window.particleSystem.meteorEnabled) {
-                        while (window.particleSystem.particles.length < count) {
-                            window.particleSystem.particles.push(new Particle(
-                                window.particleSystem.particleCanvas.width,
-                                window.particleSystem.particleCanvas.height
-                            ));
-                        }
-                        if (window.particleSystem.particles.length > count) {
-                            window.particleSystem.particles.length = count;
-                        }
+                CONFIG.meteorParticleCount = count;
+                if (window.particleSystem && count > 0) {
+                    while (window.particleSystem.particles.length < count) {
+                        window.particleSystem.particles.push(new Particle(
+                            window.particleSystem.particleCanvas.width,
+                            window.particleSystem.particleCanvas.height
+                        ));
                     }
+                    if (window.particleSystem.particles.length > count) {
+                        window.particleSystem.particles.length = count;
+                    }
+                } else if (window.particleSystem && count <= 0) {
+                    window.particleSystem.particles = [];
                 }
                 break;
             case 'particles':
-                CONFIG.enhancedParticleCount = count;
-                if (window.particleSystem) {
-                    if (window.particleSystem.particlesEnabled) {
-                        while (window.particleSystem.mouseFollowParticles.length < count) {
-                            window.particleSystem.mouseFollowParticles.push(new EnhancedParticle(
-                                window.particleSystem.mouseCanvas.width,
-                                window.particleSystem.mouseCanvas.height
-                            ));
-                        }
-                        if (window.particleSystem.mouseFollowParticles.length > count) {
-                            window.particleSystem.mouseFollowParticles.length = count;
-                        }
+                CONFIG.colorParticleCount = count;
+                if (window.particleSystem && count > 0) {
+                    while (window.particleSystem.mouseFollowParticles.length < count) {
+                        window.particleSystem.mouseFollowParticles.push(new EnhancedParticle(
+                            window.particleSystem.mouseCanvas.width,
+                            window.particleSystem.mouseCanvas.height
+                        ));
                     }
+                    if (window.particleSystem.mouseFollowParticles.length > count) {
+                        window.particleSystem.mouseFollowParticles.length = count;
+                    }
+                } else if (window.particleSystem && count <= 0) {
+                    window.particleSystem.mouseFollowParticles = [];
                 }
                 break;
             case 'connections':
-                CONFIG.maxTotalConnections = count;
+                CONFIG.particleConnectionMaxLines = count;
                 break;
         }
+        
+        // 保存设置
+        this.saveSettings();
     }
 }
 
