@@ -763,6 +763,12 @@
         }
 
         createParticles() {
+            // 如果特效被禁用，清空粒子数组
+            if (!this.meteorEnabled) {
+                this.particles = [];
+                return;
+            }
+            
             const viewport = getViewportSize();
             this.particles = [];
             
@@ -772,6 +778,12 @@
         }
 
         createStaticStars() {
+            // 如果特效被禁用，清空星星数组
+            if (!this.staticEnabled) {
+                this.staticStars = [];
+                return;
+            }
+            
             const viewport = getViewportSize();
             this.staticStars = [];
             
@@ -781,13 +793,17 @@
         }
         
         createMouseFollowParticles() {
+            // 如果特效被禁用，清空粒子数组
+            if (!this.particlesEnabled) {
+                this.mouseFollowParticles = [];
+                return;
+            }
+            
             const viewport = getViewportSize();
             this.mouseFollowParticles = [];
             
-            // 限制粒子数量，确保不超过配置值
-            const particleCount = Math.min(CONFIG.enhancedParticleCount, 5);
-            
-            for (let i = 0; i < particleCount; i++) {
+            // 使用配置值创建粒子
+            for (let i = 0; i < CONFIG.enhancedParticleCount; i++) {
                 this.mouseFollowParticles.push(new EnhancedParticle(
                     viewport.width, viewport.height
                 ));
@@ -864,82 +880,122 @@
 
             const viewport = getViewportSize();
             
-            // 清空静态星星画布
-            this.staticCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
-            
-            // 清空移动星星画布
-            this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
-            
-            // 绘制静态星星到底层canvas
-            // 确保始终有50颗星星，如果数量不足则补充
-            while (this.staticStars.length < CONFIG.staticStarCount) {
-                this.staticStars.push(new StaticStar(
-                    this.staticCanvas.width, 
-                    this.staticCanvas.height
-                ));
-            }
-            
-            this.staticStars.forEach(star => {
-                star.update();
-                // 检查是否完成7个周期，如果是则重置位置
-                if (star.shouldReset()) {
-                    star.resetWithNewPosition();
+            // ========== 静止闪烁星星 ==========
+            if (this.staticEnabled) {
+                // 清空静态星星画布
+                this.staticCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
+                
+                // 确保数量符合配置
+                while (this.staticStars.length < CONFIG.staticStarCount) {
+                    this.staticStars.push(new StaticStar(
+                        this.staticCanvas.width, 
+                        this.staticCanvas.height
+                    ));
                 }
-                star.draw(this.staticCtx);
-            });
-            
-            // 清空鼠标效果画布
-            this.mouseCtx.clearRect(0, 0, this.mouseCanvas.width, this.mouseCanvas.height);
-            
-            // 更新和绘制鼠标轨迹
-            if (this.mouseTrail && CONFIG.mouseTrailEnabled) {
-                this.mouseTrail.update();
-                this.mouseTrail.draw(this.mouseCtx);
-            }
-            
-            // 计算鼠标速度
-            const currentTime = Date.now();
-            const deltaTime = currentTime - this.lastMouseTime;
-            let mouseSpeed = 0;
-            let mouseVx = 0;
-            let mouseVy = 0;
-            
-            if (deltaTime > 0 && this.lastMouseX !== undefined) {
-                mouseVx = (this.mouseX - this.lastMouseX) / deltaTime * 16; // 归一化到每帧
-                mouseVy = (this.mouseY - this.lastMouseY) / deltaTime * 16;
-                mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
-            }
-            
-            this.lastMouseX = this.mouseX;
-            this.lastMouseY = this.mouseY;
-            this.lastMouseTime = currentTime;
-            
-            // 更新和绘制增强粒子
-            // 先更新所有粒子位置
-            this.mouseFollowParticles.forEach(particle => {
-                particle.update(this.mouseX, this.mouseY, mouseSpeed, mouseVx, mouseVy);
-            });
-            
-            // 处理粒子间碰撞
-            for (let i = 0; i < this.mouseFollowParticles.length; i++) {
-                for (let j = i + 1; j < this.mouseFollowParticles.length; j++) {
-                    this.mouseFollowParticles[i].resolveCollision(this.mouseFollowParticles[j]);
+                // 如果数量过多，截断数组
+                if (this.staticStars.length > CONFIG.staticStarCount) {
+                    this.staticStars.length = CONFIG.staticStarCount;
                 }
+                
+                // 绘制静态星星
+                this.staticStars.forEach(star => {
+                    star.update();
+                    if (star.shouldReset()) {
+                        star.resetWithNewPosition();
+                    }
+                    star.draw(this.staticCtx);
+                });
+            } else {
+                // 禁用状态时清空画布
+                this.staticCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
             }
             
-            // 绘制被捕获粒子之间的连线
-            this.drawParticleConnections();
+            // ========== 运动拖尾流星 ==========
+            if (this.meteorEnabled) {
+                // 清空移动星星画布
+                this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
+                
+                // 确保数量符合配置
+                while (this.particles.length < CONFIG.particleCount) {
+                    this.particles.push(new Particle(viewport.width, viewport.height));
+                }
+                if (this.particles.length > CONFIG.particleCount) {
+                    this.particles.length = CONFIG.particleCount;
+                }
+                
+                // 绘制移动流星
+                this.particles.forEach(particle => {
+                    particle.update(viewport.width, viewport.height);
+                    particle.draw(this.particleCtx);
+                });
+            } else {
+                // 禁用状态时清空画布
+                this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
+            }
             
-            // 绘制所有粒子
-            this.mouseFollowParticles.forEach(particle => {
-                particle.draw(this.mouseCtx);
-            });
-            
-            // 绘制移动流星到顶层canvas
-            this.particles.forEach(particle => {
-                particle.update(viewport.width, viewport.height);
-                particle.draw(this.particleCtx);
-            });
+            // ========== 彩色布朗粒子和连线 ==========
+            if (this.particlesEnabled) {
+                // 清空鼠标效果画布
+                this.mouseCtx.clearRect(0, 0, this.mouseCanvas.width, this.mouseCanvas.height);
+                
+                // 更新和绘制鼠标轨迹
+                if (this.mouseTrail && CONFIG.mouseTrailEnabled) {
+                    this.mouseTrail.update();
+                    this.mouseTrail.draw(this.mouseCtx);
+                }
+                
+                // 计算鼠标速度
+                const currentTime = Date.now();
+                const deltaTime = currentTime - this.lastMouseTime;
+                let mouseSpeed = 0;
+                let mouseVx = 0;
+                let mouseVy = 0;
+                
+                if (deltaTime > 0 && this.lastMouseX !== undefined) {
+                    mouseVx = (this.mouseX - this.lastMouseX) / deltaTime * 16;
+                    mouseVy = (this.mouseY - this.lastMouseY) / deltaTime * 16;
+                    mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
+                }
+                
+                this.lastMouseX = this.mouseX;
+                this.lastMouseY = this.mouseY;
+                this.lastMouseTime = currentTime;
+                
+                // 确保粒子数量符合配置
+                while (this.mouseFollowParticles.length < CONFIG.enhancedParticleCount) {
+                    this.mouseFollowParticles.push(new EnhancedParticle(
+                        this.mouseCanvas.width, this.mouseCanvas.height
+                    ));
+                }
+                if (this.mouseFollowParticles.length > CONFIG.enhancedParticleCount) {
+                    this.mouseFollowParticles.length = CONFIG.enhancedParticleCount;
+                }
+                
+                // 更新所有粒子位置
+                this.mouseFollowParticles.forEach(particle => {
+                    particle.update(this.mouseX, this.mouseY, mouseSpeed, mouseVx, mouseVy);
+                });
+                
+                // 处理粒子间碰撞
+                for (let i = 0; i < this.mouseFollowParticles.length; i++) {
+                    for (let j = i + 1; j < this.mouseFollowParticles.length; j++) {
+                        this.mouseFollowParticles[i].resolveCollision(this.mouseFollowParticles[j]);
+                    }
+                }
+                
+                // 绘制连线（仅在启用时）
+                if (this.connectionsEnabled) {
+                    this.drawParticleConnections();
+                }
+                
+                // 绘制所有粒子
+                this.mouseFollowParticles.forEach(particle => {
+                    particle.draw(this.mouseCtx);
+                });
+            } else {
+                // 禁用状态时清空画布
+                this.mouseCtx.clearRect(0, 0, this.mouseCanvas.width, this.mouseCanvas.height);
+            }
 
             this.animationId = requestAnimationFrame(() => this.animate());
         }
@@ -2712,20 +2768,53 @@ class SettingsManager {
         switch(effectType) {
             case 'staticStars':
                 CONFIG.staticStarCount = count;
-                if (window.particleSystem && this.settings.staticStars.enabled) {
-                    window.particleSystem.createStaticStars();
+                if (window.particleSystem) {
+                    // 无论开关状态如何，都更新配置
+                    // 实际渲染由animate方法根据staticEnabled控制
+                    if (window.particleSystem.staticEnabled) {
+                        // 动态调整数组长度
+                        while (window.particleSystem.staticStars.length < count) {
+                            window.particleSystem.staticStars.push(new StaticStar(
+                                window.particleSystem.staticCanvas.width,
+                                window.particleSystem.staticCanvas.height
+                            ));
+                        }
+                        if (window.particleSystem.staticStars.length > count) {
+                            window.particleSystem.staticStars.length = count;
+                        }
+                    }
                 }
                 break;
             case 'meteor':
                 CONFIG.particleCount = count;
-                if (window.particleSystem && this.settings.meteor.enabled) {
-                    window.particleSystem.createParticles();
+                if (window.particleSystem) {
+                    if (window.particleSystem.meteorEnabled) {
+                        while (window.particleSystem.particles.length < count) {
+                            window.particleSystem.particles.push(new Particle(
+                                window.particleSystem.particleCanvas.width,
+                                window.particleSystem.particleCanvas.height
+                            ));
+                        }
+                        if (window.particleSystem.particles.length > count) {
+                            window.particleSystem.particles.length = count;
+                        }
+                    }
                 }
                 break;
             case 'particles':
                 CONFIG.enhancedParticleCount = count;
-                if (window.particleSystem && this.settings.particles.enabled) {
-                    window.particleSystem.createMouseFollowParticles();
+                if (window.particleSystem) {
+                    if (window.particleSystem.particlesEnabled) {
+                        while (window.particleSystem.mouseFollowParticles.length < count) {
+                            window.particleSystem.mouseFollowParticles.push(new EnhancedParticle(
+                                window.particleSystem.mouseCanvas.width,
+                                window.particleSystem.mouseCanvas.height
+                            ));
+                        }
+                        if (window.particleSystem.mouseFollowParticles.length > count) {
+                            window.particleSystem.mouseFollowParticles.length = count;
+                        }
+                    }
                 }
                 break;
             case 'connections':
