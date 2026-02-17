@@ -1142,10 +1142,10 @@
         // 延迟初始化，确保DOM完全加载
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                new ParticleSystem();
+                window.particleSystem = new ParticleSystem();
             });
         } else {
-            new ParticleSystem();
+            window.particleSystem = new ParticleSystem();
         }
     }
 
@@ -2830,5 +2830,13 @@ class SettingsManager {
 // 初始化设置管理器
 document.addEventListener('DOMContentLoaded', () => {
     window.settingsManager = new SettingsManager();
+    
+    // 延迟应用设置，确保ParticleSystem已初始化
+    setTimeout(() => {
+        if (window.settingsManager && window.particleSystem) {
+            window.settingsManager.applySettings();
+            console.log('设置已应用到粒子系统');
+        }
+    }, 100);
 });
 
