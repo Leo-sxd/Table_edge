@@ -2687,10 +2687,11 @@ class SettingsManager {
                 this.applySettings();
                 // 显示切换提示
                 this.showToggleNotification(settingKey, e.target.checked);
+                console.log(`【特效控制】${settingKey}: ${e.target.checked ? '开启' : '关闭'}`);
             });
         }
         
-        // 滑块事件
+        // 滑块事件 - input事件实时更新
         if (control.slider) {
             control.slider.addEventListener('input', (e) => {
                 const value = parseInt(e.target.value);
@@ -2698,10 +2699,13 @@ class SettingsManager {
                 if (control.value) control.value.textContent = value;
                 // 实时更新粒子数量（预览效果）
                 this.updateParticleCount(settingKey, value);
+                console.log(`【数量调节】${settingKey}: ${value}`);
             });
             
             control.slider.addEventListener('change', (e) => {
                 this.saveSettings();
+                this.applySettings(); // 滑块释放时也应用设置
+                console.log(`【设置保存】${settingKey}: ${e.target.value}`);
             });
         }
     }
@@ -2756,6 +2760,9 @@ class SettingsManager {
             }
             if (this.settings.staticStars.enabled) {
                 window.particleSystem.createStaticStars();
+            } else {
+                // 关闭时清空粒子数组
+                window.particleSystem.staticStars = [];
             }
             
             // 流星 - 控制显示/隐藏和重新生成
@@ -2766,6 +2773,9 @@ class SettingsManager {
             }
             if (this.settings.meteor.enabled) {
                 window.particleSystem.createParticles();
+            } else {
+                // 关闭时清空粒子数组
+                window.particleSystem.particles = [];
             }
             
             // 彩色粒子 - 控制显示/隐藏和重新生成
@@ -2776,6 +2786,9 @@ class SettingsManager {
             }
             if (this.settings.particles.enabled) {
                 window.particleSystem.createMouseFollowParticles();
+            } else {
+                // 关闭时清空粒子数组
+                window.particleSystem.mouseFollowParticles = [];
             }
             
             // 连线 - 仅控制是否绘制连线
@@ -2792,60 +2805,81 @@ class SettingsManager {
                 this.controls[effectType].toggle.checked = false;
                 this.settings[effectType].enabled = false;
             }
+        } else {
+            // 数量大于0时自动开启
+            if (this.controls[effectType] && this.controls[effectType].toggle) {
+                this.controls[effectType].toggle.checked = true;
+                this.settings[effectType].enabled = true;
+            }
         }
         
         switch(effectType) {
             case 'staticStars':
                 CONFIG.staticStarParticleCount = count;
-                if (window.particleSystem && count > 0) {
-                    // 动态调整数组长度
-                    while (window.particleSystem.staticStars.length < count) {
-                        window.particleSystem.staticStars.push(new StaticStar(
-                            window.particleSystem.staticCanvas.width,
-                            window.particleSystem.staticCanvas.height
-                        ));
+                if (window.particleSystem) {
+                    if (count > 0) {
+                        window.particleSystem.staticEnabled = true;
+                        // 动态调整数组长度
+                        while (window.particleSystem.staticStars.length < count) {
+                            window.particleSystem.staticStars.push(new StaticStar(
+                                window.particleSystem.staticCanvas.width,
+                                window.particleSystem.staticCanvas.height
+                            ));
+                        }
+                        if (window.particleSystem.staticStars.length > count) {
+                            window.particleSystem.staticStars.length = count;
+                        }
+                    } else {
+                        window.particleSystem.staticEnabled = false;
+                        window.particleSystem.staticStars = [];
                     }
-                    if (window.particleSystem.staticStars.length > count) {
-                        window.particleSystem.staticStars.length = count;
-                    }
-                } else if (window.particleSystem && count <= 0) {
-                    window.particleSystem.staticStars = [];
                 }
                 break;
             case 'meteor':
                 CONFIG.meteorParticleCount = count;
-                if (window.particleSystem && count > 0) {
-                    while (window.particleSystem.particles.length < count) {
-                        window.particleSystem.particles.push(new Particle(
-                            window.particleSystem.particleCanvas.width,
-                            window.particleSystem.particleCanvas.height
-                        ));
+                if (window.particleSystem) {
+                    if (count > 0) {
+                        window.particleSystem.meteorEnabled = true;
+                        while (window.particleSystem.particles.length < count) {
+                            window.particleSystem.particles.push(new Particle(
+                                window.particleSystem.particleCanvas.width,
+                                window.particleSystem.particleCanvas.height
+                            ));
+                        }
+                        if (window.particleSystem.particles.length > count) {
+                            window.particleSystem.particles.length = count;
+                        }
+                    } else {
+                        window.particleSystem.meteorEnabled = false;
+                        window.particleSystem.particles = [];
                     }
-                    if (window.particleSystem.particles.length > count) {
-                        window.particleSystem.particles.length = count;
-                    }
-                } else if (window.particleSystem && count <= 0) {
-                    window.particleSystem.particles = [];
                 }
                 break;
             case 'particles':
                 CONFIG.colorParticleCount = count;
-                if (window.particleSystem && count > 0) {
-                    while (window.particleSystem.mouseFollowParticles.length < count) {
-                        window.particleSystem.mouseFollowParticles.push(new EnhancedParticle(
-                            window.particleSystem.mouseCanvas.width,
-                            window.particleSystem.mouseCanvas.height
-                        ));
+                if (window.particleSystem) {
+                    if (count > 0) {
+                        window.particleSystem.particlesEnabled = true;
+                        while (window.particleSystem.mouseFollowParticles.length < count) {
+                            window.particleSystem.mouseFollowParticles.push(new EnhancedParticle(
+                                window.particleSystem.mouseCanvas.width,
+                                window.particleSystem.mouseCanvas.height
+                            ));
+                        }
+                        if (window.particleSystem.mouseFollowParticles.length > count) {
+                            window.particleSystem.mouseFollowParticles.length = count;
+                        }
+                    } else {
+                        window.particleSystem.particlesEnabled = false;
+                        window.particleSystem.mouseFollowParticles = [];
                     }
-                    if (window.particleSystem.mouseFollowParticles.length > count) {
-                        window.particleSystem.mouseFollowParticles.length = count;
-                    }
-                } else if (window.particleSystem && count <= 0) {
-                    window.particleSystem.mouseFollowParticles = [];
                 }
                 break;
             case 'connections':
                 CONFIG.particleConnectionMaxLines = count;
+                if (window.particleSystem) {
+                    window.particleSystem.connectionsEnabled = count > 0;
+                }
                 break;
         }
         
