@@ -1956,3 +1956,47 @@ body.modal-open {
     overflow: hidden;
 }
 
+
+
+/* 屏幕保护时间输入框样式 */
+.time-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.time-input-row .slider-label {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.time-input {
+    width: 70px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.time-input:focus {
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.time-input::-webkit-inner-spin-button,
+.time-input::-webkit-outer-spin-button {
+    opacity: 1;
+    height: 20px;
+    cursor: pointer;
+}
+
+.slider-unit {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}

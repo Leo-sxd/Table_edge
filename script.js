@@ -47,7 +47,7 @@ class SettingsManager {
         this.mouseTrailToggle = document.getElementById('mouse-trail-toggle');
         this.screenSaverToggle = document.getElementById('screensaver-toggle');
         this.screenSaverTimeSlider = document.getElementById('screensaver-time-slider');
-        this.screenSaverTimeValue = document.getElementById('screensaver-time-value');
+        this.screenSaverTimeInput = document.getElementById('screensaver-time-input');
         this.screenSaverTimeControl = document.getElementById('screensaver-time-control');
         this.settingsBtn = document.getElementById('settings-btn');
         this.modalOverlay = document.getElementById('settings-modal-overlay');
@@ -175,11 +175,51 @@ class SettingsManager {
                 }
             });
             
-            // 绑定时间滑块事件
-            if (this.screenSaverTimeSlider && this.screenSaverTimeValue) {
+            // 绑定时间滑块和输入框事件
+            if (this.screenSaverTimeSlider && this.screenSaverTimeInput) {
+                // 初始化值
+                this.screenSaverTimeSlider.value = this.settings.screenSaver.timeout;
+                this.screenSaverTimeInput.value = this.settings.screenSaver.timeout;
+                
+                // 滑块事件
                 this.screenSaverTimeSlider.addEventListener('input', (e) => {
                     const value = parseInt(e.target.value);
-                    this.screenSaverTimeValue.textContent = value;
+                    this.screenSaverTimeInput.value = value;
+                    this.settings.screenSaver.timeout = value;
+                    this.saveSettings();
+                    
+                    if (window.screenSaver) {
+                        window.screenSaver.setTimeout(value);
+                    }
+                });
+                
+                // 输入框事件
+                this.screenSaverTimeInput.addEventListener('input', (e) => {
+                    let value = parseInt(e.target.value);
+                    
+                    // 限制范围
+                    if (isNaN(value)) value = 60;
+                    if (value < 10) value = 10;
+                    if (value > 900) value = 900;
+                    
+                    // 同步到滑块
+                    this.screenSaverTimeSlider.value = value;
+                    this.settings.screenSaver.timeout = value;
+                    this.saveSettings();
+                    
+                    if (window.screenSaver) {
+                        window.screenSaver.setTimeout(value);
+                    }
+                });
+                
+                // 输入框失去焦点时确保值在范围内
+                this.screenSaverTimeInput.addEventListener('blur', (e) => {
+                    let value = parseInt(e.target.value);
+                    if (isNaN(value) || value < 10) value = 10;
+                    if (value > 900) value = 900;
+                    
+                    e.target.value = value;
+                    this.screenSaverTimeSlider.value = value;
                     this.settings.screenSaver.timeout = value;
                     this.saveSettings();
                     
