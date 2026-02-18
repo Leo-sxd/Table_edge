@@ -1612,11 +1612,11 @@ class MouseTrailEffect {
         this.canvas = null;
         this.ctx = null;
         this.points = [];
-        this.maxPoints = 200;
+        this.maxPoints = 100;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.lastTime = Date.now();
-        this.speedThreshold = 5000; // 速度阈值
+        this.speedThreshold = 5000; // 速度阈值：5000px/s
         
         this.init();
     }
@@ -1704,44 +1704,59 @@ class MouseTrailEffect {
         const width = this.canvas.width;
         const height = this.canvas.height;
         
-        // 完全清空画布
-        ctx.clearRect(0, 0, width, height);
+        // 使用半透明填充实现拖尾淡出效果
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fillRect(0, 0, width, height);
         
         // 如果没有点，直接返回
         if (this.points.length < 2) return;
         
-        // 绘制轨迹
+        // 创建渐变线条 - 从鼠标位置到历史位置逐渐变细变淡
+        const currentTime = Date.now();
+        
+        // 计算当前平均速度
+        let avgSpeed = 0;
+        if (this.points.length > 0) {
+            const recentPoints = this.points.slice(-5);
+            avgSpeed = recentPoints.reduce((sum, p) => sum + p.speed, 0) / recentPoints.length;
+        }
+        
+        // 使用渐变绘制整条轨迹
         for (let i = 1; i < this.points.length; i++) {
             const point = this.points[i];
             const prevPoint = this.points[i - 1];
-            const progress = i / this.points.length;
+            
+            // 计算从头部到尾部的进度 (0 = 头部/最新, 1 = 尾部/最旧)
+            const progress = 1 - (i / this.points.length);
+            
+            // 根据进度计算透明度和线宽 - 头部清晰，尾部淡出
+            const alpha = progress * 0.6; // 最大透明度0.6
+            const lineWidth = progress * 4 + 1; // 头部粗，尾部细
             
             // 根据速度决定颜色
-            const alpha = progress * 0.8;
-            let color;
-            
-            if (point.speed < this.speedThreshold) {
-                // 低速：白色
-                color = `rgba(255, 255, 255, ${alpha})`;
+            let strokeStyle;
+            if (avgSpeed < this.speedThreshold) {
+                // 低速：半透明白色
+                strokeStyle = `rgba(255, 255, 255, ${alpha})`;
             } else {
-                // 高速：彩色
-                const hue = (Date.now() / 5) % 360;
-                color = `hsla(${hue}, 100%, 70%, ${alpha})`;
+                // 高速：半透明彩色（动态色相）
+                const hue = (Date.now() / 10 + progress * 60) % 360;
+                strokeStyle = `hsla(${hue}, 100%, 70%, ${alpha})`;
             }
             
-            // 绘制线段
+            // 绘制平滑线段
             ctx.beginPath();
             ctx.moveTo(prevPoint.x, prevPoint.y);
             ctx.lineTo(point.x, point.y);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = progress * 6 + 2;
+            ctx.strokeStyle = strokeStyle;
+            ctx.lineWidth = lineWidth;
             ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
             ctx.stroke();
         }
         
-        // 移除过期的点（300ms）
-        const currentTime = Date.now();
-        this.points = this.points.filter(p => currentTime - p.time < 300);
+        // 移除过期的点（600ms）- 让拖尾持续更久，更平滑
+        this.points = this.points.filter(p => currentTime - p.time < 600);
     }
 }
 
