@@ -1677,7 +1677,7 @@ input:checked + .slider:before {
     overflow-y: auto;
     flex: 1;
     scrollbar-width: thin;
-    scrollbar-color: #667eea #f0f0f0;
+    scrollbar-color: #8c00ff;
 }
 
 .settings-modal-content::-webkit-scrollbar {
@@ -1731,11 +1731,11 @@ input:checked + .slider:before {
     padding: 12px;
     border-radius: 12px;
     transition: all 0.3s ease;
-    background: rgba(132, 0, 255);
+    background: rgba(102, 126, 234, 0.03);
 }
 
 .bg-option-item:hover {
-    background: rgba(100, 0, 255);
+    background: rgba(102, 126, 234, 0.1);
     transform: translateY(-3px);
 }
 
