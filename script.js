@@ -1904,7 +1904,6 @@ class ScreenSaver {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
             z-index: 999999;
             display: none;
             pointer-events: none;
@@ -2037,9 +2036,8 @@ class ScreenSaver {
         const width = this.canvas.width;
         const height = this.canvas.height;
         
-        // 清空画布
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, width, height);
+        // 清空画布（透明）
+        ctx.clearRect(0, 0, width, height);
         
         // 更新和绘制粒子
         this.particles.forEach(particle => {
