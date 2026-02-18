@@ -18,7 +18,7 @@ class SettingsManager {
             staticStars: { enabled: true, count: 50 },
             meteor: { enabled: true, count: 15 },
             particles: { enabled: true, count: 5 },
-            connections: { enabled: true, count: 10 }
+
         };
     }
     
@@ -68,11 +68,7 @@ class SettingsManager {
                 slider: document.getElementById('particles-slider'),
                 value: document.getElementById('particles-value')
             },
-            connections: {
-                toggle: document.getElementById('connections-toggle'),
-                slider: document.getElementById('connections-slider'),
-                value: document.getElementById('connections-value')
-            }
+
         };
         
         // 初始化UI状态
@@ -116,7 +112,7 @@ class SettingsManager {
         this.bindEffectControl('staticStars', 'staticStars');
         this.bindEffectControl('meteor', 'meteor');
         this.bindEffectControl('particles', 'particles');
-        this.bindEffectControl('connections', 'connections');
+
     }
     
     bindEffectControl(controlKey, settingKey) {
@@ -176,7 +172,7 @@ class SettingsManager {
             staticStars: '静止闪烁星星',
             meteor: '运动拖尾流星',
             particles: '彩色布朗粒子',
-            connections: '粒子连线'
+
         };
         const status = enabled ? '已开启' : '已关闭';
         console.log(`${names[effectType]} ${status}`);
@@ -187,7 +183,7 @@ class SettingsManager {
         CONFIG.staticStarCount = this.settings.staticStars.count;
         CONFIG.particleCount = this.settings.meteor.count;
         CONFIG.enhancedParticleCount = this.settings.particles.count;
-        CONFIG.maxTotalConnections = this.settings.connections.count;
+
         
         // 应用到粒子系统
         if (window.particleSystem) {
@@ -221,8 +217,7 @@ class SettingsManager {
                 window.particleSystem.createMouseFollowParticles();
             }
             
-            // 连线 - 仅控制是否绘制连线
-            window.particleSystem.connectionsEnabled = this.settings.connections.enabled;
+
         }
     }
     
@@ -246,9 +241,6 @@ class SettingsManager {
                 if (window.particleSystem && this.settings.particles.enabled) {
                     window.particleSystem.createMouseFollowParticles();
                 }
-                break;
-            case 'connections':
-                CONFIG.maxTotalConnections = count;
                 break;
         }
     }
@@ -292,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         maxSpeed: 3.2,            // 最快速度（像素/帧）
         speedVariation: 0.3,      // 速度变化范围（±30%，用于动态调整）
         rotationSpeed: 0.02,      // 旋转速度
-        connectionDistance: 100,  // 连线距离（可选功能）
+
         color: '255, 255, 255',   // 白色粒子
         trailOpacity: 0.5,        // 拖尾透明度（增加以更明显）
         trailWidth: 2,            // 拖尾基础宽度
@@ -356,11 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
         brownianForce: 0.3,             // 布朗运动力度
         friction: 0.98,                 // 摩擦力
         
-        // 粒子连线配置
-        connectionLineOpacity: 0.2,     // 连线透明度
-        connectionLineColor: '255, 255, 255', // 连线颜色（白色）
-        connectionLineWidth: 1,         // 连线宽度
-        connectionReleaseDelay: 1000    // 挣脱后保持连线时间（毫秒）
+
     };
 
     // 获取准确的视口尺寸（兼容移动端）
@@ -833,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         canConnect() {
             if (this.isCaptured) return Date.now() - this.captureStartTime >= CONFIG.minCaptureDuration;
-            if (this.captureReleaseTime > 0) return Date.now() - this.captureReleaseTime < CONFIG.connectionReleaseDelay;
+
             return false;
         }
         
@@ -1180,8 +1168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // 绘制被捕获粒子之间的连线
-            this.drawParticleConnections();
+
             
             // 绘制所有粒子
             this.mouseFollowParticles.forEach(particle => {
@@ -1224,80 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 绘制粒子之间的连线
-        drawParticleConnections() {
-            const connectableParticles = this.mouseFollowParticles.filter(p => p.canConnect());
-            
-            if (connectableParticles.length < 2) return;
-            
-            // 收集所有可能的连线（带距离信息）
-            const allPossibleConnections = [];
-            
-            for (let i = 0; i < connectableParticles.length; i++) {
-                for (let j = i + 1; j < connectableParticles.length; j++) {
-                    const p1 = connectableParticles[i];
-                    const p2 = connectableParticles[j];
-                    
-                    const dx = p2.x - p1.x;
-                    const dy = p2.y - p1.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    allPossibleConnections.push({
-                        p1Index: i,
-                        p2Index: j,
-                        p1: p1,
-                        p2: p2,
-                        distance: distance
-                    });
-                }
-            }
-            
-            // 按距离排序
-            allPossibleConnections.sort((a, b) => a.distance - b.distance);
-            
-            // 记录每个粒子的已连接数
-            const connectionCounts = new Array(connectableParticles.length).fill(0);
-            const selectedConnections = [];
-            
-            // 优先选择距离近的连线，同时满足两个限制：
-            // 1. 单个粒子最多5条连线
-            // 2. 全局最多10条连线
-            for (const conn of allPossibleConnections) {
-                // 检查全局限制
-                if (selectedConnections.length >= CONFIG.maxTotalConnections) {
-                    break;
-                }
-                
-                // 检查单个粒子限制
-                if (connectionCounts[conn.p1Index] >= CONFIG.maxConnectionsPerParticle) {
-                    continue;
-                }
-                if (connectionCounts[conn.p2Index] >= CONFIG.maxConnectionsPerParticle) {
-                    continue;
-                }
-                
-                // 选择这条连线
-                selectedConnections.push(conn);
-                connectionCounts[conn.p1Index]++;
-                connectionCounts[conn.p2Index]++;
-            }
-            
-            // 绘制选中的连线
-            this.mouseCtx.save();
-            this.mouseCtx.strokeStyle = `rgba(${CONFIG.connectionLineColor}, ${CONFIG.connectionLineOpacity})`;
-            this.mouseCtx.lineWidth = CONFIG.connectionLineWidth;
-            this.mouseCtx.lineCap = 'round';
-            
-            for (const conn of selectedConnections) {
-                this.mouseCtx.beginPath();
-                this.mouseCtx.moveTo(conn.p1.x, conn.p1.y);
-                this.mouseCtx.lineTo(conn.p2.x, conn.p2.y);
-                this.mouseCtx.stroke();
-            }
-            
-            this.mouseCtx.restore();
-        }
-        
+
         // 公共API
         setParticleCount(count) {
             CONFIG.particleCount = count;
