@@ -1889,6 +1889,10 @@ class ScreenSaver {
         this.particleCount = 10;
         this.particleSize = 6;
         this.isActive = false;
+        this.isFadingOut = false;
+        this.opacity = 0;
+        this.fadeStartTime = 0;
+        this.fadeDuration = 5000; // 5秒淡入淡出
         this.lastActivity = Date.now();
         
         this.init();
@@ -1917,9 +1921,6 @@ class ScreenSaver {
         window.addEventListener('resize', () => this.resize());
         this.bindActivityEvents();
         
-        // 初始化粒子
-        this.initParticles();
-        
         console.log('[ScreenSaver] 初始化完成');
     }
     
@@ -1942,9 +1943,9 @@ class ScreenSaver {
     onActivity() {
         this.lastActivity = Date.now();
         
-        // 如果屏幕保护正在运行，立即停止
-        if (this.isActive) {
-            this.deactivate();
+        // 如果屏幕保护正在运行，开始淡出
+        if (this.isActive && !this.isFadingOut) {
+            this.startFadeOut();
         }
         
         // 重置计时器
@@ -1974,7 +1975,7 @@ class ScreenSaver {
                 clearTimeout(this.timer);
             }
             if (this.isActive) {
-                this.deactivate();
+                this.startFadeOut();
             }
         }
     }
@@ -2005,25 +2006,37 @@ class ScreenSaver {
     activate() {
         if (!this.enabled || this.isActive) return;
         
-        console.log('[ScreenSaver] 激活屏幕保护');
+        console.log('[ScreenSaver] 激活屏幕保护，开始淡入');
         this.isActive = true;
+        this.isFadingOut = false;
+        this.opacity = 0;
+        this.fadeStartTime = Date.now();
         this.canvas.style.display = 'block';
         
-        // 重新初始化粒子位置
+        // 初始化粒子
         this.initParticles();
         
         // 开始动画
         this.animate();
     }
     
+    startFadeOut() {
+        console.log('[ScreenSaver] 开始淡出');
+        this.isFadingOut = true;
+        this.fadeStartTime = Date.now();
+    }
+    
     deactivate() {
         console.log('[ScreenSaver] 关闭屏幕保护');
         this.isActive = false;
+        this.isFadingOut = false;
+        this.opacity = 0;
         this.canvas.style.display = 'none';
         
         // 停止动画
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
+            this.animationId = null;
         }
     }
     
@@ -2035,9 +2048,32 @@ class ScreenSaver {
         const ctx = this.ctx;
         const width = this.canvas.width;
         const height = this.canvas.height;
+        const now = Date.now();
         
-        // 清空画布（透明）
+        // 计算透明度
+        if (this.isFadingOut) {
+            // 淡出：从0.95到0
+            const elapsed = now - this.fadeStartTime;
+            const progress = Math.min(elapsed / this.fadeDuration, 1);
+            this.opacity = 0.95 * (1 - progress);
+            
+            // 淡出完成，停止渲染
+            if (progress >= 1) {
+                this.deactivate();
+                return;
+            }
+        } else {
+            // 淡入：从0到0.95
+            const elapsed = now - this.fadeStartTime;
+            const progress = Math.min(elapsed / this.fadeDuration, 1);
+            this.opacity = 0.95 * progress;
+        }
+        
+        // 清空画布
         ctx.clearRect(0, 0, width, height);
+        
+        // 如果透明度为0，不绘制
+        if (this.opacity <= 0) return;
         
         // 更新和绘制粒子
         this.particles.forEach(particle => {
@@ -2069,15 +2105,15 @@ class ScreenSaver {
             if (particle.hue < 0) particle.hue += 360;
             if (particle.hue > 360) particle.hue -= 360;
             
-            // 绘制粒子
+            // 绘制粒子（应用全局透明度）
             ctx.beginPath();
             ctx.arc(particle.x, particle.y, this.particleSize, 0, Math.PI * 2);
-            ctx.fillStyle = `hsl(${particle.hue}, 80%, 60%)`;
+            ctx.fillStyle = `hsla(${particle.hue}, 80%, 60%, ${this.opacity})`;
             ctx.fill();
             
             // 添加发光效果
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = `hsl(${particle.hue}, 80%, 60%)`;
+            ctx.shadowBlur = 10 * this.opacity;
+            ctx.shadowColor = `hsla(${particle.hue}, 80%, 60%, ${this.opacity})`;
         });
         
         // 重置阴影
