@@ -1612,7 +1612,7 @@ class MouseTrailEffect {
         this.canvas = null;
         this.ctx = null;
         this.points = [];
-        this.maxPoints = 2;
+        this.maxPoints = 200;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.lastTime = Date.now();
