@@ -1535,9 +1535,9 @@ input:checked + .slider:before {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #8c00ff;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 2px 6px rgba(100, 0, 255, 0.4);
     transition: transform 0.2s;
 }
 
@@ -1549,7 +1549,7 @@ input:checked + .slider:before {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #8c00ff;
     cursor: pointer;
     border: none;
     box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
