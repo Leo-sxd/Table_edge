@@ -1721,16 +1721,19 @@ class MouseTrailEffect {
         }
         
         // 使用渐变绘制整条轨迹
-        for (let i = 1; i < this.points.length; i++) {
+        // 从数组末尾（最新点/头部）开始绘制到开头（最旧点/尾部）
+        for (let i = this.points.length - 1; i > 0; i--) {
             const point = this.points[i];
             const prevPoint = this.points[i - 1];
             
-            // 计算从头部到尾部的进度 (0 = 头部/最新, 1 = 尾部/最旧)
-            const progress = 1 - (i / this.points.length);
+            // 计算从头部到尾部的进度 
+            // i = length-1 时 progress = 1 (头部/最新，最粗)
+            // i = 1 时 progress ≈ 0 (尾部/最旧，最细)
+            const progress = i / (this.points.length - 1);
             
-            // 根据进度计算透明度和线宽 - 头部清晰，尾部淡出
-            const alpha = progress * 0.6; // 最大透明度0.6
-            const lineWidth = progress * 4 + 1; // 头部粗，尾部细
+            // 根据进度计算透明度和线宽 - 头部大，尾部小
+            const alpha = progress * 0.6; // 头部透明度0.6，尾部接近0
+            const lineWidth = progress * 5 + 0.5; // 头部5.5px，尾部0.5px
             
             // 根据速度决定颜色
             let strokeStyle;
