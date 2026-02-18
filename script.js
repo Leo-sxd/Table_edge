@@ -95,10 +95,34 @@ class SettingsManager {
         });
         
         // 绑定各特效控制事件
-
-
-
-
+        
+        // 鼠标拖尾开关事件绑定
+        if (this.mouseTrailToggle) {
+            console.log('Binding mouse trail toggle event');
+            // Initialize checkbox state
+            if (this.settings.mouseTrail) {
+                this.mouseTrailToggle.checked = this.settings.mouseTrail.enabled;
+            }
+            
+            this.mouseTrailToggle.addEventListener('change', (e) => {
+                console.log('Mouse trail toggle changed:', e.target.checked);
+                if (!this.settings.mouseTrail) {
+                    this.settings.mouseTrail = { enabled: false };
+                }
+                this.settings.mouseTrail.enabled = e.target.checked;
+                this.saveSettings();
+                
+                // Enable/disable mouse trail effect
+                if (window.mouseTrailEffect) {
+                    window.mouseTrailEffect.setEnabled(e.target.checked);
+                    console.log('Mouse trail effect set to:', e.target.checked);
+                } else {
+                    console.error('mouseTrailEffect not found!');
+                }
+            });
+        } else {
+            console.error('mouseTrailToggle element not found!');
+        }
     }
     
     bindEffectControl(controlKey, settingKey) {
@@ -195,7 +219,9 @@ class SettingsManager {
 
 // 初始化设置管理器
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[SettingsManager] Initializing...');
     window.settingsManager = new SettingsManager();
+    console.log('[SettingsManager] Initialized, settings:', window.settingsManager.settings);
 });
 
 // ==================== 移动端/电脑版视图切换功能 ====================
@@ -1721,22 +1747,35 @@ class MouseTrailEffect {
 
 // 初始化鼠标拖尾效果
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('初始化鼠标拖尾效果...');
-    window.mouseTrailEffect = new MouseTrailEffect();
+    console.log('[MouseTrail] Initializing...');
     
-    // 根据保存的设置启用/禁用
+    // Create global instance
+    window.mouseTrailEffect = new MouseTrailEffect();
+    console.log('[MouseTrail] Instance created');
+    
+    // Apply saved settings after a delay to ensure SettingsManager is ready
     setTimeout(() => {
-        console.log('检查鼠标拖尾设置...');
-        if (window.settingsManager && window.settingsManager.settings && window.settingsManager.settings.mouseTrail) {
-            console.log('鼠标拖尾设置:', window.settingsManager.settings.mouseTrail.enabled);
-            if (window.settingsManager.settings.mouseTrail.enabled) {
+        console.log('[MouseTrail] Checking saved settings...');
+        
+        if (window.settingsManager && window.settingsManager.settings) {
+            const trailSettings = window.settingsManager.settings.mouseTrail;
+            console.log('[MouseTrail] Settings found:', trailSettings);
+            
+            if (trailSettings && trailSettings.enabled) {
+                console.log('[MouseTrail] Enabling from saved settings');
                 window.mouseTrailEffect.setEnabled(true);
-                // 同步开关状态
+                
+                // Sync toggle state
                 const toggle = document.getElementById('mouse-trail-toggle');
-                if (toggle) toggle.checked = true;
+                if (toggle) {
+                    toggle.checked = true;
+                    console.log('[MouseTrail] Toggle synced to ON');
+                }
+            } else {
+                console.log('[MouseTrail] Saved setting is disabled or not found');
             }
         } else {
-            console.log('未找到鼠标拖尾设置或设置管理器');
+            console.log('[MouseTrail] SettingsManager not ready yet');
         }
-    }, 500);
+    }, 800);
 });
