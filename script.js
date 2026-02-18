@@ -1586,14 +1586,11 @@ class MouseTrailEffect {
         this.canvas = null;
         this.ctx = null;
         this.points = [];
-        this.maxPoints = 30;
-        this.mouseX = 0;
-        this.mouseY = 0;
+        this.maxPoints = 20;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.lastTime = Date.now();
-        this.speed = 0;
-        this.speedThreshold = 800; // 速度阈值，超过则为高速
+        this.speedThreshold = 500; // 速度阈值
         
         this.init();
     }
@@ -1602,15 +1599,13 @@ class MouseTrailEffect {
         // 创建canvas
         this.canvas = document.createElement('canvas');
         this.canvas.id = 'mouse-trail-canvas';
-        this.canvas.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9999;
-        `;
+        this.canvas.style.position = 'fixed';
+        this.canvas.style.top = '0';
+        this.canvas.style.left = '0';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = '100%';
+        this.canvas.style.pointerEvents = 'none';
+        this.canvas.style.zIndex = '99999';
         document.body.appendChild(this.canvas);
         
         this.ctx = this.canvas.getContext('2d');
@@ -1620,8 +1615,10 @@ class MouseTrailEffect {
         window.addEventListener('resize', () => this.resize());
         document.addEventListener('mousemove', (e) => this.onMouseMove(e));
         
-        // 开始动画
+        // 开始动画循环
         this.animate();
+        
+        console.log('鼠标拖尾效果初始化完成');
     }
     
     resize() {
@@ -1630,113 +1627,116 @@ class MouseTrailEffect {
     }
     
     onMouseMove(e) {
+        if (!this.enabled) return;
+        
         const currentTime = Date.now();
         const dt = currentTime - this.lastTime;
         
+        let speed = 0;
         if (dt > 0) {
-            // 计算鼠标速度
             const dx = e.clientX - this.lastMouseX;
             const dy = e.clientY - this.lastMouseY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            this.speed = distance / dt * 1000; // 像素/秒
-            
-            this.lastMouseX = e.clientX;
-            this.lastMouseY = e.clientY;
-            this.lastTime = currentTime;
+            speed = distance / dt * 1000;
         }
         
-        this.mouseX = e.clientX;
-        this.mouseY = e.clientY;
+        this.lastMouseX = e.clientX;
+        this.lastMouseY = e.clientY;
+        this.lastTime = currentTime;
         
         // 添加轨迹点
-        if (this.enabled) {
-            this.points.push({
-                x: e.clientX,
-                y: e.clientY,
-                speed: this.speed,
-                time: currentTime
-            });
-            
-            // 限制轨迹点数量
-            if (this.points.length > this.maxPoints) {
-                this.points.shift();
-            }
+        this.points.push({
+            x: e.clientX,
+            y: e.clientY,
+            speed: speed,
+            time: currentTime
+        });
+        
+        // 限制轨迹点数量
+        if (this.points.length > this.maxPoints) {
+            this.points.shift();
         }
     }
     
     setEnabled(enabled) {
         this.enabled = enabled;
+        console.log('鼠标拖尾效果:', enabled ? '开启' : '关闭');
         if (!enabled) {
             this.points = [];
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            if (this.ctx) {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
         }
     }
     
     animate() {
-        if (!this.enabled) {
-            requestAnimationFrame(() => this.animate());
-            return;
-        }
+        requestAnimationFrame(() => this.animate());
+        
+        if (!this.enabled || !this.ctx) return;
         
         const ctx = this.ctx;
         const width = this.canvas.width;
         const height = this.canvas.height;
         
-        // 清空画布（使用半透明实现拖尾淡出效果）
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, width, height);
+        // 完全清空画布
         ctx.clearRect(0, 0, width, height);
         
+        // 如果没有点，直接返回
+        if (this.points.length < 2) return;
+        
         // 绘制轨迹
-        if (this.points.length > 1) {
-            for (let i = 1; i < this.points.length; i++) {
-                const point = this.points[i];
-                const prevPoint = this.points[i - 1];
-                const progress = i / this.points.length;
-                
-                // 根据速度决定颜色
-                let color;
-                let alpha = progress * 0.6;
-                
-                if (point.speed < this.speedThreshold) {
-                    // 低速：白色半透明
-                    color = `rgba(255, 255, 255, ${alpha})`;
-                } else {
-                    // 高速：彩色半透明（根据进度变化色相）
-                    const hue = (progress * 360 + Date.now() / 10) % 360;
-                    color = `hsla(${hue}, 80%, 60%, ${alpha})`;
-                }
-                
-                // 绘制线段
-                ctx.beginPath();
-                ctx.moveTo(prevPoint.x, prevPoint.y);
-                ctx.lineTo(point.x, point.y);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = progress * 4 + 1;
-                ctx.lineCap = 'round';
-                ctx.stroke();
+        for (let i = 1; i < this.points.length; i++) {
+            const point = this.points[i];
+            const prevPoint = this.points[i - 1];
+            const progress = i / this.points.length;
+            
+            // 根据速度决定颜色
+            const alpha = progress * 0.8;
+            let color;
+            
+            if (point.speed < this.speedThreshold) {
+                // 低速：白色
+                color = `rgba(255, 255, 255, ${alpha})`;
+            } else {
+                // 高速：彩色
+                const hue = (Date.now() / 5) % 360;
+                color = `hsla(${hue}, 100%, 70%, ${alpha})`;
             }
+            
+            // 绘制线段
+            ctx.beginPath();
+            ctx.moveTo(prevPoint.x, prevPoint.y);
+            ctx.lineTo(point.x, point.y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = progress * 6 + 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
         }
         
-        // 移除过期的点
+        // 移除过期的点（300ms）
         const currentTime = Date.now();
-        this.points = this.points.filter(p => currentTime - p.time < 500);
-        
-        requestAnimationFrame(() => this.animate());
+        this.points = this.points.filter(p => currentTime - p.time < 300);
     }
 }
 
 // 初始化鼠标拖尾效果
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('初始化鼠标拖尾效果...');
     window.mouseTrailEffect = new MouseTrailEffect();
     
     // 根据保存的设置启用/禁用
     setTimeout(() => {
-        if (window.settingsManager && window.settingsManager.settings.mouseTrail && window.settingsManager.settings.mouseTrail.enabled) {
-            window.mouseTrailEffect.setEnabled(true);
-            // 同步开关状态
-            const toggle = document.getElementById('mouse-trail-toggle');
-            if (toggle) toggle.checked = true;
+        console.log('检查鼠标拖尾设置...');
+        if (window.settingsManager && window.settingsManager.settings && window.settingsManager.settings.mouseTrail) {
+            console.log('鼠标拖尾设置:', window.settingsManager.settings.mouseTrail.enabled);
+            if (window.settingsManager.settings.mouseTrail.enabled) {
+                window.mouseTrailEffect.setEnabled(true);
+                // 同步开关状态
+                const toggle = document.getElementById('mouse-trail-toggle');
+                if (toggle) toggle.checked = true;
+            }
+        } else {
+            console.log('未找到鼠标拖尾设置或设置管理器');
         }
-    }, 100);
+    }, 500);
 });
