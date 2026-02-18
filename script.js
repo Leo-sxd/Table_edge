@@ -1704,9 +1704,8 @@ class MouseTrailEffect {
         const width = this.canvas.width;
         const height = this.canvas.height;
         
-        // 使用半透明填充实现拖尾淡出效果
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-        ctx.fillRect(0, 0, width, height);
+        // 清空画布（使用clearRect避免黑屏累积）
+        ctx.clearRect(0, 0, width, height);
         
         // 如果没有点，直接返回
         if (this.points.length < 2) return;
