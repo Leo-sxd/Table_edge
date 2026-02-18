@@ -15,7 +15,7 @@ class SettingsManager {
     // 默认设置
     getDefaultSettings() {
         return {
-            staticStars: { enabled: true, count: 50 },
+
             meteor: { enabled: true, count: 15 },
             particles: { enabled: true, count: 5 },
 
@@ -53,11 +53,7 @@ class SettingsManager {
         
         // 获取开关和滑块元素
         this.controls = {
-            staticStars: {
-                toggle: document.getElementById('static-stars-toggle'),
-                slider: document.getElementById('static-stars-slider'),
-                value: document.getElementById('static-stars-value')
-            },
+
             meteor: {
                 toggle: document.getElementById('meteor-toggle'),
                 slider: document.getElementById('meteor-slider'),
@@ -109,7 +105,7 @@ class SettingsManager {
         });
         
         // 绑定各特效控制事件
-        this.bindEffectControl('staticStars', 'staticStars');
+
         this.bindEffectControl('meteor', 'meteor');
         this.bindEffectControl('particles', 'particles');
 
@@ -169,7 +165,7 @@ class SettingsManager {
     // 显示切换提示
     showToggleNotification(effectType, enabled) {
         const names = {
-            staticStars: '静止闪烁星星',
+
             meteor: '运动拖尾流星',
             particles: '彩色布朗粒子',
 
@@ -180,22 +176,14 @@ class SettingsManager {
     
     applySettings() {
         // 更新CONFIG值
-        CONFIG.staticStarCount = this.settings.staticStars.count;
+
         CONFIG.particleCount = this.settings.meteor.count;
         CONFIG.enhancedParticleCount = this.settings.particles.count;
 
         
         // 应用到粒子系统
         if (window.particleSystem) {
-            // 静止星星 - 控制显示/隐藏和重新生成
-            window.particleSystem.staticEnabled = this.settings.staticStars.enabled;
-            const staticCanvas = document.getElementById('static-stars-canvas');
-            if (staticCanvas) {
-                staticCanvas.style.display = this.settings.staticStars.enabled ? 'block' : 'none';
-            }
-            if (this.settings.staticStars.enabled) {
-                window.particleSystem.createStaticStars();
-            }
+
             
             // 流星 - 控制显示/隐藏和重新生成
             window.particleSystem.meteorEnabled = this.settings.meteor.enabled;
@@ -224,12 +212,7 @@ class SettingsManager {
     // 单独更新粒子数量（用于滑块实时预览）
     updateParticleCount(effectType, count) {
         switch(effectType) {
-            case 'staticStars':
-                CONFIG.staticStarCount = count;
-                if (window.particleSystem && this.settings.staticStars.enabled) {
-                    window.particleSystem.createStaticStars();
-                }
-                break;
+
             case 'meteor':
                 CONFIG.particleCount = count;
                 if (window.particleSystem && this.settings.meteor.enabled) {
@@ -291,17 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         trailLengthMin: 8,        // 拖尾长度倍数（最小）
         trailLengthMax: 12,       // 拖尾长度倍数（最大）
         spawnMargin: 100,         // 屏幕外生成边距
-        
-        // 静态闪烁星星（StaticStar）配置
-        staticStarCount: 50,      // 静态星星数量
-        staticStarMinSize: 3,   // 静态星星最小大小
-        staticStarMaxSize: 6,   // 静态星星最大大小
-        staticStarMinOpacity: 0.1,// 静态星星最小透明度
-        staticStarMaxOpacity: 0.8,// 静态星星最大透明度
-        staticStarHeightPercent: 0.8, // 出现范围：页面高度的80%
-        staticStarTwinkleMin: 0.01,   // 最小闪烁速度
-        staticStarTwinkleMax: 0.03,   // 最大闪烁速度
-        staticStarColor: '255, 255, 255', // 静态星星颜色
         
         // 彩色布朗运动粒子配置
         brownianParticleCount: 15,      // 布朗粒子数量
@@ -594,135 +566,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==================== 静态闪烁星星类 ====================
-    class StaticStar {
-        constructor(canvasWidth, canvasHeight) {
-            this.canvasWidth = canvasWidth;
-            this.canvasHeight = canvasHeight;
-            this.reset();
-        }
-
-        reset() {
-            // 在页面80%高度范围内随机位置
-            this.x = Math.random() * this.canvasWidth;
-            this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
-            
-            this.size = Math.random() * (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + CONFIG.staticStarMinSize;
-            this.baseOpacity = Math.random() * (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + CONFIG.staticStarMinOpacity;
-            
-            this.twinkleSpeed = Math.random() * (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + CONFIG.staticStarTwinkleMin;
-            this.twinklePhase = Math.random() * Math.PI * 2;
-            
-            // 周期计数器：记录已完成的闪烁周期数
-            this.cycleCount = 0;
-        }
-
-        update() {
-            // 检测是否完成一个完整周期（相位跨越2π边界）
-            const prevPhase = this.twinklePhase;
-            this.twinklePhase += this.twinkleSpeed;
-            
-            // 当相位从大于2π变为小于2π时，表示完成了一个周期
-            if (Math.floor(prevPhase / (Math.PI * 2)) !== Math.floor(this.twinklePhase / (Math.PI * 2))) {
-                this.cycleCount++;
-            }
-        }
-        
-        /**
-         * Check if star should reset (complete cycle at minimum brightness)
-         * Ensures star completes full twinkling animation before disappearing
-         */
-        shouldReset() {
-            // 只有当星星完成7个完整闪烁周期后才重置
-            // 确保在最低亮度时执行，实现平滑过渡
-            const twinkle = Math.sin(this.twinklePhase) * 0.3;
-            const currentOpacity = this.baseOpacity + twinkle;
-            
-            // 完成7个周期且在最低亮度时重置
-            return this.cycleCount >= 7 && currentOpacity < 0.15;
-        }
-        
-        /**
-         * Reset star with new random position
-         * Called only when star has completed full animation cycle
-         */
-        resetWithNewPosition() {
-            // Generate new random position (在80%高度范围内)
-            this.x = Math.random() * this.canvasWidth;
-            this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
-            
-            // Reset phase to start of cycle with random offset for variety
-            this.twinklePhase = Math.random() * Math.PI * 0.5;
-            
-            // Randomize other properties for variety
-            this.size = Math.random() * (CONFIG.staticStarMaxSize - CONFIG.staticStarMinSize) + CONFIG.staticStarMinSize;
-            this.baseOpacity = Math.random() * (CONFIG.staticStarMaxOpacity - CONFIG.staticStarMinOpacity) + CONFIG.staticStarMinOpacity;
-            this.twinkleSpeed = Math.random() * (CONFIG.staticStarTwinkleMax - CONFIG.staticStarTwinkleMin) + CONFIG.staticStarTwinkleMin;
-            
-            // 重置周期计数器
-            this.cycleCount = 0;
-        }
-        
-        /**
-         * Randomize star position within allowed area
-         * Called during each twinkling cycle
-         */
-        randomizePosition() {
-            // Generate new random position within bounds
-            this.x = Math.random() * this.canvasWidth;
-            this.y = Math.random() * (this.canvasHeight * CONFIG.staticStarHeightPercent);
-        }
-
-        draw(ctx) {
-            const twinkle = Math.sin(this.twinklePhase) * 0.3;
-            // Ensure minimum visibility to prevent sudden disappearance
-            // Use higher minimum (0.15 instead of 0.05) to keep star always visible
-            const currentOpacity = Math.max(0.15, Math.min(1, this.baseOpacity + twinkle));
-
-            ctx.save();
-            
-            // 绘制四角星
-            const size = this.size;
-            const innerSize = size * 0.4; // 内凹半径
-            ctx.beginPath();
-            
-            // 四角星的8个顶点（外4个 + 内4个）
-            for (let i = 0; i < 8; i++) {
-                const angle = (i * Math.PI / 4) - Math.PI / 2; // 从顶部开始
-                const radius = i % 2 === 0 ? size : innerSize;
-                const x = this.x + Math.cos(angle) * radius;
-                const y = this.y + Math.sin(angle) * radius;
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            
-            ctx.closePath();
-            
-            ctx.fillStyle = `rgba(${CONFIG.staticStarColor}, ${currentOpacity})`;
-            ctx.fill();
-            
-            // 添加发光效果
-            const gradient = ctx.createRadialGradient(
-                this.x, this.y, 0,
-                this.x, this.y, size * 3
-            );
-            gradient.addColorStop(0, `rgba(${CONFIG.staticStarColor}, ${currentOpacity * 0.5})`);
-            gradient.addColorStop(0.3, `rgba(${CONFIG.staticStarColor}, ${currentOpacity * 0.2})`);
-            gradient.addColorStop(1, `rgba(${CONFIG.staticStarColor}, 0)`);
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, size * 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-        }
-    }
-
     // ==================== 增强彩色粒子类 ====================
     class EnhancedParticle {
         constructor(w, h) {
@@ -910,14 +753,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==================== 粒子系统管理器 ====================
     class ParticleSystem {
         constructor() {
-            this.staticCanvas = null;      // 静止星星canvas (底层)
-            this.staticCtx = null;
-            this.mouseCanvas = null;       // 鼠标效果canvas (中层)
+            this.mouseCanvas = null;       // 鼠标效果canvas (底层)
             this.mouseCtx = null;
             this.particleCanvas = null;    // 移动星星canvas (顶层)
             this.particleCtx = null;
             this.particles = [];
-            this.staticStars = [];
             this.mouseFollowParticles = []; // 鼠标跟随粒子数组
             this.mouseTrail = null;        // 鼠标轨迹
             this.mouseX = window.innerWidth / 2;  // 鼠标X位置
@@ -934,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         init() {
             this.createCanvas();
             this.createParticles();
-            this.createStaticStars();
+
             this.createMouseFollowParticles();
             this.mouseTrail = new MouseTrail();
             this.bindEvents();
@@ -945,23 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         createCanvas() {
             const viewport = getViewportSize();
-            
-            // 创建静止星星canvas (底层, z-index: 0)
-            this.staticCanvas = document.createElement('canvas');
-            this.staticCanvas.id = 'static-stars-canvas';
-            this.staticCtx = this.staticCanvas.getContext('2d');
-            this.staticCanvas.width = viewport.width;
-            this.staticCanvas.height = viewport.height;
-            
-            this.staticCanvas.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-                z-index: 0;
-            `;
             
             // 创建鼠标效果canvas (最底层, z-index: -1)
             this.mouseCanvas = document.createElement('canvas');
@@ -1012,15 +835,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        createStaticStars() {
-            const viewport = getViewportSize();
-            this.staticStars = [];
-            
-            for (let i = 0; i < CONFIG.staticStarCount; i++) {
-                this.staticStars.push(new StaticStar(viewport.width, viewport.height));
-            }
-        }
-        
         createMouseFollowParticles() {
             const viewport = getViewportSize();
             this.mouseFollowParticles = [];
@@ -1095,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.particleCanvas.height = viewport.height;
             
             // 重新生成静态星星以适应新尺寸
-            this.createStaticStars();
+
             
             // 移动流星会继续飞行并在飞出屏幕后重新生成
         }
@@ -1105,29 +919,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const viewport = getViewportSize();
             
-            // 清空静态星星画布
-            this.staticCtx.clearRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
-            
             // 清空移动星星画布
             this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
-            
-            // 绘制静态星星到底层canvas
-            // 确保始终有50颗星星，如果数量不足则补充
-            while (this.staticStars.length < CONFIG.staticStarCount) {
-                this.staticStars.push(new StaticStar(
-                    this.staticCanvas.width, 
-                    this.staticCanvas.height
-                ));
-            }
-            
-            this.staticStars.forEach(star => {
-                star.update();
-                // 检查是否完成7个周期，如果是则重置位置
-                if (star.shouldReset()) {
-                    star.resetWithNewPosition();
-                }
-                star.draw(this.staticCtx);
-            });
             
             // 清空鼠标效果画布
             this.mouseCtx.clearRect(0, 0, this.mouseCanvas.width, this.mouseCanvas.height);
@@ -1200,9 +993,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         destroy() {
             this.pause();
-            if (this.staticCanvas && this.staticCanvas.parentNode) {
-                this.staticCanvas.parentNode.removeChild(this.staticCanvas);
-            }
             if (this.mouseCanvas && this.mouseCanvas.parentNode) {
                 this.mouseCanvas.parentNode.removeChild(this.mouseCanvas);
             }
@@ -1216,11 +1006,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setParticleCount(count) {
             CONFIG.particleCount = count;
             this.createParticles();
-        }
-
-        setStaticStarCount(count) {
-            CONFIG.staticStarCount = count;
-            this.createStaticStars();
         }
 
         setOpacityRange(min, max) {
