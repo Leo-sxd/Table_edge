@@ -1471,7 +1471,7 @@ input:checked + .slider:before {
 .settings-section h4 {
     margin: 0 0 15px 0;
     font-size: 14px;
-    color: #667eea;
+    color: #8c00ff;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1515,7 +1515,7 @@ input:checked + .slider:before {
 }
 
 .slider-label span {
-    color: #667eea;
+    color: #8c00ff;
     font-weight: 600;
 }
 
