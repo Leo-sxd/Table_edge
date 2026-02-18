@@ -1247,11 +1247,11 @@ html, body {
     height: 45px;
     border-radius: 50%;
     border: none;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #8c00ff;
     color: white;
     font-size: 20px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 15px rgba(100, 0, 255, 0.4);
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
@@ -1259,9 +1259,9 @@ html, body {
 }
 
 .settings-btn:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    background: #8c00ff;
     transform: rotate(90deg) scale(1.1);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    box-shadow: 0 6px 20px rgba(100, 0, 255, 0.6);
 }
 
 .settings-btn.active {
