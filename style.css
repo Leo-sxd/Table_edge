@@ -1106,7 +1106,7 @@ html, body {
 }
 
 .poem-text {
-    font-family: "SimSun", "宋体", "STSong", serif;
+    font-family: "SimSun", "宋体", "STSong", "Noto Serif CJK SC", serif !important;
     font-size: 1.2rem;
     line-height: 1.8;
     color: #ffffff;
@@ -1115,6 +1115,9 @@ html, body {
     word-wrap: break-word;
     white-space: pre-wrap;
     letter-spacing: 2px;
+    font-weight: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .poem-input-area {
@@ -1128,7 +1131,7 @@ html, body {
     width: 100%;
     min-height: 80px;
     padding: 12px;
-    font-family: "SimSun", "宋体", "STSong", serif;
+    font-family: "SimSun", "宋体", "STSong", "Noto Serif CJK SC", serif !important;
     font-size: 1.1rem;
     line-height: 1.6;
     color: #ffffff;
@@ -1138,6 +1141,9 @@ html, body {
     resize: vertical;
     outline: none;
     transition: all 0.3s ease;
+    font-weight: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 #poem-input::placeholder {
