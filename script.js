@@ -128,6 +128,69 @@ class SettingsManager {
         } else {
             console.error('mouseTrailToggle element not found!');
         }
+        
+        // 屏幕保护开关事件绑定
+        console.log('Binding screen saver toggle event');
+        if (this.screenSaverToggle) {
+            console.log('Found screen saver toggle');
+            
+            // 确保settings中有screenSaver
+            if (!this.settings.screenSaver) {
+                this.settings.screenSaver = { enabled: false, timeout: 60 };
+            }
+            
+            // 设置初始状态
+            this.screenSaverToggle.checked = this.settings.screenSaver.enabled;
+            
+            // 根据初始状态显示/隐藏时间滑块
+            if (this.screenSaverTimeControl) {
+                this.screenSaverTimeControl.style.display = 
+                    this.settings.screenSaver.enabled ? 'block' : 'none';
+                console.log('Time control display:', this.screenSaverTimeControl.style.display);
+            }
+            
+            // 设置时间滑块初始值
+            if (this.screenSaverTimeSlider && this.screenSaverTimeValue) {
+                this.screenSaverTimeSlider.value = this.settings.screenSaver.timeout;
+                this.screenSaverTimeValue.textContent = this.settings.screenSaver.timeout;
+            }
+            
+            // 绑定开关事件
+            this.screenSaverToggle.addEventListener('change', (e) => {
+                console.log('Screen saver toggle changed:', e.target.checked);
+                this.settings.screenSaver.enabled = e.target.checked;
+                this.saveSettings();
+                
+                // 显示/隐藏时间滑块
+                if (this.screenSaverTimeControl) {
+                    this.screenSaverTimeControl.style.display = 
+                        e.target.checked ? 'block' : 'none';
+                    console.log('Time control visibility changed to:', 
+                        e.target.checked ? 'block' : 'none');
+                }
+                
+                // 启用/禁用屏幕保护
+                if (window.screenSaver) {
+                    window.screenSaver.setEnabled(e.target.checked);
+                }
+            });
+            
+            // 绑定时间滑块事件
+            if (this.screenSaverTimeSlider && this.screenSaverTimeValue) {
+                this.screenSaverTimeSlider.addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    this.screenSaverTimeValue.textContent = value;
+                    this.settings.screenSaver.timeout = value;
+                    this.saveSettings();
+                    
+                    if (window.screenSaver) {
+                        window.screenSaver.setTimeout(value);
+                    }
+                });
+            }
+        } else {
+            console.error('screenSaverToggle element not found!');
+        }
     }
     
     bindEffectControl(controlKey, settingKey) {
