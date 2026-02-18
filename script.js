@@ -1605,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-// ==================== 鼠标拖尾效果 ====================
+// ==================== 视觉防疲劳效果 ====================
 class MouseTrailEffect {
     constructor() {
         this.enabled = false;
