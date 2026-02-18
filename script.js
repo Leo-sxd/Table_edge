@@ -1616,7 +1616,7 @@ class MouseTrailEffect {
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.lastTime = Date.now();
-        this.speedThreshold = 500; // 速度阈值
+        this.speedThreshold = 5000; // 速度阈值
         
         this.init();
     }
@@ -1631,7 +1631,7 @@ class MouseTrailEffect {
         this.canvas.style.width = '100%';
         this.canvas.style.height = '100%';
         this.canvas.style.pointerEvents = 'none';
-        this.canvas.style.zIndex = '99999';
+        this.canvas.style.zIndex = '999999';
         document.body.appendChild(this.canvas);
         
         this.ctx = this.canvas.getContext('2d');
