@@ -15,10 +15,7 @@ class SettingsManager {
     // 默认设置
     getDefaultSettings() {
         return {
-
-
-
-
+            mouseTrail: { enabled: false }
         };
     }
     
@@ -1734,7 +1731,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.mouseTrailEffect = new MouseTrailEffect();
     
     // 根据保存的设置启用/禁用
-    if (window.settingsManager && window.settingsManager.settings.mouseTrail.enabled) {
-        window.mouseTrailEffect.setEnabled(true);
-    }
+    setTimeout(() => {
+        if (window.settingsManager && window.settingsManager.settings.mouseTrail && window.settingsManager.settings.mouseTrail.enabled) {
+            window.mouseTrailEffect.setEnabled(true);
+            // 同步开关状态
+            const toggle = document.getElementById('mouse-trail-toggle');
+            if (toggle) toggle.checked = true;
+        }
+    }, 100);
 });
