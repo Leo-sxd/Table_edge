@@ -1616,7 +1616,7 @@ class MouseTrailEffect {
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.lastTime = Date.now();
-        this.speedThreshold = 375; // 速度阈值：375px/s
+        this.speedThreshold = 500; // 速度阈值：500px/s
         
         this.init();
     }
