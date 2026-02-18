@@ -1640,7 +1640,7 @@ input:checked + .slider:before {
     justify-content: space-between;
     align-items: center;
     padding: 20px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #8c00ff;
     color: white;
     flex-shrink: 0;
 }
