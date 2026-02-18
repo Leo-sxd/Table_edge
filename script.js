@@ -1704,61 +1704,73 @@ class MouseTrailEffect {
         const width = this.canvas.width;
         const height = this.canvas.height;
         
-        // 清空画布（使用clearRect避免黑屏累积）
+        // 清空画布
         ctx.clearRect(0, 0, width, height);
         
-        // 如果没有点，直接返回
+        // 如果没有足够点形成线条，直接返回
         if (this.points.length < 2) return;
         
-        // 创建渐变线条 - 从鼠标位置到历史位置逐渐变细变淡
         const currentTime = Date.now();
         
         // 计算当前平均速度
         let avgSpeed = 0;
         if (this.points.length > 0) {
-            const recentPoints = this.points.slice(-5);
+            const recentPoints = this.points.slice(-3);
             avgSpeed = recentPoints.reduce((sum, p) => sum + p.speed, 0) / recentPoints.length;
         }
         
-        // 使用渐变绘制整条轨迹
-        // 从数组末尾（最新点/头部）开始绘制到开头（最旧点/尾部）
-        for (let i = this.points.length - 1; i > 0; i--) {
+        // 创建渐变线条 - 使用连续路径而不是分段线段
+        ctx.beginPath();
+        
+        // 从尾部（最旧的点）开始移动到第一个点
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        
+        // 使用贝塞尔曲线连接所有点，形成平滑曲线
+        for (let i = 1; i < this.points.length - 1; i++) {
             const point = this.points[i];
-            const prevPoint = this.points[i - 1];
+            const nextPoint = this.points[i + 1];
             
-            // 计算从头部到尾部的进度 
-            // i = length-1 时 progress = 1 (头部/最新，最粗)
-            // i = 1 时 progress ≈ 0 (尾部/最旧，最细)
-            const progress = i / (this.points.length - 1);
+            // 计算控制点（中点）
+            const cpX = (point.x + nextPoint.x) / 2;
+            const cpY = (point.y + nextPoint.y) / 2;
             
-            // 根据进度计算透明度和线宽 - 头部大，尾部小
-            const alpha = progress * 0.6; // 头部透明度0.6，尾部接近0
-            const lineWidth = progress * 5 + 0.5; // 头部5.5px，尾部0.5px
-            
-            // 根据速度决定颜色
-            let strokeStyle;
-            if (avgSpeed < this.speedThreshold) {
-                // 低速：半透明白色
-                strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-            } else {
-                // 高速：半透明彩色（动态色相）
-                const hue = (Date.now() / 10 + progress * 60) % 360;
-                strokeStyle = `hsla(${hue}, 100%, 70%, ${alpha})`;
-            }
-            
-            // 绘制平滑线段
-            ctx.beginPath();
-            ctx.moveTo(prevPoint.x, prevPoint.y);
-            ctx.lineTo(point.x, point.y);
-            ctx.strokeStyle = strokeStyle;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.stroke();
+            // 使用二次贝塞尔曲线
+            ctx.quadraticCurveTo(point.x, point.y, cpX, cpY);
         }
         
-        // 移除过期的点（600ms）- 让拖尾持续更久，更平滑
-        this.points = this.points.filter(p => currentTime - p.time < 600);
+        // 连接到头部（最新的点）
+        const lastPoint = this.points[this.points.length - 1];
+        ctx.lineTo(lastPoint.x, lastPoint.y);
+        
+        // 创建线性渐变 - 从尾部到头部
+        // 尾部透明度 0.05，头部透明度 0.9
+        const firstPoint = this.points[0];
+        const gradient = ctx.createLinearGradient(
+            firstPoint.x, firstPoint.y,
+            lastPoint.x, lastPoint.y
+        );
+        
+        // 根据速度决定颜色
+        if (avgSpeed < this.speedThreshold) {
+            // 低速：半透明白色渐变
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.05)');   // 尾部
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.9)');    // 头部
+        } else {
+            // 高速：半透明彩色渐变
+            const hue = (Date.now() / 15) % 360;
+            gradient.addColorStop(0, `hsla(${hue}, 100%, 70%, 0.05)`);  // 尾部
+            gradient.addColorStop(1, `hsla(${hue}, 100%, 70%, 0.9)`);   // 头部
+        }
+        
+        // 设置线条样式
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        
+        // 移除过期的点（400ms）
+        this.points = this.points.filter(p => currentTime - p.time < 400);
     }
 }
 
