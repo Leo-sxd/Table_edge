@@ -91,6 +91,29 @@
                         </div>
                     </div>
                     
+                    <!-- 屏幕保护功能 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <span class="effect-name">屏幕保护</span>
+                            <label class="switch">
+                                <input type="checkbox" id="screensaver-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="effect-description">
+                            <small>闲置时自动启动屏幕保护</small>
+                        </div>
+                        <!-- 时间设置滑块（默认隐藏） -->
+                        <div class="slider-control screensaver-time-control" id="screensaver-time-control" style="display: none; margin-top: 15px;">
+                            <span class="slider-label">触发时间: <span id="screensaver-time-value">60</span>秒</span>
+                            <input type="range" id="screensaver-time-slider" min="10" max="900" value="60" class="range-slider">
+                            <div class="slider-range">
+                                <span>10秒</span>
+                                <span>900秒</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         </div>

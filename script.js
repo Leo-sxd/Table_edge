@@ -15,7 +15,8 @@ class SettingsManager {
     // 默认设置
     getDefaultSettings() {
         return {
-            mouseTrail: { enabled: false }
+            mouseTrail: { enabled: false },
+            screenSaver: { enabled: false, timeout: 60 }
         };
     }
     
@@ -44,6 +45,10 @@ class SettingsManager {
     init() {
         // 获取DOM元素
         this.mouseTrailToggle = document.getElementById('mouse-trail-toggle');
+        this.screenSaverToggle = document.getElementById('screensaver-toggle');
+        this.screenSaverTimeSlider = document.getElementById('screensaver-time-slider');
+        this.screenSaverTimeValue = document.getElementById('screensaver-time-value');
+        this.screenSaverTimeControl = document.getElementById('screensaver-time-control');
         this.settingsBtn = document.getElementById('settings-btn');
         this.modalOverlay = document.getElementById('settings-modal-overlay');
         this.modalBackdrop = document.getElementById('modal-backdrop');
@@ -1807,4 +1812,230 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[MouseTrail] SettingsManager not ready yet');
         }
     }, 800);
+});
+
+// ==================== 屏幕保护功能 ====================
+class ScreenSaver {
+    constructor() {
+        this.enabled = false;
+        this.timeout = 60000; // 默认60秒
+        this.timer = null;
+        this.canvas = null;
+        this.ctx = null;
+        this.particles = [];
+        this.particleCount = 10;
+        this.particleSize = 6;
+        this.isActive = false;
+        this.lastActivity = Date.now();
+        
+        this.init();
+    }
+    
+    init() {
+        // 创建canvas
+        this.canvas = document.createElement('canvas');
+        this.canvas.id = 'screensaver-canvas';
+        this.canvas.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 999999;
+            display: none;
+            pointer-events: none;
+        `;
+        document.body.appendChild(this.canvas);
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        
+        // 绑定事件
+        window.addEventListener('resize', () => this.resize());
+        this.bindActivityEvents();
+        
+        // 初始化粒子
+        this.initParticles();
+        
+        console.log('[ScreenSaver] 初始化完成');
+    }
+    
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    
+    bindActivityEvents() {
+        // 监听鼠标移动和键盘事件
+        const activityEvents = ['mousemove', 'mousedown', 'keydown', 'click', 'scroll', 'touchstart'];
+        
+        activityEvents.forEach(event => {
+            document.addEventListener(event, () => {
+                this.onActivity();
+            }, { passive: true });
+        });
+    }
+    
+    onActivity() {
+        this.lastActivity = Date.now();
+        
+        // 如果屏幕保护正在运行，立即停止
+        if (this.isActive) {
+            this.deactivate();
+        }
+        
+        // 重置计时器
+        this.resetTimer();
+    }
+    
+    resetTimer() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
+        
+        if (this.enabled) {
+            this.timer = setTimeout(() => {
+                this.activate();
+            }, this.timeout);
+        }
+    }
+    
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        console.log('[ScreenSaver] 屏幕保护:', enabled ? '开启' : '关闭');
+        
+        if (enabled) {
+            this.resetTimer();
+        } else {
+            if (this.timer) {
+                clearTimeout(this.timer);
+            }
+            if (this.isActive) {
+                this.deactivate();
+            }
+        }
+    }
+    
+    setTimeout(seconds) {
+        this.timeout = seconds * 1000;
+        console.log('[ScreenSaver] 触发时间设置为:', seconds, '秒');
+        
+        if (this.enabled) {
+            this.resetTimer();
+        }
+    }
+    
+    initParticles() {
+        this.particles = [];
+        for (let i = 0; i < this.particleCount; i++) {
+            this.particles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                hue: Math.random() * 360,
+                hueSpeed: (Math.random() - 0.5) * 2
+            });
+        }
+    }
+    
+    activate() {
+        if (!this.enabled || this.isActive) return;
+        
+        console.log('[ScreenSaver] 激活屏幕保护');
+        this.isActive = true;
+        this.canvas.style.display = 'block';
+        
+        // 重新初始化粒子位置
+        this.initParticles();
+        
+        // 开始动画
+        this.animate();
+    }
+    
+    deactivate() {
+        console.log('[ScreenSaver] 关闭屏幕保护');
+        this.isActive = false;
+        this.canvas.style.display = 'none';
+        
+        // 停止动画
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+        }
+    }
+    
+    animate() {
+        if (!this.isActive) return;
+        
+        this.animationId = requestAnimationFrame(() => this.animate());
+        
+        const ctx = this.ctx;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        
+        // 清空画布
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, width, height);
+        
+        // 更新和绘制粒子
+        this.particles.forEach(particle => {
+            // 布朗运动 - 随机改变速度
+            particle.vx += (Math.random() - 0.5) * 0.5;
+            particle.vy += (Math.random() - 0.5) * 0.5;
+            
+            // 限制速度
+            const maxSpeed = 3;
+            particle.vx = Math.max(-maxSpeed, Math.min(maxSpeed, particle.vx));
+            particle.vy = Math.max(-maxSpeed, Math.min(maxSpeed, particle.vy));
+            
+            // 更新位置
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            
+            // 边界反弹
+            if (particle.x < 0 || particle.x > width) {
+                particle.vx *= -1;
+                particle.x = Math.max(0, Math.min(width, particle.x));
+            }
+            if (particle.y < 0 || particle.y > height) {
+                particle.vy *= -1;
+                particle.y = Math.max(0, Math.min(height, particle.y));
+            }
+            
+            // 更新颜色
+            particle.hue += particle.hueSpeed;
+            if (particle.hue < 0) particle.hue += 360;
+            if (particle.hue > 360) particle.hue -= 360;
+            
+            // 绘制粒子
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, this.particleSize, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${particle.hue}, 80%, 60%)`;
+            ctx.fill();
+            
+            // 添加发光效果
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = `hsl(${particle.hue}, 80%, 60%)`;
+        });
+        
+        // 重置阴影
+        ctx.shadowBlur = 0;
+    }
+}
+
+// 初始化屏幕保护
+document.addEventListener('DOMContentLoaded', () => {
+    window.screenSaver = new ScreenSaver();
+    
+    // 从设置中恢复状态
+    setTimeout(() => {
+        if (window.settingsManager && window.settingsManager.settings) {
+            const saverSettings = window.settingsManager.settings.screenSaver;
+            if (saverSettings) {
+                window.screenSaver.setEnabled(saverSettings.enabled);
+                window.screenSaver.setTimeout(saverSettings.timeout);
+            }
+        }
+    }, 500);
 });
