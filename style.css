@@ -1710,7 +1710,7 @@ input:checked + .slider:before {
 .settings-section h4 {
     margin: 0 0 20px 0;
     font-size: 16px;
-    color: #667eea;
+    color: #8c00ff;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1731,11 +1731,11 @@ input:checked + .slider:before {
     padding: 12px;
     border-radius: 12px;
     transition: all 0.3s ease;
-    background: rgba(102, 126, 234, 0.03);
+    background: rgba(132, 0, 255);
 }
 
 .bg-option-item:hover {
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(100, 0, 255);
     transform: translateY(-3px);
 }
 
