@@ -274,6 +274,40 @@
                     </div>
                 </div>
                 
+                <!-- AI网站控制区域 -->
+                <div class="ai-control-section">
+                    <div class="ai-control-header">
+                        <i class="fas fa-robot"></i>
+                        <span>AI网站控制</span>
+                        <span class="ai-control-hint">用自然语言控制网站</span>
+                    </div>
+                    <div class="ai-control-input-wrapper">
+                        <input type="text" id="ai-control-input" placeholder="例如：把背景换成蓝色，屏保时间改成2分钟...">
+                        <button id="ai-control-send" class="ai-control-btn">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                    </div>
+                    <div class="ai-control-examples">
+                        <span class="example-tag" data-command="把背景换成深蓝色">换背景</span>
+                        <span class="example-tag" data-command="开启屏保">开屏保</span>
+                        <span class="example-tag" data-command="关闭粒子效果">关粒子</span>
+                        <span class="example-tag" data-command="字体变大一点">大字体</span>
+                    </div>
+                </div>
+                
+                <!-- 代码确认弹窗 -->
+                <div class="code-confirm-modal" id="code-confirm-modal" style="display: none;">
+                    <div class="code-confirm-content">
+                        <h3><i class="fas fa-shield-alt"></i> 安全确认</h3>
+                        <p>AI生成的代码如下，请确认是否执行：</p>
+                        <pre class="code-preview" id="code-preview"></pre>
+                        <div class="code-confirm-actions">
+                            <button class="cancel-btn" id="code-cancel">取消</button>
+                            <button class="confirm-btn" id="code-confirm">确认执行</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 功能快捷按钮 -->
                 <div class="doubao-features">
                     <button class="feature-btn" data-prompt="帮我写一篇文章">

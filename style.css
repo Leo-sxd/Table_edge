@@ -3097,3 +3097,188 @@ body.modal-open {
     border-color: #00c864 !important;
 }
 
+/* ==================== AI网站控制样式 ==================== */
+.ai-control-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(140, 0, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(140, 0, 255, 0.3);
+}
+
+.ai-control-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: #8c00ff;
+    font-weight: 600;
+}
+
+.ai-control-header i {
+    font-size: 18px;
+}
+
+.ai-control-hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: normal;
+}
+
+.ai-control-input-wrapper {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#ai-control-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid rgba(140, 0, 255, 0.3);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+#ai-control-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#ai-control-input:focus {
+    outline: none;
+    border-color: #8c00ff;
+    box-shadow: 0 0 0 3px rgba(140, 0, 255, 0.2);
+}
+
+.ai-control-btn {
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: linear-gradient(135deg, #8c00ff 0%, #667eea 100%);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    font-size: 18px;
+}
+
+.ai-control-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
+}
+
+.ai-control-examples {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.example-tag {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.example-tag:hover {
+    background: rgba(140, 0, 255, 0.3);
+    border-color: #8c00ff;
+    color: white;
+}
+
+/* 代码确认弹窗 */
+.code-confirm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.code-confirm-content {
+    background: rgba(30, 30, 50, 0.95);
+    border-radius: 16px;
+    padding: 25px;
+    max-width: 500px;
+    width: 90%;
+    border: 1px solid rgba(140, 0, 255, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.code-confirm-content h3 {
+    color: #8c00ff;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.code-confirm-content p {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 15px;
+}
+
+.code-preview {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #00ff88;
+    overflow-x: auto;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.code-confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.code-confirm-actions button {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.code-confirm-actions .cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.code-confirm-actions .cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.code-confirm-actions .confirm-btn {
+    background: linear-gradient(135deg, #8c00ff 0%, #667eea 100%);
+    color: white;
+}
+
+.code-confirm-actions .confirm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
+}
+

@@ -4,6 +4,228 @@
  * 包含：粒子效果 + 主脚本 + 诗句模块
  * ============================================
  */
+// ==================== AI网站控制功能 ====================
+class AIWebsiteController {
+    constructor() {
+        this.init();
+        this.pendingCode = null;
+    }
+    
+    init() {
+        const input = document.getElementById('ai-control-input');
+        const sendBtn = document.getElementById('ai-control-send');
+        const examples = document.querySelectorAll('.example-tag');
+        
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => this.handleControl());
+        }
+        
+        if (input) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.handleControl();
+            });
+        }
+        
+        examples.forEach(tag => {
+            tag.addEventListener('click', () => {
+                const command = tag.getAttribute('data-command');
+                if (input) input.value = command;
+                this.handleControl();
+            });
+        });
+        
+        const confirmBtn = document.getElementById('code-confirm');
+        const cancelBtn = document.getElementById('code-cancel');
+        
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => this.executeConfirmedCode());
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.hideConfirmModal());
+        }
+        
+        console.log('[AIControl] 初始化完成');
+    }
+    
+    async handleControl() {
+        const input = document.getElementById('ai-control-input');
+        const command = input.value.trim();
+        
+        if (!command) return;
+        
+        console.log('[AIControl] 收到指令:', command);
+        
+        const localResult = this.parseLocalCommand(command);
+        if (localResult) {
+            console.log('[AIControl] 本地解析成功:', localResult);
+            this.showConfirmModal(localResult, '本地解析');
+            return;
+        }
+        
+        try {
+            const code = await this.callAIForCode(command);
+            if (code) {
+                this.showConfirmModal(code, 'AI生成');
+            }
+        } catch (error) {
+            console.error('[AIControl] API调用失败:', error);
+            alert('AI解析失败: ' + error.message);
+        }
+    }
+    
+    parseLocalCommand(command) {
+        const cmd = command.toLowerCase();
+        
+        if (cmd.includes('背景') || cmd.includes('底色') || cmd.includes('换肤')) {
+            const colors = {
+                '蓝': '#1a1a2e', '深蓝': '#1a1a2e', '黑': '#0f0f1e',
+                '紫': '#2d1b4e', '绿': '#1a2e1a', '红': '#2e1a1a', '灰': '#2a2a3a'
+            };
+            
+            for (const [name, color] of Object.entries(colors)) {
+                if (cmd.includes(name)) {
+                    return `document.body.style.background = 'linear-gradient(135deg, ${color} 0%, #16213e 100%)';`;
+                }
+            }
+        }
+        
+        if (cmd.includes('屏保') || cmd.includes('屏幕保护')) {
+            if (cmd.includes('开') || cmd.includes('启')) {
+                return 'if(window.screenSaver) window.screenSaver.start();';
+            }
+            if (cmd.includes('关') || cmd.includes('停')) {
+                return 'if(window.screenSaver) window.screenSaver.stop();';
+            }
+        }
+        
+        if (cmd.includes('粒子') || cmd.includes('特效')) {
+            if (cmd.includes('开') || cmd.includes('启')) {
+                return 'if(window.particleSystem) window.particleSystem.start();';
+            }
+            if (cmd.includes('关') || cmd.includes('停')) {
+                return 'if(window.particleSystem) window.particleSystem.stop();';
+            }
+        }
+        
+        if (cmd.includes('字体') || cmd.includes('字')) {
+            if (cmd.includes('大')) {
+                return "document.documentElement.style.fontSize = '18px';";
+            }
+            if (cmd.includes('小')) {
+                return "document.documentElement.style.fontSize = '14px';";
+            }
+            if (cmd.includes('正常') || cmd.includes('默认')) {
+                return "document.documentElement.style.fontSize = '16px';";
+            }
+        }
+        
+        return null;
+    }
+    
+    async callAIForCode(command) {
+        const apiKey = localStorage.getItem('doubao_api_key');
+        if (!apiKey) {
+            throw new Error('请先配置API密钥');
+        }
+        
+        const prompt = `你是一个网站控制代码生成器。用户的指令是："${command}"
+
+请根据指令生成可直接执行的JavaScript代码。要求：
+1. 只返回代码，不要任何解释
+2. 代码必须安全，只能操作DOM和样式
+3. 使用document.querySelector等标准API
+4. 如果指令不明确，返回空字符串
+
+请生成代码：`;
+
+        const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/responses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'doubao-seed-2-0-pro-260215',
+                input: [{
+                    role: 'user',
+                    content: [{ type: 'input_text', text: prompt }]
+                }]
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API错误: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        let code = '';
+        if (data.output && data.output[0] && data.output[0].content) {
+            const content = data.output[0].content;
+            if (Array.isArray(content)) {
+                code = content.map(c => c.text || '').join('');
+            } else {
+                code = content;
+            }
+        }
+        
+        code = code.replace(/```javascript
+?/g, '').replace(/```
+?/g, '').trim();
+        
+        return code;
+    }
+    
+    showConfirmModal(code, source) {
+        this.pendingCode = code;
+        const modal = document.getElementById('code-confirm-modal');
+        const preview = document.getElementById('code-preview');
+        
+        if (preview) {
+            preview.textContent = `// 来源: ${source}
+${code}`;
+        }
+        
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+    
+    hideConfirmModal() {
+        const modal = document.getElementById('code-confirm-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        this.pendingCode = null;
+    }
+    
+    executeConfirmedCode() {
+        if (!this.pendingCode) return;
+        
+        try {
+            console.log('[AIControl] 执行代码:', this.pendingCode);
+            const func = new Function(this.pendingCode);
+            func();
+            
+            if (window.doubaoAI) {
+                window.doubaoAI.addMessage('system', '网站控制指令已执行');
+            }
+            
+            const input = document.getElementById('ai-control-input');
+            if (input) input.value = '';
+            
+        } catch (error) {
+            console.error('[AIControl] 执行失败:', error);
+            alert('执行失败: ' + error.message);
+        }
+        
+        this.hideConfirmModal();
+    }
+}
+
+// ==================== 初始化AI控制 ====================
+
 // ==================== 设置面板控制 ====================
 class SettingsManager {
     constructor() {
@@ -3396,6 +3618,7 @@ class VoiceManager {
 document.addEventListener('DOMContentLoaded', () => {
     window.doubaoAI = new DoubaoAI();
     window.voiceManager = new VoiceManager();
+    window.aiController = new AIWebsiteController();
 });
 
 // ==================== 豆包AI语音设置 ====================
