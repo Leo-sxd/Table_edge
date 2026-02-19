@@ -2580,6 +2580,7 @@ class DoubaoAI {
             : (type === 'system' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-brain"></i>');
         
         let contentHtml;
+        let textToSpeak = ''; // 用于朗读的文本
         
         // 处理包含思考内容的对象
         if (typeof content === 'object' && content !== null && (content.thinking || content.text)) {
@@ -2594,26 +2595,51 @@ class DoubaoAI {
             // 添加回复部分（如果有）
             if (content.text && content.text.trim()) {
                 const processedText = this.processAiText(content.text);
+                textToSpeak = content.text; // 保存原文用于朗读
                 console.log('[DoubaoAI] 添加回复部分到界面');
                 html += `<div class="response-content"><p>${processedText}</p></div>`;
             }
             contentHtml = html;
         } else if (isHtml) {
             contentHtml = content;
+            // 从HTML中提取文本用于朗读
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            textToSpeak = tempDiv.textContent || tempDiv.innerText || '';
         } else {
             // 对AI回复特殊处理转义字符
             const processedContent = this.processAiText(content);
             contentHtml = `<p>${processedContent}</p>`;
+            textToSpeak = content;
         }
+        
+        // 为AI回复添加消息头部（包含朗读按钮）
+        const showTTS = type === 'assistant' && textToSpeak && window.voiceManager;
+        const headerHtml = showTTS ? `
+            <div class="message-header">
+                <span></span>
+                <div class="message-actions">
+                    <button class="tts-btn" title="朗读" onclick="window.voiceManager.speak(this.closest('.message').dataset.text, this.closest('.message')); this.classList.toggle('playing');">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+            </div>
+        ` : '';
         
         messageDiv.innerHTML = `
             <div class="avatar">
                 ${avatar}
             </div>
             <div class="content">
+                ${headerHtml}
                 ${contentHtml}
             </div>
         `;
+        
+        // 保存文本数据用于朗读
+        if (textToSpeak) {
+            messageDiv.dataset.text = textToSpeak;
+        }
         
         this.messagesContainer.appendChild(messageDiv);
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
@@ -2778,7 +2804,253 @@ class DoubaoAI {
     }
 }
 
+// 语音功能类
+class VoiceManager {
+    constructor() {
+        this.recognition = null;
+        this.synthesis = window.speechSynthesis;
+        this.isRecording = false;
+        this.currentUtterance = null;
+        this.init();
+    }
+    
+    init() {
+        // 初始化语音识别
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            this.recognition.continuous = true;
+            this.recognition.interimResults = true;
+            this.recognition.lang = 'zh-CN';
+            
+            this.recognition.onstart = () => {
+                this.isRecording = true;
+                this.updateVoiceButtonState(true);
+                console.log('[Voice] 语音识别已启动');
+            };
+            
+            this.recognition.onend = () => {
+                this.isRecording = false;
+                this.updateVoiceButtonState(false);
+                console.log('[Voice] 语音识别已结束');
+            };
+            
+            this.recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // 更新输入框
+                const inputField = document.getElementById('doubao-input');
+                if (inputField) {
+                    if (finalTranscript) {
+                        inputField.value = finalTranscript;
+                        // 自动发送
+                        setTimeout(() => {
+                            if (window.doubaoAI) {
+                                window.doubaoAI.sendMessage();
+                            }
+                        }, 500);
+                    } else if (interimTranscript) {
+                        inputField.value = interimTranscript;
+                    }
+                }
+            };
+            
+            this.recognition.onerror = (event) => {
+                console.error('[Voice] 语音识别错误:', event.error);
+                this.isRecording = false;
+                this.updateVoiceButtonState(false);
+                
+                let errorMsg = '语音识别出错';
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMsg = '未检测到语音，请重试';
+                        break;
+                    case 'audio-capture':
+                        errorMsg = '无法访问麦克风';
+                        break;
+                    case 'not-allowed':
+                        errorMsg = '麦克风权限被拒绝';
+                        break;
+                }
+                
+                if (window.doubaoAI) {
+                    window.doubaoAI.addMessage('system', errorMsg);
+                }
+            };
+        } else {
+            console.warn('[Voice] 浏览器不支持语音识别');
+        }
+        
+        this.bindEvents();
+    }
+    
+    bindEvents() {
+        // 绑定语音输入按钮
+        const voiceBtn = document.getElementById('doubao-voice-input');
+        if (voiceBtn) {
+            voiceBtn.addEventListener('click', () => {
+                this.toggleVoiceInput();
+            });
+        }
+    }
+    
+    toggleVoiceInput() {
+        if (!this.recognition) {
+            alert('您的浏览器不支持语音识别功能');
+            return;
+        }
+        
+        if (this.isRecording) {
+            this.recognition.stop();
+        } else {
+            // 请求麦克风权限
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(() => {
+                    this.recognition.start();
+                })
+                .catch((err) => {
+                    console.error('[Voice] 麦克风权限错误:', err);
+                    alert('无法访问麦克风，请检查权限设置');
+                });
+        }
+    }
+    
+    updateVoiceButtonState(isRecording) {
+        const voiceBtn = document.getElementById('doubao-voice-input');
+        if (voiceBtn) {
+            if (isRecording) {
+                voiceBtn.classList.add('recording');
+                voiceBtn.innerHTML = `
+                    <i class="fas fa-stop"></i>
+                    <span class="voice-status">
+                        正在聆听
+                        <span class="voice-wave">
+                            <span></span><span></span><span></span><span></span>
+                        </span>
+                    </span>
+                `;
+            } else {
+                voiceBtn.classList.remove('recording');
+                voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+        }
+    }
+    
+    // 朗读文本
+    speak(text, messageElement = null) {
+        if (!this.synthesis) {
+            console.warn('[Voice] 浏览器不支持语音合成');
+            return;
+        }
+        
+        // 停止当前播放
+        this.stop();
+        
+        // 创建语音实例
+        this.currentUtterance = new SpeechSynthesisUtterance(text);
+        this.currentUtterance.lang = 'zh-CN';
+        this.currentUtterance.rate = 1.0;
+        this.currentUtterance.pitch = 1.0;
+        
+        // 查找中文语音
+        const voices = this.synthesis.getVoices();
+        const chineseVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
+        if (chineseVoice) {
+            this.currentUtterance.voice = chineseVoice;
+        }
+        
+        // 更新按钮状态
+        if (messageElement) {
+            const ttsBtn = messageElement.querySelector('.tts-btn');
+            if (ttsBtn) {
+                ttsBtn.classList.add('playing');
+                ttsBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            }
+        }
+        
+        this.currentUtterance.onend = () => {
+            this.currentUtterance = null;
+            if (messageElement) {
+                const ttsBtn = messageElement.querySelector('.tts-btn');
+                if (ttsBtn) {
+                    ttsBtn.classList.remove('playing');
+                    ttsBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                }
+            }
+        };
+        
+        this.currentUtterance.onerror = (event) => {
+            console.error('[Voice] 语音合成错误:', event);
+            this.currentUtterance = null;
+            if (messageElement) {
+                const ttsBtn = messageElement.querySelector('.tts-btn');
+                if (ttsBtn) {
+                    ttsBtn.classList.remove('playing');
+                    ttsBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                }
+            }
+        };
+        
+        this.synthesis.speak(this.currentUtterance);
+    }
+    
+    stop() {
+        if (this.synthesis) {
+            this.synthesis.cancel();
+        }
+        this.currentUtterance = null;
+    }
+    
+    // 为消息添加朗读按钮
+    addTTSButton(messageElement, text) {
+        const contentDiv = messageElement.querySelector('.content');
+        if (!contentDiv) return;
+        
+        // 检查是否已存在朗读按钮
+        if (contentDiv.querySelector('.tts-btn')) return;
+        
+        const ttsBtn = document.createElement('button');
+        ttsBtn.className = 'tts-btn';
+        ttsBtn.title = '朗读';
+        ttsBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        
+        ttsBtn.addEventListener('click', () => {
+            if (ttsBtn.classList.contains('playing')) {
+                this.stop();
+                ttsBtn.classList.remove('playing');
+                ttsBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            } else {
+                this.speak(text, messageElement);
+            }
+        });
+        
+        // 添加到消息头部或内容区域
+        const messageHeader = contentDiv.querySelector('.message-header');
+        if (messageHeader) {
+            const actionsDiv = messageHeader.querySelector('.message-actions') || document.createElement('div');
+            actionsDiv.className = 'message-actions';
+            actionsDiv.appendChild(ttsBtn);
+            if (!messageHeader.querySelector('.message-actions')) {
+                messageHeader.appendChild(actionsDiv);
+            }
+        } else {
+            contentDiv.appendChild(ttsBtn);
+        }
+    }
+}
+
 // 初始化豆包AI
 document.addEventListener('DOMContentLoaded', () => {
     window.doubaoAI = new DoubaoAI();
+    window.voiceManager = new VoiceManager();
 });
