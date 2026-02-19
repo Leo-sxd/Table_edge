@@ -50,16 +50,8 @@ class AIWebsiteController {
             });
         }
         
-        examples.forEach((tag, index) => {
-            tag.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const command = tag.getAttribute('data-command');
-                console.log('[AIControl] 示例标签被点击:', command);
-                if (input) input.value = command;
-                this.handleControl();
-            });
-        });
+        // 提示标签仅显示提示，不触发操作
+        // 用户直接在输入框中输入指令
         
         const confirmBtn = document.getElementById('code-confirm');
         const cancelBtn = document.getElementById('code-cancel');
