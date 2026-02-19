@@ -2618,65 +2618,49 @@ class DoubaoAI {
     
     extractTextFromResponse(data) {
         console.log('[DoubaoAI] 开始解析响应:', typeof data);
-        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 2000));
+        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 3000));
         
         // 尝试多种可能的响应格式，提取文本内容和思考内容
         let thinkingText = null;
         let responseText = null;
         
-        // 格式1: output[0].content[0].text (豆包标准格式)
+        // 火山引擎Responses API格式: data.output数组
+        // 思考内容: type="reasoning", 内容在content数组中
+        // 回复内容: type="message", 内容在content数组中
         if (data.output && Array.isArray(data.output)) {
             console.log('[DoubaoAI] 检测到output数组，长度:', data.output.length);
+            
             for (let i = 0; i < data.output.length; i++) {
                 let item = data.output[i];
-                console.log('[DoubaoAI] 检查output[', i, ']:', item);
+                console.log('[DoubaoAI] 检查output[', i, ']: type=', item.type);
                 
-                // 检查item是否有reasoning字段（思考内容）
-                if (item.reasoning) {
-                    if (typeof item.reasoning === 'string') {
-                        thinkingText = item.reasoning;
-                    } else if (item.reasoning.content) {
-                        thinkingText = item.reasoning.content;
-                    }
-                    if (thinkingText) {
-                        console.log('[DoubaoAI] 找到item.reasoning内容:', thinkingText.substring(0, 100));
+                // 提取思考内容 (type="reasoning")
+                if (item.type === 'reasoning') {
+                    console.log('[DoubaoAI] 找到reasoning类型output');
+                    if (item.content && Array.isArray(item.content)) {
+                        for (let content of item.content) {
+                            if (content.type === 'output_text' && content.text) {
+                                thinkingText = content.text;
+                                console.log('[DoubaoAI] 提取到思考内容:', thinkingText.substring(0, 100));
+                            } else if (content.text) {
+                                thinkingText = content.text;
+                                console.log('[DoubaoAI] 提取到思考内容(备用):', thinkingText.substring(0, 100));
+                            }
+                        }
                     }
                 }
                 
-                if (item.content && Array.isArray(item.content)) {
-                    console.log('[DoubaoAI] 检测到content数组，长度:', item.content.length);
-                    for (let j = 0; j < item.content.length; j++) {
-                        let content = item.content[j];
-                        console.log('[DoubaoAI] 检查content[', j, ']:', content);
-                        
-                        // 提取thinking类型的内容
-                        if (content.type === 'thinking') {
-                            thinkingText = content.thinking || content.content || content.text;
-                            if (thinkingText) {
-                                console.log('[DoubaoAI] 找到thinking内容:', thinkingText.substring(0, 100));
-                            }
-                        }
-                        // 提取reasoning类型的内容
-                        if (content.type === 'reasoning' || content.type === 'reasoning_content') {
-                            thinkingText = content.reasoning || content.content || content.text || content.reasoning_content;
-                            if (thinkingText) {
-                                console.log('[DoubaoAI] 找到reasoning内容:', thinkingText.substring(0, 100));
-                            }
-                        }
-                        // 提取text类型的内容
-                        if (content.type === 'text' && content.text) {
-                            responseText = content.text;
-                            console.log('[DoubaoAI] 找到text内容:', responseText.substring(0, 100));
-                        }
-                        // 如果content有reasoning字段
-                        if (content.reasoning) {
-                            if (typeof content.reasoning === 'string') {
-                                thinkingText = content.reasoning;
-                            } else if (content.reasoning.content) {
-                                thinkingText = content.reasoning.content;
-                            }
-                            if (thinkingText) {
-                                console.log('[DoubaoAI] 找到content.reasoning:', thinkingText.substring(0, 100));
+                // 提取回复内容 (type="message")
+                if (item.type === 'message') {
+                    console.log('[DoubaoAI] 找到message类型output');
+                    if (item.content && Array.isArray(item.content)) {
+                        for (let content of item.content) {
+                            if (content.type === 'output_text' && content.text) {
+                                responseText = content.text;
+                                console.log('[DoubaoAI] 提取到回复内容:', responseText.substring(0, 100));
+                            } else if (content.text) {
+                                responseText = content.text;
+                                console.log('[DoubaoAI] 提取到回复内容(备用):', responseText.substring(0, 100));
                             }
                         }
                     }
@@ -2684,20 +2668,9 @@ class DoubaoAI {
             }
         }
         
-        // 检查data本身是否有reasoning字段
-        if (data.reasoning) {
-            if (typeof data.reasoning === 'string') {
-                thinkingText = data.reasoning;
-            } else if (data.reasoning.content) {
-                thinkingText = data.reasoning.content;
-            }
-            if (thinkingText) {
-                console.log('[DoubaoAI] 找到data.reasoning:', thinkingText.substring(0, 100));
-            }
-        }
-        
-        // 如果同时有思考内容和回复内容，返回组合对象
+        // 如果找到了思考内容或回复内容，返回组合对象
         if (thinkingText || responseText) {
+            console.log('[DoubaoAI] 成功提取 - 思考:', !!thinkingText, '回复:', !!responseText);
             return {
                 thinking: thinkingText,
                 text: responseText
