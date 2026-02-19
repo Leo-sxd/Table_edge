@@ -170,9 +170,7 @@ class AIWebsiteController {
             }
         }
         
-        code = code.replace(/```javascript
-?/g, '').replace(/```
-?/g, '').trim();
+code = code.replace(/```javascript\s*/g, '').replace(/```\s*/g, '').trim(); 
         
         return code;
     }
