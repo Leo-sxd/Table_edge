@@ -2031,12 +2031,12 @@ body.modal-open {
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 20px;
     padding: 40px;
-    padding-bottom: 80px; /* 增加底部间距，避免与输入栏紧贴 */
+    padding-bottom: 100px; /* 增加底部间距，避免与输入栏紧贴 */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    margin-bottom: 30px;
-    min-height: 500px;
+    margin-bottom: 50px; /* 增加面板底部外边距 */
+    min-height: 550px; /* 增加面板最小高度 */
     transition: all 0.3s ease;
 }
 
@@ -2194,7 +2194,8 @@ body.modal-open {
     gap: 12px;
     align-items: flex-end;
     padding: 0 20px;
-    margin-top: 20px; /* 增加与上方内容的间距 */
+    margin-top: 30px; /* 增加与上方内容的间距 */
+    margin-bottom: 20px; /* 增加底部外边距 */
 }
 
 .doubao-input-box {
@@ -2859,7 +2860,7 @@ body.modal-open {
 .api-toggle-btn-header {
     position: absolute;
     right: 20px; /* 向右移动，与边缘保持20px间距 */
-    top: 0;
+    top: 35px; /* 向下移动，高于紫线但不紧贴 */
     width: 40px;
     height: 40px;
     border: none;
@@ -2889,7 +2890,7 @@ body.modal-open {
 /* API设置面板（下拉式） */
 .api-panel-header {
     position: absolute;
-    top: 50px;
+    top: 85px; /* 跟随按钮位置调整 */
     right: 20px; /* 与按钮对齐 */
     width: 320px;
     background: rgba(30, 30, 50, 0.95);
