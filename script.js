@@ -3084,10 +3084,15 @@ class DoubaoVoiceSettings {
         this.ttsShortcut = null;
         this.recordingShortcut = null;
         
+        // 状态跟踪
+        this.voiceInputActive = false;  // 语音输入当前是否激活
+        this.ttsActive = false;         // 朗读模式当前是否激活
+        
         this.init();
     }
     
     init() {
+        console.log('[VoiceSettings] 初始化语音设置...');
         // 加载保存的设置
         this.loadSettings();
         
@@ -3096,25 +3101,25 @@ class DoubaoVoiceSettings {
         
         // 绑定全局键盘事件
         this.bindGlobalShortcuts();
+        
+        console.log('[VoiceSettings] 初始化完成');
     }
     
     bindEvents() {
-        // 语音输入开关
+        // 语音输入开关 - 只控制是否自动启动，不影响快捷键
         if (this.voiceInputToggle) {
             this.voiceInputToggle.addEventListener('change', (e) => {
                 this.saveSetting('doubaoVoiceInputEnabled', e.target.checked);
-                if (e.target.checked && window.doubaoAI) {
-                    window.doubaoAI.startContinuousVoiceInput();
-                } else if (window.doubaoAI) {
-                    window.doubaoAI.stopContinuousVoiceInput();
-                }
+                this.showNotification(e.target.checked ? '语音输入一键常开已启用' : '语音输入一键常开已关闭');
             });
         }
         
-        // 朗读模式开关
+        // 朗读模式开关 - 只控制是否自动朗读，不影响快捷键
         if (this.ttsToggle) {
             this.ttsToggle.addEventListener('change', (e) => {
                 this.saveSetting('doubaoTtsEnabled', e.target.checked);
+                this.ttsActive = e.target.checked;
+                this.showNotification(e.target.checked ? '朗读模式一键常开已启用' : '朗读模式一键常开已关闭');
             });
         }
         
@@ -3126,6 +3131,7 @@ class DoubaoVoiceSettings {
             
             this.voiceShortcutInput.addEventListener('keydown', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 if (this.recordingShortcut === 'voice') {
                     const shortcut = this.getShortcutString(e);
                     if (shortcut) {
@@ -3133,6 +3139,7 @@ class DoubaoVoiceSettings {
                         this.voiceShortcutInput.value = shortcut;
                         this.saveSetting('voiceInputShortcut', shortcut);
                         this.stopRecordingShortcut();
+                        this.showNotification(`语音输入快捷键已设置为: ${shortcut}`);
                     }
                 }
             });
@@ -3146,6 +3153,7 @@ class DoubaoVoiceSettings {
             
             this.ttsShortcutInput.addEventListener('keydown', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 if (this.recordingShortcut === 'tts') {
                     const shortcut = this.getShortcutString(e);
                     if (shortcut) {
@@ -3153,6 +3161,7 @@ class DoubaoVoiceSettings {
                         this.ttsShortcutInput.value = shortcut;
                         this.saveSetting('ttsShortcut', shortcut);
                         this.stopRecordingShortcut();
+                        this.showNotification(`朗读模式快捷键已设置为: ${shortcut}`);
                     }
                 }
             });
@@ -3164,6 +3173,7 @@ class DoubaoVoiceSettings {
                 this.voiceShortcut = null;
                 this.voiceShortcutInput.value = '';
                 this.saveSetting('voiceInputShortcut', null);
+                this.showNotification('语音输入快捷键已清除');
             });
         }
         
@@ -3172,6 +3182,7 @@ class DoubaoVoiceSettings {
                 this.ttsShortcut = null;
                 this.ttsShortcutInput.value = '';
                 this.saveSetting('ttsShortcut', null);
+                this.showNotification('朗读模式快捷键已清除');
             });
         }
     }
@@ -3179,18 +3190,17 @@ class DoubaoVoiceSettings {
     startRecordingShortcut(type) {
         this.recordingShortcut = type;
         const input = type === 'voice' ? this.voiceShortcutInput : this.ttsShortcutInput;
-        input.value = '按组合键...';
+        input.value = '请按组合键...';
         input.classList.add('recording');
         
-        // 3秒后自动取消
+        // 5秒后自动取消
         setTimeout(() => {
             if (this.recordingShortcut === type) {
                 this.stopRecordingShortcut();
-                if (!input.value || input.value === '按组合键...') {
-                    input.value = this[type === 'voice' ? 'voiceShortcut' : 'ttsShortcut'] || '';
-                }
+                const savedShortcut = type === 'voice' ? this.voiceShortcut : this.ttsShortcut;
+                input.value = savedShortcut || '';
             }
-        }, 3000);
+        }, 5000);
     }
     
     stopRecordingShortcut() {
@@ -3225,50 +3235,177 @@ class DoubaoVoiceSettings {
     }
     
     bindGlobalShortcuts() {
+        console.log('[VoiceSettings] 绑定全局快捷键...');
+        
+        // 使用keydown事件，确保在捕获阶段处理
         document.addEventListener('keydown', (e) => {
+            // 如果正在设置快捷键，不触发功能
+            if (this.recordingShortcut) return;
+            
             const shortcut = this.getShortcutString(e);
             if (!shortcut) return;
             
             // 语音输入快捷键
             if (shortcut === this.voiceShortcut) {
                 e.preventDefault();
-                const isAlwaysOn = this.voiceInputToggle && this.voiceInputToggle.checked;
-                
-                if (isAlwaysOn) {
-                    // 一键常开开启：快捷键打开并保持
-                    if (window.doubaoAI && window.voiceManager && !window.voiceManager.isRecording) {
-                        window.voiceManager.startVoiceInput();
-                        console.log('[VoiceSettings] 一键常开模式：语音输入已启动并保持');
-                    }
-                } else {
-                    // 一键常开关闭：快捷键触发单次功能（切换）
-                    if (window.doubaoAI && window.voiceManager) {
-                        window.voiceManager.toggleVoiceInput();
-                        console.log('[VoiceSettings] 单次模式：语音输入已切换');
-                    }
-                }
+                e.stopPropagation();
+                console.log('[VoiceSettings] 语音输入快捷键触发:', shortcut);
+                this.handleVoiceInputShortcut();
             }
             
             // 朗读模式快捷键
             if (shortcut === this.ttsShortcut) {
                 e.preventDefault();
-                const isAlwaysOn = this.ttsToggle && this.ttsToggle.checked;
-                
-                if (isAlwaysOn) {
-                    // 一键常开开启：自动朗读开启并保持
-                    if (window.doubaoAI) {
-                        window.doubaoAI.autoTtsEnabled = true;
-                        console.log('[VoiceSettings] 一键常开模式：自动朗读已开启并保持');
-                    }
-                } else {
-                    // 一键常开关闭：快捷键触发单次朗读（朗读最后一条AI消息）
-                    if (window.doubaoAI) {
-                        window.doubaoAI.speakLastMessage();
-                        console.log('[VoiceSettings] 单次模式：朗读最后一条消息');
-                    }
-                }
+                e.stopPropagation();
+                console.log('[VoiceSettings] 朗读模式快捷键触发:', shortcut);
+                this.handleTtsShortcut();
             }
-        });
+        }, true); // 使用捕获阶段
+    }
+    
+    handleVoiceInputShortcut() {
+        const isAlwaysOn = this.voiceInputToggle && this.voiceInputToggle.checked;
+        
+        if (isAlwaysOn) {
+            // 一键常开模式：切换持续监听状态
+            if (this.voiceInputActive) {
+                // 当前已激活，关闭
+                this.stopVoiceInput();
+                this.showNotification('语音输入已关闭');
+            } else {
+                // 当前未激活，开启
+                this.startVoiceInput();
+                this.showNotification('语音输入已开启（一键常开模式）');
+            }
+        } else {
+            // 单次模式：触发一次语音输入，超时后自动关闭
+            this.startVoiceInputSingle();
+            this.showNotification('语音输入已启动（单次模式，10秒后自动关闭）');
+        }
+    }
+    
+    handleTtsShortcut() {
+        const isAlwaysOn = this.ttsToggle && this.ttsToggle.checked;
+        
+        if (isAlwaysOn) {
+            // 一键常开模式：切换自动朗读状态
+            if (this.ttsActive) {
+                // 当前已激活，关闭
+                this.ttsActive = false;
+                if (window.doubaoAI) {
+                    window.doubaoAI.autoTtsEnabled = false;
+                }
+                this.showNotification('朗读模式已关闭');
+            } else {
+                // 当前未激活，开启
+                this.ttsActive = true;
+                if (window.doubaoAI) {
+                    window.doubaoAI.autoTtsEnabled = true;
+                }
+                this.showNotification('朗读模式已开启（一键常开模式）');
+            }
+        } else {
+            // 单次模式：朗读最后一条消息
+            if (window.doubaoAI) {
+                window.doubaoAI.speakLastMessage();
+                this.showNotification('正在朗读最后一条消息');
+            }
+        }
+    }
+    
+    startVoiceInput() {
+        if (!window.voiceManager) {
+            this.showNotification('语音功能未初始化');
+            return;
+        }
+        
+        this.voiceInputActive = true;
+        
+        // 启动持续监听
+        const startListening = () => {
+            if (!this.voiceInputActive) return;
+            
+            if (!window.voiceManager.isRecording) {
+                window.voiceManager.startVoiceInput();
+            }
+            
+            // 每5秒检查一次，确保持续监听
+            setTimeout(startListening, 5000);
+        };
+        
+        startListening();
+        
+        // 保存状态到localStorage
+        this.saveSetting('voiceInputActive', 'true');
+    }
+    
+    stopVoiceInput() {
+        this.voiceInputActive = false;
+        
+        if (window.voiceManager && window.voiceManager.isRecording) {
+            window.voiceManager.stopVoiceInput();
+        }
+        
+        this.saveSetting('voiceInputActive', 'false');
+    }
+    
+    startVoiceInputSingle() {
+        if (!window.voiceManager) {
+            this.showNotification('语音功能未初始化');
+            return;
+        }
+        
+        // 启动单次监听
+        window.voiceManager.startVoiceInput();
+        
+        // 10秒后自动停止
+        setTimeout(() => {
+            if (window.voiceManager && window.voiceManager.isRecording) {
+                window.voiceManager.stopVoiceInput();
+                this.showNotification('语音输入已自动关闭');
+            }
+        }, 10000);
+    }
+    
+    showNotification(message) {
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.className = 'voice-settings-notification';
+        notification.innerHTML = `
+            <i class="fas fa-info-circle"></i>
+            <span>${message}</span>
+        `;
+        
+        // 样式
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            animation: slideDown 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 3秒后自动移除
+        setTimeout(() => {
+            notification.style.animation = 'slideUp 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
     }
     
     loadSettings() {
@@ -3283,6 +3420,7 @@ class DoubaoVoiceSettings {
         if (this.ttsToggle) {
             this.ttsToggle.checked = ttsEnabled;
         }
+        this.ttsActive = ttsEnabled;
         
         // 加载快捷键
         this.voiceShortcut = localStorage.getItem('voiceInputShortcut');
@@ -3294,10 +3432,23 @@ class DoubaoVoiceSettings {
         if (this.ttsShortcutInput && this.ttsShortcut) {
             this.ttsShortcutInput.value = this.ttsShortcut;
         }
+        
+        // 恢复语音输入状态（如果之前是开启的）
+        const voiceInputActive = localStorage.getItem('voiceInputActive') === 'true';
+        if (voiceInputActive && voiceInputEnabled) {
+            this.startVoiceInput();
+        }
+        
+        console.log('[VoiceSettings] 设置已加载:', {
+            voiceInputEnabled,
+            ttsEnabled,
+            voiceShortcut: this.voiceShortcut,
+            ttsShortcut: this.ttsShortcut
+        });
     }
     
     saveSetting(key, value) {
-        if (value === null) {
+        if (value === null || value === undefined) {
             localStorage.removeItem(key);
         } else {
             localStorage.setItem(key, value);
