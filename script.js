@@ -2639,21 +2639,47 @@ class DoubaoAI {
                 console.log('[DoubaoAI] item内容:', JSON.stringify(item).substring(0, 500));
                 
                 // 提取思考内容 (type="reasoning")
+                // 根据火山引擎文档，reasoning类型的内容在summary数组中
                 if (item.type === 'reasoning') {
                     console.log('[DoubaoAI] 找到reasoning类型output');
-                    if (item.content && Array.isArray(item.content)) {
+                    console.log('[DoubaoAI] reasoning完整内容:', JSON.stringify(item).substring(0, 1000));
+                    
+                    // 首先尝试从summary数组中提取
+                    if (item.summary && Array.isArray(item.summary)) {
+                        console.log('[DoubaoAI] reasoning summary数组长度:', item.summary.length);
+                        for (let j = 0; j < item.summary.length; j++) {
+                            let summary = item.summary[j];
+                            console.log('[DoubaoAI] 检查reasoning summary[', j, ']:', summary);
+                            if (summary.type === 'summary_text' && summary.text) {
+                                thinkingText = summary.text;
+                                console.log('[DoubaoAI] 从summary提取到思考内容长度:', thinkingText.length);
+                                console.log('[DoubaoAI] 思考内容前100字:', thinkingText.substring(0, 100));
+                            } else if (summary.text) {
+                                thinkingText = summary.text;
+                                console.log('[DoubaoAI] 从summary提取到思考内容(备用)长度:', thinkingText.length);
+                            }
+                        }
+                    }
+                    
+                    // 如果没有summary，尝试content数组（备用）
+                    if (!thinkingText && item.content && Array.isArray(item.content)) {
                         console.log('[DoubaoAI] reasoning content数组长度:', item.content.length);
                         for (let j = 0; j < item.content.length; j++) {
                             let content = item.content[j];
                             console.log('[DoubaoAI] 检查reasoning content[', j, ']:', content);
                             if (content.type === 'output_text' && content.text) {
                                 thinkingText = content.text;
-                                console.log('[DoubaoAI] 提取到思考内容长度:', thinkingText.length);
+                                console.log('[DoubaoAI] 从content提取到思考内容长度:', thinkingText.length);
                                 console.log('[DoubaoAI] 思考内容前100字:', thinkingText.substring(0, 100));
+                            } else if (content.text) {
+                                thinkingText = content.text;
+                                console.log('[DoubaoAI] 从content提取到思考内容(备用)长度:', thinkingText.length);
                             }
                         }
-                    } else {
-                        console.log('[DoubaoAI] reasoning没有content数组:', item.content);
+                    }
+                    
+                    if (!thinkingText) {
+                        console.log('[DoubaoAI] reasoning没有summary或content数组');
                     }
                 }
                 
