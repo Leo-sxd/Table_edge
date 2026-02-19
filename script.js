@@ -86,8 +86,8 @@ class AIWebsiteController {
             
             const localResult = this.parseLocalCommand(command);
             if (localResult) {
-                console.log('[AIControl] 本地解析成功:', localResult);
-                this.showConfirmModal(localResult, '本地解析');
+                console.log('[AIControl] 本地解析成功，直接执行:', localResult);
+                this.executeCode(localResult, command);
                 return;
             }
             
@@ -96,18 +96,52 @@ class AIWebsiteController {
             try {
                 const code = await this.callAIForCode(command);
                 if (code) {
-                    this.showConfirmModal(code, 'AI生成');
+                    this.executeCode(code, command);
                 } else {
-                    alert('AI无法解析该指令，请尝试其他说法');
+                    this.showStatus('AI无法解析该指令', 'error');
                 }
             } catch (error) {
                 console.error('[AIControl] API调用失败:', error);
-                alert('AI解析失败: ' + error.message);
+                this.showStatus('AI解析失败: ' + error.message, 'error');
             }
         } catch (e) {
             console.error('[AIControl] handleControl错误:', e);
-            alert('处理指令时出错: ' + e.message);
+            this.showStatus('处理指令时出错: ' + e.message, 'error');
         }
+    }
+    
+    // 直接执行代码
+    executeCode(code, originalCommand) {
+        try {
+            console.log('[AIControl] 执行代码:', code);
+            const func = new Function(code);
+            func();
+            
+            // 显示成功状态
+            this.showStatus('指令已执行: ' + originalCommand, 'success');
+            
+            // 清空输入
+            const input = document.getElementById('ai-control-input');
+            if (input) input.value = '';
+            
+        } catch (error) {
+            console.error('[AIControl] 执行失败:', error);
+            this.showStatus('执行失败: ' + error.message, 'error');
+        }
+    }
+    
+    // 显示状态提示
+    showStatus(message, type = 'success') {
+        const toast = document.getElementById('ai-status-toast');
+        if (!toast) return;
+        
+        toast.textContent = message;
+        toast.className = 'ai-status-toast show ' + type;
+        
+        // 3秒后自动隐藏
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
     }
     
     parseLocalCommand(command) {
