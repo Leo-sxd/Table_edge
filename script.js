@@ -2513,22 +2513,14 @@ class DoubaoAI {
                 throw new Error('无法解析API响应');
             }
             
-            // 解析响应（根据实际API返回格式调整）
-            if (data.output && data.output[0] && data.output[0].content) {
-                const result = data.output[0].content[0].text;
+            // 解析响应 - 只提取实际回复文本
+            let result = this.extractTextFromResponse(data);
+            if (result) {
                 console.log('[DoubaoAI] 成功获取回复:', result.substring(0, 100) + '...');
                 return result;
-            } else if (data.choices && data.choices[0]) {
-                const result = data.choices[0].message.content;
-                console.log('[DoubaoAI] 成功获取回复(choices格式):', result.substring(0, 100) + '...');
-                return result;
-            } else if (data.content) {
-                const result = data.content;
-                console.log('[DoubaoAI] 成功获取回复(content格式):', result.substring(0, 100) + '...');
-                return result;
             } else {
-                console.warn('[DoubaoAI] 未知的响应格式:', data);
-                return JSON.stringify(data);
+                console.warn('[DoubaoAI] 无法从响应中提取文本:', data);
+                return '抱歉，无法解析API响应。';
             }
         } catch (error) {
             console.error('[DoubaoAI] 请求异常:', error);
@@ -2563,6 +2555,47 @@ class DoubaoAI {
         
         this.messagesContainer.appendChild(messageDiv);
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }
+    
+    extractTextFromResponse(data) {
+        // 尝试多种可能的响应格式，只提取纯文本内容
+        
+        // 格式1: output[0].content[0].text (豆包标准格式)
+        if (data.output && Array.isArray(data.output)) {
+            for (let item of data.output) {
+                if (item.content && Array.isArray(item.content)) {
+                    for (let content of item.content) {
+                        // 只取类型为text的内容，跳过thinking类型
+                        if (content.type === 'text' && content.text) {
+                            return content.text;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 格式2: choices[0].message.content (OpenAI兼容格式)
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            return data.choices[0].message.content;
+        }
+        
+        // 格式3: 直接返回content字段
+        if (data.content && typeof data.content === 'string') {
+            return data.content;
+        }
+        
+        // 格式4: text字段
+        if (data.text && typeof data.text === 'string') {
+            return data.text;
+        }
+        
+        // 格式5: response字段
+        if (data.response && typeof data.response === 'string') {
+            return data.response;
+        }
+        
+        // 如果都没找到，返回null
+        return null;
     }
     
     escapeHtml(text) {
