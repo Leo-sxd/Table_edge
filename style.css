@@ -2031,6 +2031,7 @@ body.modal-open {
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 20px;
     padding: 40px;
+    padding-bottom: 80px; /* 增加底部间距，避免与输入栏紧贴 */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -2193,6 +2194,7 @@ body.modal-open {
     gap: 12px;
     align-items: flex-end;
     padding: 0 20px;
+    margin-top: 20px; /* 增加与上方内容的间距 */
 }
 
 .doubao-input-box {
@@ -2856,7 +2858,7 @@ body.modal-open {
 
 .api-toggle-btn-header {
     position: absolute;
-    right: 15px; /* 向右移动，与边缘保持15px间距 */
+    right: 20px; /* 向右移动，与边缘保持20px间距 */
     top: 0;
     width: 40px;
     height: 40px;
@@ -2888,7 +2890,7 @@ body.modal-open {
 .api-panel-header {
     position: absolute;
     top: 50px;
-    right: 15px; /* 与按钮保持一致的右边距 */
+    right: 20px; /* 与按钮对齐 */
     width: 320px;
     background: rgba(30, 30, 50, 0.95);
     backdrop-filter: blur(10px);
