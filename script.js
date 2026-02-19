@@ -2417,6 +2417,7 @@ class DoubaoAI {
             const response = await this.callDoubaoAPI(message, this.currentImage);
             
             // 添加AI回复到界面
+            // response可以是字符串或{thinking, text}对象
             this.addMessage('assistant', response);
             
             // 清除图片
@@ -2530,10 +2531,15 @@ class DoubaoAI {
                 throw new Error('无法解析API响应');
             }
             
-            // 解析响应 - 只提取实际回复文本
+            // 解析响应 - 提取实际回复文本和思考内容
             let result = this.extractTextFromResponse(data);
-            if (result && result !== '抱歉，无法解析API响应。') {
-                console.log('[DoubaoAI] 成功获取回复:', result.substring(0, 100) + '...');
+            // 检查结果：可以是字符串或包含thinking/text的对象
+            if (result && (typeof result === 'object' || (typeof result === 'string' && result !== '抱歉，无法解析API响应。'))) {
+                if (typeof result === 'object') {
+                    console.log('[DoubaoAI] 成功获取回复(含思考内容):', result.text ? result.text.substring(0, 100) : '无文本');
+                } else {
+                    console.log('[DoubaoAI] 成功获取回复:', result.substring(0, 100) + '...');
+                }
                 return result;
             } else {
                 console.warn('[DoubaoAI] 无法从响应中提取文本，返回原始数据');
