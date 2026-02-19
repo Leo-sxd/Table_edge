@@ -2235,6 +2235,7 @@ class DoubaoAI {
         this.messages = [];
         this.isOnline = false;
         this.currentImage = null; // 存储当前上传的图片
+        this.deepThinkEnabled = false; // 深度思考模式开关
         
         this.init();
     }
@@ -2283,6 +2284,14 @@ class DoubaoAI {
                 this.sendMessage();
             }
         });
+        
+        // 深度思考按钮
+        this.deepThinkBtn = document.getElementById('doubao-deep-think');
+        if (this.deepThinkBtn) {
+            this.deepThinkBtn.addEventListener('click', () => {
+                this.toggleDeepThink();
+            });
+        }
         
         // API设置面板切换
         const apiToggleBtn = document.getElementById('api-toggle-btn');
@@ -2470,6 +2479,14 @@ class DoubaoAI {
             ]
         };
         
+        // 如果启用了深度思考，添加相关参数
+        if (this.deepThinkEnabled) {
+            requestBody.reasoning = {
+                type: 'thinking'
+            };
+            console.log('[DoubaoAI] 已启用深度思考模式');
+        }
+        
         console.log('[DoubaoAI] 请求体:', JSON.stringify(requestBody, null, 2));
         
         try {
@@ -2612,15 +2629,29 @@ class DoubaoAI {
                     for (let j = 0; j < item.content.length; j++) {
                         let content = item.content[j];
                         console.log('[DoubaoAI] 检查content[', j, ']:', content);
-                        // 提取thinking类型的内容
-                        if (content.type === 'thinking' && content.thinking) {
-                            thinkingText = content.thinking;
-                            console.log('[DoubaoAI] 找到thinking内容:', thinkingText.substring(0, 100));
+                        // 提取thinking类型的内容（多种可能的格式）
+                        if (content.type === 'thinking') {
+                            thinkingText = content.thinking || content.content || content.text;
+                            if (thinkingText) {
+                                console.log('[DoubaoAI] 找到thinking内容:', thinkingText.substring(0, 100));
+                            }
+                        }
+                        // 提取reasoning类型的内容
+                        if (content.type === 'reasoning' || content.type === 'reasoning_content') {
+                            thinkingText = content.reasoning || content.content || content.text || content.reasoning_content;
+                            if (thinkingText) {
+                                console.log('[DoubaoAI] 找到reasoning内容:', thinkingText.substring(0, 100));
+                            }
                         }
                         // 提取text类型的内容
                         if (content.type === 'text' && content.text) {
                             responseText = content.text;
                             console.log('[DoubaoAI] 找到text内容:', responseText.substring(0, 100));
+                        }
+                        // 如果content有reasoning字段，也提取为思考内容
+                        if (content.reasoning && typeof content.reasoning === 'string') {
+                            thinkingText = content.reasoning;
+                            console.log('[DoubaoAI] 找到reasoning字段:', thinkingText.substring(0, 100));
                         }
                     }
                 }
