@@ -113,28 +113,69 @@ class AIWebsiteController {
     parseLocalCommand(command) {
         const cmd = command.toLowerCase();
         
-        if (cmd.includes('背景') || cmd.includes('底色') || cmd.includes('换肤')) {
+        // 背景图片设置
+        const backgrounds = {
+            '晨露之森': 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920',
+            '森林': 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920',
+            '沧浪之水': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
+            '水': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
+            '海': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
+            '自然之廊': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920',
+            '自然': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920',
+            '精骛八极': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
+            '太空': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
+            '星空': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
+            '默认': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920'
+        };
+        
+        for (const [name, url] of Object.entries(backgrounds)) {
+            if (cmd.includes(name)) {
+                return `document.body.style.backgroundImage = 'url(${url})'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
+            }
+        }
+        
+        // 背景颜色设置
+        if (cmd.includes('背景') || cmd.includes('底色') || cmd.includes('换肤') || cmd.includes('纯色')) {
             const colors = {
                 '蓝': '#1a1a2e', '深蓝': '#1a1a2e', '黑': '#0f0f1e',
-                '紫': '#2d1b4e', '绿': '#1a2e1a', '红': '#2e1a1a', '灰': '#2a2a3a'
+                '紫': '#2d1b4e', '绿': '#1a2e1a', '红': '#2e1a1a', '灰': '#2a2a3a',
+                '白': '#f0f0f5', '黄': '#2e2e1a', '橙': '#2e251a'
             };
             
             for (const [name, color] of Object.entries(colors)) {
                 if (cmd.includes(name)) {
-                    return `document.body.style.background = 'linear-gradient(135deg, ${color} 0%, #16213e 100%)';`;
+                    return `document.body.style.background = 'linear-gradient(135deg, ${color} 0%, #16213e 100%)'; document.body.style.backgroundImage = '';`;
                 }
             }
         }
         
-        if (cmd.includes('屏保') || cmd.includes('屏幕保护')) {
+        // 鼠标拖尾/视觉防疲劳效果
+        if (cmd.includes('鼠标') || cmd.includes('拖尾') || cmd.includes('防疲劳') || cmd.includes('视觉')) {
             if (cmd.includes('开') || cmd.includes('启')) {
-                return 'if(window.screenSaver) window.screenSaver.setEnabled(true);';
+                return `if(window.mouseTrailEffect) window.mouseTrailEffect.setEnabled(true); if(window.settingsManager && window.settingsManager.mouseTrailToggle) window.settingsManager.mouseTrailToggle.checked = true;`;
             }
             if (cmd.includes('关') || cmd.includes('停')) {
-                return 'if(window.screenSaver) { window.screenSaver.setEnabled(false); window.screenSaver.deactivate(); }';
+                return `if(window.mouseTrailEffect) window.mouseTrailEffect.setEnabled(false); if(window.settingsManager && window.settingsManager.mouseTrailToggle) window.settingsManager.mouseTrailToggle.checked = false;`;
             }
         }
         
+        // 屏保控制
+        if (cmd.includes('屏保') || cmd.includes('屏幕保护')) {
+            if (cmd.includes('开') || cmd.includes('启')) {
+                return `if(window.screenSaver) window.screenSaver.setEnabled(true); if(window.settingsManager && window.settingsManager.screenSaverToggle) window.settingsManager.screenSaverToggle.checked = true; if(window.settingsManager && window.settingsManager.screenSaverTimeControl) window.settingsManager.screenSaverTimeControl.style.display = 'block';`;
+            }
+            if (cmd.includes('关') || cmd.includes('停')) {
+                return `if(window.screenSaver) { window.screenSaver.setEnabled(false); window.screenSaver.deactivate(); } if(window.settingsManager && window.settingsManager.screenSaverToggle) window.settingsManager.screenSaverToggle.checked = false; if(window.settingsManager && window.settingsManager.screenSaverTimeControl) window.settingsManager.screenSaverTimeControl.style.display = 'none';`;
+            }
+            // 设置屏保时间
+            const timeMatch = cmd.match(/(\d+)/);
+            if (timeMatch) {
+                const seconds = timeMatch[1];
+                return `if(window.screenSaver) window.screenSaver.setTimeout(${seconds}); if(window.settingsManager && window.settingsManager.screenSaverTimeSlider) window.settingsManager.screenSaverTimeSlider.value = ${seconds}; if(window.settingsManager && window.settingsManager.screenSaverTimeInput) window.settingsManager.screenSaverTimeInput.value = ${seconds};`;
+            }
+        }
+        
+        // 粒子效果
         if (cmd.includes('粒子') || cmd.includes('特效')) {
             if (cmd.includes('开') || cmd.includes('启')) {
                 return "if(window.particleSystem && window.particleSystem.start) window.particleSystem.start();";
@@ -144,6 +185,7 @@ class AIWebsiteController {
             }
         }
         
+        // 字体大小
         if (cmd.includes('字体') || cmd.includes('字')) {
             if (cmd.includes('大')) {
                 return "document.documentElement.style.fontSize = '18px';";
@@ -154,6 +196,11 @@ class AIWebsiteController {
             if (cmd.includes('正常') || cmd.includes('默认')) {
                 return "document.documentElement.style.fontSize = '16px';";
             }
+        }
+        
+        // 恢复默认背景
+        if (cmd.includes('恢复默认') || cmd.includes('默认背景')) {
+            return `document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
         }
         
         return null;
