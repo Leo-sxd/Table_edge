@@ -2515,12 +2515,26 @@ class DoubaoAI {
             
             // 解析响应 - 只提取实际回复文本
             let result = this.extractTextFromResponse(data);
-            if (result) {
+            if (result && result !== '抱歉，无法解析API响应。') {
                 console.log('[DoubaoAI] 成功获取回复:', result.substring(0, 100) + '...');
                 return result;
             } else {
-                console.warn('[DoubaoAI] 无法从响应中提取文本:', data);
-                return '抱歉，无法解析API响应。';
+                console.warn('[DoubaoAI] 无法从响应中提取文本，返回原始数据');
+                // 如果解析失败，尝试直接返回整个响应的字符串形式
+                try {
+                    if (typeof data === 'object') {
+                        // 尝试找到任何可能的文本字段
+                        const jsonStr = JSON.stringify(data);
+                        // 如果包含text字段，尝试提取
+                        const textMatch = jsonStr.match(/"text":\s*"([^"]+)"/);
+                        if (textMatch) {
+                            return textMatch[1];
+                        }
+                    }
+                } catch (e) {
+                    console.error('[DoubaoAI] 尝试提取文本失败:', e);
+                }
+                return '抱歉，无法解析API响应。请检查控制台日志了解详情。';
             }
         } catch (error) {
             console.error('[DoubaoAI] 请求异常:', error);
@@ -2558,15 +2572,25 @@ class DoubaoAI {
     }
     
     extractTextFromResponse(data) {
+        console.log('[DoubaoAI] 开始解析响应:', typeof data);
+        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 1000));
+        
         // 尝试多种可能的响应格式，只提取纯文本内容
         
         // 格式1: output[0].content[0].text (豆包标准格式)
         if (data.output && Array.isArray(data.output)) {
-            for (let item of data.output) {
+            console.log('[DoubaoAI] 检测到output数组，长度:', data.output.length);
+            for (let i = 0; i < data.output.length; i++) {
+                let item = data.output[i];
+                console.log('[DoubaoAI] 检查output[', i, ']:', item);
                 if (item.content && Array.isArray(item.content)) {
-                    for (let content of item.content) {
+                    console.log('[DoubaoAI] 检测到content数组，长度:', item.content.length);
+                    for (let j = 0; j < item.content.length; j++) {
+                        let content = item.content[j];
+                        console.log('[DoubaoAI] 检查content[', j, ']:', content);
                         // 只取类型为text的内容，跳过thinking类型
                         if (content.type === 'text' && content.text) {
+                            console.log('[DoubaoAI] 找到text内容:', content.text.substring(0, 100));
                             return content.text;
                         }
                     }
@@ -2576,25 +2600,36 @@ class DoubaoAI {
         
         // 格式2: choices[0].message.content (OpenAI兼容格式)
         if (data.choices && data.choices[0] && data.choices[0].message) {
+            console.log('[DoubaoAI] 使用choices格式');
             return data.choices[0].message.content;
         }
         
         // 格式3: 直接返回content字段
         if (data.content && typeof data.content === 'string') {
+            console.log('[DoubaoAI] 使用content字段');
             return data.content;
         }
         
         // 格式4: text字段
         if (data.text && typeof data.text === 'string') {
+            console.log('[DoubaoAI] 使用text字段');
             return data.text;
         }
         
         // 格式5: response字段
         if (data.response && typeof data.response === 'string') {
+            console.log('[DoubaoAI] 使用response字段');
             return data.response;
         }
         
+        // 格式6: 如果data本身就是字符串
+        if (typeof data === 'string') {
+            console.log('[DoubaoAI] 响应本身就是字符串');
+            return data;
+        }
+        
         // 如果都没找到，返回null
+        console.warn('[DoubaoAI] 无法识别的响应格式');
         return null;
     }
     
