@@ -2557,7 +2557,22 @@ class DoubaoAI {
             : (type === 'system' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-brain"></i>');
         
         let contentHtml;
-        if (isHtml) {
+        
+        // 处理包含思考内容的对象
+        if (typeof content === 'object' && content !== null && (content.thinking || content.text)) {
+            let html = '';
+            // 添加思考部分（如果有）
+            if (content.thinking) {
+                const processedThinking = this.processAiText(content.thinking);
+                html += `<div class="thinking-content"><div class="thinking-label"><i class="fas fa-brain"></i> 思考过程</div><p>${processedThinking}</p></div>`;
+            }
+            // 添加回复部分（如果有）
+            if (content.text) {
+                const processedText = this.processAiText(content.text);
+                html += `<div class="response-content"><p>${processedText}</p></div>`;
+            }
+            contentHtml = html;
+        } else if (isHtml) {
             contentHtml = content;
         } else {
             // 对AI回复特殊处理转义字符
@@ -2582,7 +2597,9 @@ class DoubaoAI {
         console.log('[DoubaoAI] 开始解析响应:', typeof data);
         console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 1000));
         
-        // 尝试多种可能的响应格式，只提取纯文本内容
+        // 尝试多种可能的响应格式，提取文本内容和思考内容
+        let thinkingText = null;
+        let responseText = null;
         
         // 格式1: output[0].content[0].text (豆包标准格式)
         if (data.output && Array.isArray(data.output)) {
@@ -2595,14 +2612,27 @@ class DoubaoAI {
                     for (let j = 0; j < item.content.length; j++) {
                         let content = item.content[j];
                         console.log('[DoubaoAI] 检查content[', j, ']:', content);
-                        // 只取类型为text的内容，跳过thinking类型
+                        // 提取thinking类型的内容
+                        if (content.type === 'thinking' && content.thinking) {
+                            thinkingText = content.thinking;
+                            console.log('[DoubaoAI] 找到thinking内容:', thinkingText.substring(0, 100));
+                        }
+                        // 提取text类型的内容
                         if (content.type === 'text' && content.text) {
-                            console.log('[DoubaoAI] 找到text内容:', content.text.substring(0, 100));
-                            return content.text;
+                            responseText = content.text;
+                            console.log('[DoubaoAI] 找到text内容:', responseText.substring(0, 100));
                         }
                     }
                 }
             }
+        }
+        
+        // 如果同时有思考内容和回复内容，返回组合对象
+        if (thinkingText || responseText) {
+            return {
+                thinking: thinkingText,
+                text: responseText
+            };
         }
         
         // 格式2: choices[0].message.content (OpenAI兼容格式)

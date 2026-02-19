@@ -2449,3 +2449,40 @@ body.modal-open {
     border-radius: 8px;
     margin-bottom: 8px;
 }
+
+
+/* ==================== AI思考内容样式 ==================== */
+.thinking-content {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border-left: 3px solid rgba(132, 0, 255, 0.6);
+}
+
+.thinking-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.thinking-label i {
+    font-size: 11px;
+}
+
+.thinking-content p {
+    font-size: 13px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.response-content p {
+    margin: 0;
+    color: white;
+    line-height: 1.5;
+    font-size: 15px;
+}
