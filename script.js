@@ -1930,6 +1930,7 @@ class ScreenSaver {
         this.particleSize = 6;
         this.isActive = false;
         this.isFadingOut = false;
+        this.isPaused = false;
         this.opacity = 0;
         this.fadeStartTime = 0;
         this.fadeDuration = 5000; // 5秒淡入淡出
@@ -1960,6 +1961,7 @@ class ScreenSaver {
         // 绑定事件
         window.addEventListener('resize', () => this.resize());
         this.bindActivityEvents();
+        this.bindVisibilityEvents();
         
         console.log('[ScreenSaver] 初始化完成');
     }
@@ -1997,7 +1999,8 @@ class ScreenSaver {
             clearTimeout(this.timer);
         }
         
-        if (this.enabled) {
+        // 如果页面被隐藏，不启动计时器
+        if (this.enabled && !this.isPaused && !document.hidden) {
             this.timer = setTimeout(() => {
                 this.activate();
             }, this.timeout);
@@ -2066,10 +2069,58 @@ class ScreenSaver {
         this.fadeStartTime = Date.now();
     }
     
+    bindVisibilityEvents() {
+        // 监听页面可见性变化
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // 页面隐藏，暂停屏保
+                console.log('[ScreenSaver] 页面隐藏，暂停屏保');
+                this.pause();
+            } else {
+                // 页面显示，恢复屏保
+                console.log('[ScreenSaver] 页面显示，恢复屏保');
+                this.resume();
+            }
+        });
+    }
+    
+    pause() {
+        // 暂停屏保（页面隐藏时）
+        this.isPaused = true;
+        
+        // 如果正在运行，淡出并停止
+        if (this.isActive && !this.isFadingOut) {
+            this.startFadeOut();
+        }
+        
+        // 清除计时器
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        
+        // 记录暂停时间
+        this.pauseTime = Date.now();
+    }
+    
+    resume() {
+        // 恢复屏保（页面显示时）
+        this.isPaused = false;
+        
+        // 重置活动计时
+        this.lastActivity = Date.now();
+        
+        // 如果启用了屏保，重新开始计时
+        if (this.enabled) {
+            this.resetTimer();
+        }
+    }
+    
     deactivate() {
         console.log('[ScreenSaver] 关闭屏幕保护');
         this.isActive = false;
         this.isFadingOut = false;
+        this.isPaused = false;
         this.opacity = 0;
         this.canvas.style.display = 'none';
         
