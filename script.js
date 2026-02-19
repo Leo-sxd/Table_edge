@@ -2566,9 +2566,27 @@ class DoubaoAI {
             this.addMessage('assistant', response);
             
             // 保存对话历史
+            // 构建用户消息内容
+            const userContent = [];
+            if (this.currentImage) {
+                userContent.push({ type: 'input_image', image_url: this.currentImage });
+            }
+            if (this.currentFiles && this.currentFiles.length > 0) {
+                this.currentFiles.forEach(file => {
+                    if (file.content.startsWith('data:')) {
+                        userContent.push({ type: 'input_file', file_url: file.content, file_name: file.name });
+                    } else {
+                        userContent.push({ type: 'input_text', text: file.content.substring(0, 5000) });
+                    }
+                });
+            }
+            if (message) {
+                userContent.push({ type: 'input_text', text: message });
+            }
+            
             this.conversationHistory.push({
                 role: 'user',
-                content: content
+                content: userContent
             });
             
             const assistantContent = typeof response === 'object' ? response.text : response;
