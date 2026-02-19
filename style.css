@@ -2645,10 +2645,10 @@ body.modal-open {
     font-size: 15px;
 }
 
-/* 用户消息在右侧 */
+/* 用户消息在右侧 - 气泡左，头像右 */
 .doubao-messages .message.user-message {
-    flex-direction: row-reverse !important;
-    justify-content: flex-start !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
 }
 
 .doubao-messages .message.user-message .avatar {
@@ -2662,7 +2662,6 @@ body.modal-open {
     flex-shrink: 0;
     margin-left: 12px;
     margin-right: 0;
-    order: 1;
 }
 
 .doubao-messages .message.user-message .avatar i {
@@ -2678,7 +2677,6 @@ body.modal-open {
     max-width: 70%;
     word-wrap: break-word;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    order: 0;
 }
 
 .doubao-messages .message.user-message .content p {
