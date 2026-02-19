@@ -2676,11 +2676,7 @@ class DoubaoAI {
         // 构建请求体
         const requestBody = {
             model: 'doubao-seed-2-0-pro-260215',
-            input: messages,
-            parameters: {
-                temperature: 0.7,
-                max_tokens: 4096
-            }
+            input: messages
         };
         
         // 如果启用了深度思考，添加相关参数
@@ -2691,30 +2687,20 @@ class DoubaoAI {
             console.log('[DoubaoAI] 已启用深度思考模式');
         }
         
-        // 如果启用了联网搜索，添加工具
+        // 如果启用了联网搜索，在系统提示中添加说明
         if (this.webSearchEnabled) {
-            requestBody.tools = [
-                {
-                    type: 'web_search',
-                    function: {
-                        name: 'web_search',
-                        description: '搜索互联网获取最新信息'
-                    }
-                }
-            ];
+            // 在第一条系统消息中添加联网搜索能力说明
+            if (messages.length > 0 && messages[0].role === 'system') {
+                messages[0].content += '\n\n你可以进行联网搜索获取最新信息。当用户需要最新信息时，请主动搜索。';
+            }
             console.log('[DoubaoAI] 已启用联网搜索');
         }
         
-        // 如果启用了代码执行，添加代码解释器
+        // 如果启用了代码执行，在系统提示中添加说明
         if (this.codeRunEnabled) {
-            if (!requestBody.tools) requestBody.tools = [];
-            requestBody.tools.push({
-                type: 'code_interpreter',
-                function: {
-                    name: 'code_interpreter',
-                    description: '执行Python代码'
-                }
-            });
+            if (messages.length > 0 && messages[0].role === 'system') {
+                messages[0].content += '\n\n你可以执行Python代码来解决复杂问题。当需要计算或编程时，请主动执行代码。';
+            }
             console.log('[DoubaoAI] 已启用代码执行');
         }
         
