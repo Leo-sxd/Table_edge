@@ -136,19 +136,19 @@ class AIWebsiteController {
         
         if (cmd.includes('屏保') || cmd.includes('屏幕保护')) {
             if (cmd.includes('开') || cmd.includes('启')) {
-                return 'if(window.screenSaver) window.screenSaver.start();';
+                return 'if(window.screenSaver) window.screenSaver.setEnabled(true);';
             }
             if (cmd.includes('关') || cmd.includes('停')) {
-                return 'if(window.screenSaver) window.screenSaver.stop();';
+                return 'if(window.screenSaver) { window.screenSaver.setEnabled(false); window.screenSaver.deactivate(); }';
             }
         }
         
         if (cmd.includes('粒子') || cmd.includes('特效')) {
             if (cmd.includes('开') || cmd.includes('启')) {
-                return 'if(window.particleSystem) window.particleSystem.start();';
+                return "if(window.particleSystem && window.particleSystem.start) window.particleSystem.start();";
             }
             if (cmd.includes('关') || cmd.includes('停')) {
-                return 'if(window.particleSystem) window.particleSystem.stop();';
+                return "if(window.particleSystem && window.particleSystem.stop) window.particleSystem.stop();";
             }
         }
         
