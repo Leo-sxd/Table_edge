@@ -3173,45 +3173,12 @@ body.modal-open {
     box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
 }
 
-.ai-control-hints {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.hint-title {
+.ai-control-text-hint {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.hint-title i {
-    color: #ffd700;
-}
-
-.hint-list {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.hint-item {
-    padding: 4px 10px;
-    background: rgba(140, 0, 255, 0.15);
-    border: 1px solid rgba(140, 0, 255, 0.3);
-    border-radius: 15px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: help;
-    transition: all 0.3s;
-}
-
-.hint-item:hover {
-    background: rgba(140, 0, 255, 0.3);
-    border-color: #8c00ff;
-    color: white;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+    padding-left: 5px;
+    line-height: 1.5;
 }
 
 /* 代码确认弹窗 */
