@@ -125,7 +125,6 @@ class AIWebsiteController {
             '精骛八极': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
             '太空': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
             '星空': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
-            '默认': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920'
         };
         
         for (const [name, url] of Object.entries(backgrounds)) {
