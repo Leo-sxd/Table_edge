@@ -7,28 +7,55 @@
 // ==================== AI网站控制功能 ====================
 class AIWebsiteController {
     constructor() {
-        this.init();
         this.pendingCode = null;
+        this.isInitialized = false;
+        
+        // 如果DOM已加载，立即初始化
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            this.init();
+        } else {
+            // 否则等待DOM加载完成
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        }
     }
     
     init() {
+        if (this.isInitialized) return;
+        this.isInitialized = true;
+        
+        console.log('[AIControl] 开始初始化...');
+        
         const input = document.getElementById('ai-control-input');
         const sendBtn = document.getElementById('ai-control-send');
         const examples = document.querySelectorAll('.example-tag');
         
+        console.log('[AIControl] 元素检查:', { input: !!input, sendBtn: !!sendBtn, examples: examples.length });
+        
         if (sendBtn) {
-            sendBtn.addEventListener('click', () => this.handleControl());
+            sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[AIControl] 发送按钮被点击');
+                this.handleControl();
+            });
         }
         
         if (input) {
             input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.handleControl();
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    console.log('[AIControl] 回车键被按下');
+                    this.handleControl();
+                }
             });
         }
         
-        examples.forEach(tag => {
-            tag.addEventListener('click', () => {
+        examples.forEach((tag, index) => {
+            tag.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const command = tag.getAttribute('data-command');
+                console.log('[AIControl] 示例标签被点击:', command);
                 if (input) input.value = command;
                 this.handleControl();
             });
@@ -49,28 +76,45 @@ class AIWebsiteController {
     }
     
     async handleControl() {
-        const input = document.getElementById('ai-control-input');
-        const command = input.value.trim();
-        
-        if (!command) return;
-        
-        console.log('[AIControl] 收到指令:', command);
-        
-        const localResult = this.parseLocalCommand(command);
-        if (localResult) {
-            console.log('[AIControl] 本地解析成功:', localResult);
-            this.showConfirmModal(localResult, '本地解析');
-            return;
-        }
-        
         try {
-            const code = await this.callAIForCode(command);
-            if (code) {
-                this.showConfirmModal(code, 'AI生成');
+            const input = document.getElementById('ai-control-input');
+            if (!input) {
+                console.error('[AIControl] 找不到输入框元素');
+                return;
             }
-        } catch (error) {
-            console.error('[AIControl] API调用失败:', error);
-            alert('AI解析失败: ' + error.message);
+            
+            const command = input.value.trim();
+            
+            if (!command) {
+                console.log('[AIControl] 输入为空');
+                return;
+            }
+            
+            console.log('[AIControl] 收到指令:', command);
+            
+            const localResult = this.parseLocalCommand(command);
+            if (localResult) {
+                console.log('[AIControl] 本地解析成功:', localResult);
+                this.showConfirmModal(localResult, '本地解析');
+                return;
+            }
+            
+            console.log('[AIControl] 本地无法解析，调用AI...');
+            
+            try {
+                const code = await this.callAIForCode(command);
+                if (code) {
+                    this.showConfirmModal(code, 'AI生成');
+                } else {
+                    alert('AI无法解析该指令，请尝试其他说法');
+                }
+            } catch (error) {
+                console.error('[AIControl] API调用失败:', error);
+                alert('AI解析失败: ' + error.message);
+            }
+        } catch (e) {
+            console.error('[AIControl] handleControl错误:', e);
+            alert('处理指令时出错: ' + e.message);
         }
     }
     
