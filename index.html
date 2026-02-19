@@ -174,42 +174,76 @@
             </div>
         </header>
         
-        <!-- 豆包AI板块 -->
+        <!-- 豆包AI板块 - 居中对话式布局 -->
         <section class="doubao-section">
-            <div class="section-header">
-                <h2><i class="fas fa-brain"></i> 豆包AI</h2>
-                <div class="doubao-status">
-                    <span class="status-dot" id="doubao-status-dot"></span>
-                    <span class="status-text" id="doubao-status-text">离线</span>
-                </div>
-            </div>
-            <div class="doubao-container">
-                <!-- API密钥输入区域 -->
-                <div class="api-key-section">
-                    <div class="api-input-group">
-                        <input type="password" id="doubao-api-key" placeholder="输入豆包 API密钥">
-                        <button id="save-doubao-api-key" class="small-btn">保存</button>
-                    </div>
-                    <div class="api-hint">
-                        <small>密钥仅保存在本地，请前往 <a href="https://www.volcengine.com/product/doubao" target="_blank">豆包官网</a> 获取</small>
+            <div class="doubao-chat-container">
+                <!-- 顶部标题区 -->
+                <div class="doubao-header">
+                    <h1 class="doubao-title">你好，我是豆包</h1>
+                    <div class="doubao-status">
+                        <span class="status-dot" id="doubao-status-dot"></span>
+                        <span class="status-text" id="doubao-status-text">准备就绪</span>
                     </div>
                 </div>
                 
+                <!-- 消息展示区 -->
                 <div class="doubao-messages" id="doubao-messages">
-                    <div class="message doubao-message">
-                        <div class="avatar">
+                    <div class="message doubao-welcome">
+                        <div class="welcome-avatar">
                             <i class="fas fa-brain"></i>
                         </div>
-                        <div class="content">
-                            <p>您好！我是豆包AI助手，请输入API密钥开始对话。</p>
+                        <div class="welcome-text">
+                            <p>我是你的AI助手，可以帮你写作、翻译、编程、解答问题...</p>
                         </div>
                     </div>
                 </div>
-                <div class="doubao-input-area">
-                    <input type="text" id="doubao-input" placeholder="输入您的问题...">
-                    <button id="doubao-send" class="send-btn">
+                
+                <!-- 功能快捷按钮 -->
+                <div class="doubao-features">
+                    <button class="feature-btn" data-prompt="帮我写一篇文章">
+                        <i class="fas fa-pen"></i> 帮我写作
+                    </button>
+                    <button class="feature-btn" data-prompt="翻译这段话">
+                        <i class="fas fa-language"></i> 翻译
+                    </button>
+                    <button class="feature-btn" data-prompt="帮我写一段代码">
+                        <i class="fas fa-code"></i> 编程
+                    </button>
+                    <button class="feature-btn" data-prompt="深入研究这个问题">
+                        <i class="fas fa-search"></i> 深入研究
+                    </button>
+                </div>
+                
+                <!-- 输入区域 -->
+                <div class="doubao-input-wrapper">
+                    <div class="doubao-input-box">
+                        <input type="text" id="doubao-input" placeholder="输入消息或 / 选择技能...">
+                        <div class="input-actions">
+                            <button class="action-btn" id="doubao-attach" title="上传文件">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <button class="action-btn" id="doubao-deep-think" title="深度思考">
+                                <i class="fas fa-brain"></i> 深度思考
+                            </button>
+                        </div>
+                    </div>
+                    <button id="doubao-send" class="doubao-send-btn">
                         <i class="fas fa-paper-plane"></i>
                     </button>
+                </div>
+                
+                <!-- API密钥设置（可折叠） -->
+                <div class="doubao-api-settings">
+                    <button class="api-toggle-btn" id="api-toggle-btn">
+                        <i class="fas fa-key"></i> API设置
+                    </button>
+                    <div class="api-panel" id="api-panel" style="display: none;">
+                        <div class="api-input-group">
+                            <input type="password" id="doubao-api-key" placeholder="输入豆包API密钥">
+                            <button id="save-doubao-api-key" class="small-btn">保存</button>
+                        </div>
+                        <p class="api-hint">密钥仅保存在本地，请前往 <a href="https://www.volcengine.com/product/doubao" target="_blank">豆包官网</a> 获取</p>
+                    </div>
                 </div>
             </div>
         </section>

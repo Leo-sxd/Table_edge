@@ -2001,55 +2001,139 @@ body.modal-open {
     font-size: 14px;
 }
 
-/* ==================== 豆包AI板块样式 ==================== */
+
+    
+    .doubao-container {
+        height: 250px;
+    }
+}
+
+/* ==================== 豆包AI板块样式 - 居中对话式布局 ==================== */
 .doubao-section {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 25px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    margin-bottom: 25px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 30px;
+    min-height: 500px;
     transition: all 0.3s ease;
 }
 
 .doubao-section:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.doubao-chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 420px;
+}
+
+/* 顶部标题 */
+.doubao-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.doubao-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .doubao-status {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
 }
 
-.doubao-container {
-    display: flex;
-    flex-direction: column;
-    height: 300px;
+.doubao-status .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff6b6b;
+    transition: all 0.3s;
 }
 
+.doubao-status .status-dot.online {
+    background: #51cf66;
+    box-shadow: 0 0 10px #51cf66;
+}
+
+/* 消息区域 */
 .doubao-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    margin-bottom: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-height: 300px;
 }
 
-.doubao-message {
+.doubao-welcome {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.welcome-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.welcome-avatar i {
+    font-size: 36px;
+    color: white;
+}
+
+.welcome-text p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* 消息气泡 */
+.message {
     display: flex;
     gap: 12px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.3s ease;
 }
 
-.doubao-message .avatar {
-    width: 36px;
-    height: 36px;
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.user-message {
+    flex-direction: row-reverse;
+}
+
+.message .avatar {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
@@ -2058,63 +2142,134 @@ body.modal-open {
     flex-shrink: 0;
 }
 
-.doubao-message .avatar i {
-    color: white;
-    font-size: 16px;
-}
-
-.doubao-message.user-message .avatar {
+.message.user-message .avatar {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
-.doubao-message .content {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 12px 16px;
-    border-radius: 12px;
-    max-width: 80%;
+.message .avatar i {
+    color: white;
+    font-size: 18px;
+}
+
+.message .content {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 12px 18px;
+    border-radius: 18px;
+    max-width: 70%;
     word-wrap: break-word;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.doubao-message.user-message .content {
-    background: rgba(102, 126, 234, 0.3);
-    margin-left: auto;
+.message.user-message .content {
+    background: rgba(102, 126, 234, 0.4);
 }
 
-.doubao-message .content p {
+.message .content p {
     margin: 0;
     color: white;
     line-height: 1.5;
+    font-size: 15px;
 }
 
-.doubao-input-area {
+/* 功能快捷按钮 */
+.doubao-features {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 10px;
+    margin-bottom: 20px;
+    padding: 0 20px;
 }
 
-.doubao-input-area input {
-    flex: 1;
-    padding: 12px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 25px;
+.feature-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
     background: rgba(255, 255, 255, 0.1);
-    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 14px;
-    outline: none;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.doubao-input-area input::placeholder {
+.feature-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.feature-btn i {
+    font-size: 14px;
+}
+
+/* 输入区域 */
+.doubao-input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    padding: 0 20px;
+}
+
+.doubao-input-box {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+}
+
+.doubao-input-box:focus-within {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.doubao-input-box input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 8px;
+}
+
+.doubao-input-box input::placeholder {
     color: rgba(255, 255, 255, 0.5);
 }
 
-.doubao-input-area input:focus {
-    border-color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.15);
+.input-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
-.doubao-input-area .send-btn {
-    width: 44px;
-    height: 44px;
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.doubao-send-btn {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: none;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2124,27 +2279,122 @@ body.modal-open {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.doubao-input-area .send-btn:hover {
-    transform: scale(1.05);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.doubao-input-area .send-btn:disabled {
+.doubao-send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.doubao-send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
 }
 
+.doubao-send-btn i {
+    font-size: 18px;
+}
+
+/* API设置 */
+.doubao-api-settings {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.api-toggle-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.api-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.api-panel {
+    margin-top: 15px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.api-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.api-input-group input {
+    flex: 1;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+.api-input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.api-hint {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin: 0;
+}
+
+.api-hint a {
+    color: #a78bfa;
+    text-decoration: none;
+}
+
+.api-hint a:hover {
+    text-decoration: underline;
+}
+
 /* 响应式适配 */
 @media (max-width: 768px) {
     .doubao-section {
-        padding: 20px;
-        margin-bottom: 20px;
+        padding: 25px;
+        min-height: 400px;
     }
     
-    .doubao-container {
-        height: 250px;
+    .doubao-title {
+        font-size: 22px;
+    }
+    
+    .doubao-features {
+        gap: 8px;
+    }
+    
+    .feature-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .doubao-input-wrapper {
+        padding: 0 10px;
     }
 }

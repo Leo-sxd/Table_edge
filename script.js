@@ -2277,6 +2277,25 @@ class DoubaoAI {
                 this.sendMessage();
             }
         });
+        
+        // API设置面板切换
+        const apiToggleBtn = document.getElementById('api-toggle-btn');
+        const apiPanel = document.getElementById('api-panel');
+        if (apiToggleBtn && apiPanel) {
+            apiToggleBtn.addEventListener('click', () => {
+                const isVisible = apiPanel.style.display !== 'none';
+                apiPanel.style.display = isVisible ? 'none' : 'block';
+            });
+        }
+        
+        // 功能快捷按钮
+        document.querySelectorAll('.feature-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prompt = btn.dataset.prompt;
+                this.inputField.value = prompt;
+                this.inputField.focus();
+            });
+        });
     }
     
     saveApiKey() {
@@ -2371,19 +2390,21 @@ class DoubaoAI {
     }
     
     addMessage(type, content) {
+        // 隐藏欢迎消息
+        const welcomeMsg = this.messagesContainer.querySelector('.doubao-welcome');
+        if (welcomeMsg) {
+            welcomeMsg.style.display = 'none';
+        }
+        
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message doubao-message ${type === 'user' ? 'user-message' : ''}`;
+        messageDiv.className = `message ${type === 'user' ? 'user-message' : ''}`;
         
         const avatar = type === 'user' 
             ? '<i class="fas fa-user"></i>' 
             : (type === 'system' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-brain"></i>');
         
-        const avatarBg = type === 'user' 
-            ? 'style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"' 
-            : '';
-        
         messageDiv.innerHTML = `
-            <div class="avatar" ${avatarBg}>
+            <div class="avatar">
                 ${avatar}
             </div>
             <div class="content">
