@@ -2415,7 +2415,18 @@ class DoubaoAI {
             
         } catch (error) {
             console.error('[DoubaoAI] API调用失败:', error);
-            this.addMessage('system', '抱歉，请求失败，请检查API密钥是否正确。错误信息：' + error.message);
+            console.error('[DoubaoAI] 错误堆栈:', error.stack);
+            
+            let errorMsg = error.message;
+            if (error.message.includes('Unauthorized') || error.message.includes('AuthenticationError')) {
+                errorMsg = 'API密钥无效或未授权，请检查：\n1. API密钥是否正确\n2. 模型是否已开通\n3. 密钥是否有调用权限';
+            } else if (error.message.includes('404')) {
+                errorMsg = '模型不存在，请检查模型ID是否正确';
+            } else if (error.message.includes('429')) {
+                errorMsg = '请求过于频繁，请稍后再试';
+            }
+            
+            this.addMessage('system', '请求失败：' + errorMsg);
             this.updateStatus(false);
         } finally {
             this.sendBtn.disabled = false;
@@ -2423,6 +2434,11 @@ class DoubaoAI {
     }
     
     async callDoubaoAPI(text, imageData) {
+        console.log('[DoubaoAI] 开始调用API...');
+        console.log('[DoubaoAI] API密钥前10位:', this.apiKey.substring(0, 10) + '...');
+        console.log('[DoubaoAI] 是否有图片:', !!imageData);
+        console.log('[DoubaoAI] 文本长度:', text ? text.length : 0);
+        
         // 构建content数组
         const content = [];
         
@@ -2432,6 +2448,7 @@ class DoubaoAI {
                 type: 'input_image',
                 image_url: imageData
             });
+            console.log('[DoubaoAI] 已添加图片到请求');
         }
         
         // 添加文本
@@ -2442,38 +2459,80 @@ class DoubaoAI {
             });
         }
         
-        // 新API格式（/api/v3/responses）
-        const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/responses', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'doubao-seed-2-0-pro-260215',
-                input: [
-                    {
-                        role: 'user',
-                        content: content
-                    }
-                ]
-            })
-        });
+        // 构建请求体
+        const requestBody = {
+            model: 'doubao-seed-2-0-pro-260215',
+            input: [
+                {
+                    role: 'user',
+                    content: content
+                }
+            ]
+        };
         
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-        }
+        console.log('[DoubaoAI] 请求体:', JSON.stringify(requestBody, null, 2));
         
-        const data = await response.json();
-        
-        // 解析响应（根据实际API返回格式调整）
-        if (data.output && data.output[0] && data.output[0].content) {
-            return data.output[0].content[0].text;
-        } else if (data.choices && data.choices[0]) {
-            return data.choices[0].message.content;
-        } else {
-            return JSON.stringify(data);
+        try {
+            // 新API格式（/api/v3/responses）
+            console.log('[DoubaoAI] 发送请求到: https://ark.cn-beijing.volces.com/api/v3/responses');
+            
+            const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/responses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            console.log('[DoubaoAI] 响应状态:', response.status, response.statusText);
+            
+            // 获取响应文本
+            const responseText = await response.text();
+            console.log('[DoubaoAI] 原始响应:', responseText.substring(0, 500));
+            
+            if (!response.ok) {
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.error?.message || errorData.message || errorMessage;
+                    console.error('[DoubaoAI] 错误详情:', errorData);
+                } catch (e) {
+                    console.error('[DoubaoAI] 解析错误响应失败:', e);
+                }
+                throw new Error(errorMessage);
+            }
+            
+            // 解析成功响应
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('[DoubaoAI] 解析后的数据:', data);
+            } catch (e) {
+                console.error('[DoubaoAI] 解析响应JSON失败:', e);
+                throw new Error('无法解析API响应');
+            }
+            
+            // 解析响应（根据实际API返回格式调整）
+            if (data.output && data.output[0] && data.output[0].content) {
+                const result = data.output[0].content[0].text;
+                console.log('[DoubaoAI] 成功获取回复:', result.substring(0, 100) + '...');
+                return result;
+            } else if (data.choices && data.choices[0]) {
+                const result = data.choices[0].message.content;
+                console.log('[DoubaoAI] 成功获取回复(choices格式):', result.substring(0, 100) + '...');
+                return result;
+            } else if (data.content) {
+                const result = data.content;
+                console.log('[DoubaoAI] 成功获取回复(content格式):', result.substring(0, 100) + '...');
+                return result;
+            } else {
+                console.warn('[DoubaoAI] 未知的响应格式:', data);
+                return JSON.stringify(data);
+            }
+        } catch (error) {
+            console.error('[DoubaoAI] 请求异常:', error);
+            throw error;
         }
     }
     
