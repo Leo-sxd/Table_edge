@@ -3069,3 +3069,220 @@ document.addEventListener('DOMContentLoaded', () => {
     window.doubaoAI = new DoubaoAI();
     window.voiceManager = new VoiceManager();
 });
+
+// ==================== 豆包AI语音设置 ====================
+class DoubaoVoiceSettings {
+    constructor() {
+        this.voiceInputToggle = document.getElementById('doubao-voice-input-toggle');
+        this.ttsToggle = document.getElementById('doubao-tts-toggle');
+        this.voiceShortcutInput = document.getElementById('voice-input-shortcut');
+        this.ttsShortcutInput = document.getElementById('tts-shortcut');
+        this.clearVoiceShortcutBtn = document.getElementById('clear-voice-shortcut');
+        this.clearTtsShortcutBtn = document.getElementById('clear-tts-shortcut');
+        
+        this.voiceShortcut = null;
+        this.ttsShortcut = null;
+        this.recordingShortcut = null;
+        
+        this.init();
+    }
+    
+    init() {
+        // 加载保存的设置
+        this.loadSettings();
+        
+        // 绑定事件
+        this.bindEvents();
+        
+        // 绑定全局键盘事件
+        this.bindGlobalShortcuts();
+    }
+    
+    bindEvents() {
+        // 语音输入开关
+        if (this.voiceInputToggle) {
+            this.voiceInputToggle.addEventListener('change', (e) => {
+                this.saveSetting('doubaoVoiceInputEnabled', e.target.checked);
+                if (e.target.checked && window.doubaoAI) {
+                    window.doubaoAI.startContinuousVoiceInput();
+                } else if (window.doubaoAI) {
+                    window.doubaoAI.stopContinuousVoiceInput();
+                }
+            });
+        }
+        
+        // 朗读模式开关
+        if (this.ttsToggle) {
+            this.ttsToggle.addEventListener('change', (e) => {
+                this.saveSetting('doubaoTtsEnabled', e.target.checked);
+            });
+        }
+        
+        // 语音输入快捷键设置
+        if (this.voiceShortcutInput) {
+            this.voiceShortcutInput.addEventListener('click', () => {
+                this.startRecordingShortcut('voice');
+            });
+            
+            this.voiceShortcutInput.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                if (this.recordingShortcut === 'voice') {
+                    const shortcut = this.getShortcutString(e);
+                    if (shortcut) {
+                        this.voiceShortcut = shortcut;
+                        this.voiceShortcutInput.value = shortcut;
+                        this.saveSetting('voiceInputShortcut', shortcut);
+                        this.stopRecordingShortcut();
+                    }
+                }
+            });
+        }
+        
+        // 朗读模式快捷键设置
+        if (this.ttsShortcutInput) {
+            this.ttsShortcutInput.addEventListener('click', () => {
+                this.startRecordingShortcut('tts');
+            });
+            
+            this.ttsShortcutInput.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                if (this.recordingShortcut === 'tts') {
+                    const shortcut = this.getShortcutString(e);
+                    if (shortcut) {
+                        this.ttsShortcut = shortcut;
+                        this.ttsShortcutInput.value = shortcut;
+                        this.saveSetting('ttsShortcut', shortcut);
+                        this.stopRecordingShortcut();
+                    }
+                }
+            });
+        }
+        
+        // 清除快捷键按钮
+        if (this.clearVoiceShortcutBtn) {
+            this.clearVoiceShortcutBtn.addEventListener('click', () => {
+                this.voiceShortcut = null;
+                this.voiceShortcutInput.value = '';
+                this.saveSetting('voiceInputShortcut', null);
+            });
+        }
+        
+        if (this.clearTtsShortcutBtn) {
+            this.clearTtsShortcutBtn.addEventListener('click', () => {
+                this.ttsShortcut = null;
+                this.ttsShortcutInput.value = '';
+                this.saveSetting('ttsShortcut', null);
+            });
+        }
+    }
+    
+    startRecordingShortcut(type) {
+        this.recordingShortcut = type;
+        const input = type === 'voice' ? this.voiceShortcutInput : this.ttsShortcutInput;
+        input.value = '按组合键...';
+        input.classList.add('recording');
+        
+        // 3秒后自动取消
+        setTimeout(() => {
+            if (this.recordingShortcut === type) {
+                this.stopRecordingShortcut();
+                if (!input.value || input.value === '按组合键...') {
+                    input.value = this[type === 'voice' ? 'voiceShortcut' : 'ttsShortcut'] || '';
+                }
+            }
+        }, 3000);
+    }
+    
+    stopRecordingShortcut() {
+        if (this.voiceShortcutInput) {
+            this.voiceShortcutInput.classList.remove('recording');
+        }
+        if (this.ttsShortcutInput) {
+            this.ttsShortcutInput.classList.remove('recording');
+        }
+        this.recordingShortcut = null;
+    }
+    
+    getShortcutString(e) {
+        const keys = [];
+        if (e.ctrlKey) keys.push('Ctrl');
+        if (e.altKey) keys.push('Alt');
+        if (e.shiftKey) keys.push('Shift');
+        if (e.metaKey) keys.push('Meta');
+        
+        // 获取按键名称
+        let key = e.key;
+        if (key === ' ') key = 'Space';
+        if (key.length === 1) key = key.toUpperCase();
+        
+        // 忽略单独的修饰键
+        if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) {
+            return null;
+        }
+        
+        keys.push(key);
+        return keys.join('+');
+    }
+    
+    bindGlobalShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            const shortcut = this.getShortcutString(e);
+            if (!shortcut) return;
+            
+            // 语音输入快捷键
+            if (shortcut === this.voiceShortcut) {
+                e.preventDefault();
+                if (window.doubaoAI) {
+                    window.doubaoAI.toggleVoiceInput();
+                }
+            }
+            
+            // 朗读模式快捷键
+            if (shortcut === this.ttsShortcut) {
+                e.preventDefault();
+                if (window.doubaoAI) {
+                    window.doubaoAI.toggleTts();
+                }
+            }
+        });
+    }
+    
+    loadSettings() {
+        // 加载语音输入开关
+        const voiceInputEnabled = localStorage.getItem('doubaoVoiceInputEnabled') === 'true';
+        if (this.voiceInputToggle) {
+            this.voiceInputToggle.checked = voiceInputEnabled;
+        }
+        
+        // 加载朗读模式开关
+        const ttsEnabled = localStorage.getItem('doubaoTtsEnabled') === 'true';
+        if (this.ttsToggle) {
+            this.ttsToggle.checked = ttsEnabled;
+        }
+        
+        // 加载快捷键
+        this.voiceShortcut = localStorage.getItem('voiceInputShortcut');
+        if (this.voiceShortcutInput && this.voiceShortcut) {
+            this.voiceShortcutInput.value = this.voiceShortcut;
+        }
+        
+        this.ttsShortcut = localStorage.getItem('ttsShortcut');
+        if (this.ttsShortcutInput && this.ttsShortcut) {
+            this.ttsShortcutInput.value = this.ttsShortcut;
+        }
+    }
+    
+    saveSetting(key, value) {
+        if (value === null) {
+            localStorage.removeItem(key);
+        } else {
+            localStorage.setItem(key, value);
+        }
+    }
+}
+
+// 初始化豆包AI语音设置
+document.addEventListener('DOMContentLoaded', () => {
+    window.doubaoVoiceSettings = new DoubaoVoiceSettings();
+});
+

@@ -119,6 +119,68 @@
                     </div>
                     
                 </div>
+                
+                <!-- 豆包AI语音设置 -->
+                <div class="settings-section">
+                    <h4>豆包AI语音设置</h4>
+                    
+                    <!-- 语音输入功能 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <div class="effect-title-group">
+                                <span class="effect-name">语音输入功能</span>
+                                <span class="effect-badge">一键常开</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="doubao-voice-input-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="effect-description">
+                            <small>开启后，语音输入将持续监听，无需手动点击</small>
+                        </div>
+                        <!-- 快捷键设置 -->
+                        <div class="shortcut-control" id="voice-input-shortcut-control">
+                            <div class="shortcut-label">启动/关闭快捷键:</div>
+                            <div class="shortcut-input-group">
+                                <input type="text" id="voice-input-shortcut" class="shortcut-input" placeholder="点击设置快捷键" readonly>
+                                <button class="shortcut-clear-btn" id="clear-voice-shortcut" title="清除快捷键">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="shortcut-hint">按组合键设置，如 Ctrl+Shift+V</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 朗读模式 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <div class="effect-title-group">
+                                <span class="effect-name">朗读模式</span>
+                                <span class="effect-badge">一键常开</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="doubao-tts-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="effect-description">
+                            <small>开启后，AI回复将自动朗读</small>
+                        </div>
+                        <!-- 快捷键设置 -->
+                        <div class="shortcut-control" id="tts-shortcut-control">
+                            <div class="shortcut-label">启动/关闭快捷键:</div>
+                            <div class="shortcut-input-group">
+                                <input type="text" id="tts-shortcut" class="shortcut-input" placeholder="点击设置快捷键" readonly>
+                                <button class="shortcut-clear-btn" id="clear-tts-shortcut" title="清除快捷键">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="shortcut-hint">按组合键设置，如 Ctrl+Shift+R</div>
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>

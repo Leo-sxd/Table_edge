@@ -2721,4 +2721,110 @@ body.modal-open {
     align-items: center;
 }
 
+/* ==================== 豆包AI语音设置样式 ==================== */
+.effect-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.effect-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 10px;
+    text-transform: uppercase;
+}
+
+.shortcut-control {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.shortcut-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.shortcut-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.shortcut-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.shortcut-input:hover {
+    border-color: #667eea;
+}
+
+.shortcut-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.shortcut-input.recording {
+    border-color: #ff4757;
+    background: rgba(255, 71, 87, 0.05);
+    animation: pulse-border 1.5s infinite;
+}
+
+@keyframes pulse-border {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(255, 71, 87, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
+    }
+}
+
+.shortcut-clear-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(255, 71, 87, 0.1);
+    color: #ff4757;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shortcut-clear-btn:hover {
+    background: rgba(255, 71, 87, 0.2);
+    transform: scale(1.05);
+}
+
+.shortcut-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+}
 
