@@ -2556,7 +2556,14 @@ class DoubaoAI {
             ? '<i class="fas fa-user"></i>' 
             : (type === 'system' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-brain"></i>');
         
-        const contentHtml = isHtml ? content : `<p>${this.escapeHtml(content)}</p>`;
+        let contentHtml;
+        if (isHtml) {
+            contentHtml = content;
+        } else {
+            // 对AI回复特殊处理转义字符
+            const processedContent = this.processAiText(content);
+            contentHtml = `<p>${processedContent}</p>`;
+        }
         
         messageDiv.innerHTML = `
             <div class="avatar">
@@ -2634,9 +2641,33 @@ class DoubaoAI {
     }
     
     escapeHtml(text) {
+        if (typeof text !== 'string') {
+            return String(text);
+        }
+        // 先将\n转换为实际换行符，再进行HTML转义
+        let processed = text
+            .replace(/\n/g, '
+')      // 将字符串\n转为换行符
+            .replace(/\t/g, '	')      // 将字符串\t转为制表符
+            .replace(/\\/g, '\');    // 处理\\转义
+        
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = processed;
         return div.innerHTML;
+    }
+    
+    // 处理AI回复文本，将转义字符转换为HTML格式
+    processAiText(text) {
+        if (typeof text !== 'string') {
+            return String(text);
+        }
+        // 将\n转换为<br>标签实现换行
+        return text
+            .replace(/\n/g, '<br>')     // 将\n转为HTML换行
+            .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 将\t转为空格
+            .replace(/\\/g, '\')     // 处理\\转义
+            .replace(/\"/g, '"')       // 处理\"转义
+            .replace(/\'/g, "'");       // 处理\'转义
     }
 }
 
