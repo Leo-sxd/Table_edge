@@ -340,7 +340,7 @@ class AIWebsiteController {
             '沧浪之水': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
             '水': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
             '海': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
-            '自然之廊': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920',
+            '自然之桥': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920',
             '自然': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920',
             '精骛八极': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
             '太空': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920',
