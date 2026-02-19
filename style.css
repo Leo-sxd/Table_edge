@@ -2398,3 +2398,54 @@ body.modal-open {
         padding: 0 10px;
     }
 }
+
+/* 图片预览区域 */
+.image-preview-area {
+    margin-top: 15px;
+    padding: 0 20px;
+}
+
+.image-preview {
+    position: relative;
+    display: inline-block;
+    max-width: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.image-preview img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.remove-image-btn:hover {
+    background: rgba(255, 0, 0, 0.7);
+    transform: scale(1.1);
+}
+
+/* 消息中的图片 */
+.message-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}

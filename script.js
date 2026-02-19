@@ -2234,6 +2234,7 @@ class DoubaoAI {
         this.apiKey = localStorage.getItem('doubao_api_key') || '';
         this.messages = [];
         this.isOnline = false;
+        this.currentImage = null; // 存储当前上传的图片
         
         this.init();
     }
@@ -2247,6 +2248,11 @@ class DoubaoAI {
         this.sendBtn = document.getElementById('doubao-send');
         this.statusDot = document.getElementById('doubao-status-dot');
         this.statusText = document.getElementById('doubao-status-text');
+        this.imageInput = document.getElementById('doubao-image-input');
+        this.attachBtn = document.getElementById('doubao-attach');
+        this.imagePreviewArea = document.getElementById('image-preview-area');
+        this.previewImg = document.getElementById('preview-img');
+        this.removeImageBtn = document.getElementById('remove-image-btn');
         
         // 如果有保存的API密钥，显示在输入框
         if (this.apiKey) {
@@ -2296,6 +2302,55 @@ class DoubaoAI {
                 this.inputField.focus();
             });
         });
+        
+        // 图片上传
+        this.attachBtn.addEventListener('click', () => {
+            this.imageInput.click();
+        });
+        
+        this.imageInput.addEventListener('change', (e) => {
+            this.handleImageUpload(e);
+        });
+        
+        // 移除图片
+        this.removeImageBtn.addEventListener('click', () => {
+            this.removeImage();
+        });
+    }
+    
+    handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+            alert('请选择图片文件');
+            return;
+        }
+        
+        // 检查文件大小（最大5MB）
+        if (file.size > 5 * 1024 * 1024) {
+            alert('图片大小不能超过5MB');
+            return;
+        }
+        
+        // 读取图片并预览
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            this.currentImage = event.target.result;
+            this.previewImg.src = this.currentImage;
+            this.imagePreviewArea.style.display = 'block';
+            console.log('[DoubaoAI] 图片已上传');
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    removeImage() {
+        this.currentImage = null;
+        this.imageInput.value = '';
+        this.imagePreviewArea.style.display = 'none';
+        this.previewImg.src = '';
+        console.log('[DoubaoAI] 图片已移除');
     }
     
     saveApiKey() {
@@ -2319,7 +2374,7 @@ class DoubaoAI {
         this.isOnline = online;
         if (online) {
             this.statusDot.classList.add('online');
-            this.statusText.textContent = '在线';
+            this.statusText.textContent = '准备就绪';
         } else {
             this.statusDot.classList.remove('online');
             this.statusText.textContent = '离线';
@@ -2328,68 +2383,101 @@ class DoubaoAI {
     
     async sendMessage() {
         const message = this.inputField.value.trim();
-        if (!message) return;
+        if (!message && !this.currentImage) return;
         
         if (!this.apiKey) {
             alert('请先输入并保存API密钥');
             return;
         }
         
-        // 添加用户消息到界面
-        this.addMessage('user', message);
-        this.inputField.value = '';
+        // 构建显示内容
+        let displayContent = message;
+        if (this.currentImage) {
+            displayContent = message + (message ? '<br>' : '') + `<img src="${this.currentImage}" class="message-image">`;
+        }
         
-        // 添加到消息历史
-        this.messages.push({ role: 'user', content: message });
+        // 添加用户消息到界面
+        this.addMessage('user', displayContent, true);
+        this.inputField.value = '';
         
         // 显示加载状态
         this.sendBtn.disabled = true;
         
         try {
-            // 调用豆包API
-            const response = await this.callDoubaoAPI(message);
+            // 调用豆包API（新格式）
+            const response = await this.callDoubaoAPI(message, this.currentImage);
             
             // 添加AI回复到界面
             this.addMessage('assistant', response);
-            this.messages.push({ role: 'assistant', content: response });
+            
+            // 清除图片
+            this.removeImage();
             
         } catch (error) {
             console.error('[DoubaoAI] API调用失败:', error);
-            this.addMessage('system', '抱歉，请求失败，请检查API密钥是否正确。');
+            this.addMessage('system', '抱歉，请求失败，请检查API密钥是否正确。错误信息：' + error.message);
             this.updateStatus(false);
         } finally {
             this.sendBtn.disabled = false;
         }
     }
     
-    async callDoubaoAPI(message) {
-        // 豆包API调用（使用火山引擎API）
-        const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+    async callDoubaoAPI(text, imageData) {
+        // 构建content数组
+        const content = [];
+        
+        // 如果有图片，先添加图片
+        if (imageData) {
+            content.push({
+                type: 'input_image',
+                image_url: imageData
+            });
+        }
+        
+        // 添加文本
+        if (text) {
+            content.push({
+                type: 'input_text',
+                text: text
+            });
+        }
+        
+        // 新API格式（/api/v3/responses）
+        const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/responses', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`
             },
             body: JSON.stringify({
-                model: 'doubao-pro-32k',
-                messages: [
-                    { role: 'system', content: '你是一个 helpful assistant' },
-                    ...this.messages.slice(-10), // 保留最近10条消息
-                    { role: 'user', content: message }
-                ],
-                stream: false
+                model: 'doubao-seed-2-0-pro-260215',
+                input: [
+                    {
+                        role: 'user',
+                        content: content
+                    }
+                ]
             })
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        return data.choices[0].message.content;
+        
+        // 解析响应（根据实际API返回格式调整）
+        if (data.output && data.output[0] && data.output[0].content) {
+            return data.output[0].content[0].text;
+        } else if (data.choices && data.choices[0]) {
+            return data.choices[0].message.content;
+        } else {
+            return JSON.stringify(data);
+        }
     }
     
-    addMessage(type, content) {
+    addMessage(type, content, isHtml = false) {
         // 隐藏欢迎消息
         const welcomeMsg = this.messagesContainer.querySelector('.doubao-welcome');
         if (welcomeMsg) {
@@ -2403,12 +2491,14 @@ class DoubaoAI {
             ? '<i class="fas fa-user"></i>' 
             : (type === 'system' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-brain"></i>');
         
+        const contentHtml = isHtml ? content : `<p>${this.escapeHtml(content)}</p>`;
+        
         messageDiv.innerHTML = `
             <div class="avatar">
                 ${avatar}
             </div>
             <div class="content">
-                <p>${this.escapeHtml(content)}</p>
+                ${contentHtml}
             </div>
         `;
         
