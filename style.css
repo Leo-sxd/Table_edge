@@ -2068,7 +2068,7 @@ body.modal-open {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #8c00ff, transparent);
+    background: #8c00ff;
 }
 
 .doubao-title {
