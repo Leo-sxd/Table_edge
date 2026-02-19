@@ -3232,16 +3232,40 @@ class DoubaoVoiceSettings {
             // 语音输入快捷键
             if (shortcut === this.voiceShortcut) {
                 e.preventDefault();
-                if (window.doubaoAI) {
-                    window.doubaoAI.toggleVoiceInput();
+                const isAlwaysOn = this.voiceInputToggle && this.voiceInputToggle.checked;
+                
+                if (isAlwaysOn) {
+                    // 一键常开开启：快捷键打开并保持
+                    if (window.doubaoAI && window.voiceManager && !window.voiceManager.isRecording) {
+                        window.voiceManager.startVoiceInput();
+                        console.log('[VoiceSettings] 一键常开模式：语音输入已启动并保持');
+                    }
+                } else {
+                    // 一键常开关闭：快捷键触发单次功能（切换）
+                    if (window.doubaoAI && window.voiceManager) {
+                        window.voiceManager.toggleVoiceInput();
+                        console.log('[VoiceSettings] 单次模式：语音输入已切换');
+                    }
                 }
             }
             
             // 朗读模式快捷键
             if (shortcut === this.ttsShortcut) {
                 e.preventDefault();
-                if (window.doubaoAI) {
-                    window.doubaoAI.toggleTts();
+                const isAlwaysOn = this.ttsToggle && this.ttsToggle.checked;
+                
+                if (isAlwaysOn) {
+                    // 一键常开开启：自动朗读开启并保持
+                    if (window.doubaoAI) {
+                        window.doubaoAI.autoTtsEnabled = true;
+                        console.log('[VoiceSettings] 一键常开模式：自动朗读已开启并保持');
+                    }
+                } else {
+                    // 一键常开关闭：快捷键触发单次朗读（朗读最后一条AI消息）
+                    if (window.doubaoAI) {
+                        window.doubaoAI.speakLastMessage();
+                        console.log('[VoiceSettings] 单次模式：朗读最后一条消息');
+                    }
                 }
             }
         });
