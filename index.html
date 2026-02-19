@@ -179,6 +179,34 @@
                             <div class="shortcut-hint">按组合键设置，推荐Ctrl+Shift+C</div>
                         </div>
                     </div>
+                    
+                    <!-- AI网站控制语音输入 -->
+                    <div class="effect-control">
+                        <div class="effect-header">
+                            <div class="effect-title-group">
+                                <span class="effect-name">AI控制语音输入</span>
+                                <span class="effect-badge">一键常开</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="ai-control-voice-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="effect-description">
+                            <small>开启后，AI网站控制语音输入将持续监听，无需手动点击；关闭后，语音输入将在10秒无操作后自动关闭</small>
+                        </div>
+                        <!-- 快捷键设置 -->
+                        <div class="shortcut-control" id="ai-control-voice-shortcut-control">
+                            <div class="shortcut-label">设置快捷键:</div>
+                            <div class="shortcut-input-group">
+                                <input type="text" id="ai-control-voice-shortcut" class="shortcut-input" placeholder="点击设置快捷键" readonly>
+                                <button class="shortcut-clear-btn" id="clear-ai-control-voice-shortcut" title="清除快捷键">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="shortcut-hint">按组合键设置，推荐Ctrl+Shift+A</div>
+                        </div>
+                    </div>
                 </div>
                 
             </div>
@@ -363,6 +391,9 @@
                     </div>
                     <div class="ai-control-input-wrapper">
                         <input type="text" id="ai-control-input" placeholder="例如：把背景换成蓝色，屏保时间改成2分钟...">
+                        <button id="ai-control-voice-btn" class="ai-control-btn ai-voice-btn" title="语音输入">
+                            <i class="fas fa-microphone"></i>
+                        </button>
                         <button id="ai-control-send" class="ai-control-btn">
                             <i class="fas fa-magic"></i>
                         </button>

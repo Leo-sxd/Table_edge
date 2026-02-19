@@ -53,18 +53,204 @@ class AIWebsiteController {
         // 提示标签仅显示提示，不触发操作
         // 用户直接在输入框中输入指令
         
-        const confirmBtn = document.getElementById('code-confirm');
-        const cancelBtn = document.getElementById('code-cancel');
-        
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', () => this.executeConfirmedCode());
+        // 语音输入按钮
+        this.voiceBtn = document.getElementById('ai-control-voice-btn');
+        if (this.voiceBtn) {
+            this.voiceBtn.addEventListener('click', () => this.toggleVoiceInput());
         }
         
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => this.hideConfirmModal());
-        }
+        // 初始化语音识别
+        this.initSpeechRecognition();
+        
+        // 加载语音设置
+        this.loadVoiceSettings();
         
         console.log('[AIControl] 初始化完成');
+    }
+    
+    // 初始化语音识别
+    initSpeechRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            console.warn('[AIControl] 浏览器不支持语音识别');
+            return;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'zh-CN';
+        
+        this.recognition.onstart = () => {
+            console.log('[AIControl] 语音识别已启动');
+            this.isRecording = true;
+            this.updateVoiceButtonState(true);
+        };
+        
+        this.recognition.onend = () => {
+            console.log('[AIControl] 语音识别已结束');
+            this.isRecording = false;
+            this.updateVoiceButtonState(false);
+            
+            if (this.voiceAlwaysOn && !this.isPaused) {
+                setTimeout(() => {
+                    if (this.voiceAlwaysOn && !this.isRecording) {
+                        this.startVoiceInput().catch(err => {
+                            console.error('[AIControl] 自动重启失败:', err);
+                        });
+                    }
+                }, 500);
+            }
+        };
+        
+        this.recognition.onresult = (event) => {
+            let finalTranscript = '';
+            let interimTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+            
+            const input = document.getElementById('ai-control-input');
+            if (input) {
+                if (finalTranscript) {
+                    input.value = finalTranscript;
+                    if (!this.voiceAlwaysOn) {
+                        this.handleControl();
+                    }
+                } else if (interimTranscript) {
+                    input.value = interimTranscript;
+                }
+            }
+        };
+        
+        this.recognition.onerror = (event) => {
+            console.error('[AIControl] 语音识别错误:', event.error);
+            this.isRecording = false;
+            this.updateVoiceButtonState(false);
+        };
+    }
+    
+    toggleVoiceInput() {
+        if (!this.recognition) {
+            alert('您的浏览器不支持语音识别功能');
+            return;
+        }
+        if (this.isRecording) {
+            this.stopVoiceInput();
+        } else {
+            this.startVoiceInput();
+        }
+    }
+    
+    startVoiceInput() {
+        if (!this.recognition) return Promise.reject('不支持语音识别');
+        if (this.isRecording) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            try {
+                this.recognition.start();
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+    
+    stopVoiceInput() {
+        if (!this.recognition || !this.isRecording) return;
+        this.recognition.stop();
+        this.isPaused = true;
+        setTimeout(() => { this.isPaused = false; }, 3000);
+    }
+    
+    updateVoiceButtonState(isRecording) {
+        if (this.voiceBtn) {
+            if (isRecording) {
+                this.voiceBtn.classList.add('recording');
+                this.voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            } else {
+                this.voiceBtn.classList.remove('recording');
+                this.voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+        }
+    }
+    
+    loadVoiceSettings() {
+        const alwaysOn = localStorage.getItem('aiControlVoiceAlwaysOn') === 'true';
+        this.voiceAlwaysOn = alwaysOn;
+        const toggle = document.getElementById('ai-control-voice-toggle');
+        if (toggle) toggle.checked = alwaysOn;
+        
+        this.voiceShortcut = localStorage.getItem('aiControlVoiceShortcut') || '';
+        const shortcutInput = document.getElementById('ai-control-voice-shortcut');
+        if (shortcutInput) shortcutInput.value = this.voiceShortcut;
+        
+        this.bindVoiceSettingsEvents();
+    }
+    
+    bindVoiceSettingsEvents() {
+        const toggle = document.getElementById('ai-control-voice-toggle');
+        if (toggle) {
+            toggle.addEventListener('change', (e) => {
+                this.voiceAlwaysOn = e.target.checked;
+                localStorage.setItem('aiControlVoiceAlwaysOn', this.voiceAlwaysOn);
+                this.showStatus(this.voiceAlwaysOn ? 'AI控制语音输入一键常开已启用' : 'AI控制语音输入一键常开已关闭', 'success');
+            });
+        }
+        
+        const shortcutInput = document.getElementById('ai-control-voice-shortcut');
+        if (shortcutInput) {
+            shortcutInput.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                const keys = [];
+                if (e.ctrlKey) keys.push('Ctrl');
+                if (e.altKey) keys.push('Alt');
+                if (e.shiftKey) keys.push('Shift');
+                if (e.metaKey) keys.push('Meta');
+                if (e.key && !['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+                    keys.push(e.key.toUpperCase());
+                }
+                if (keys.length > 0) {
+                    const shortcut = keys.join('+');
+                    this.voiceShortcut = shortcut;
+                    shortcutInput.value = shortcut;
+                    localStorage.setItem('aiControlVoiceShortcut', shortcut);
+                }
+            });
+        }
+        
+        const clearBtn = document.getElementById('clear-ai-control-voice-shortcut');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.voiceShortcut = '';
+                if (shortcutInput) shortcutInput.value = '';
+                localStorage.removeItem('aiControlVoiceShortcut');
+            });
+        }
+    }
+    
+    handleVoiceShortcut(e) {
+        if (!this.voiceShortcut) return false;
+        const keys = this.voiceShortcut.split('+');
+        const hasCtrl = keys.includes('Ctrl');
+        const hasAlt = keys.includes('Alt');
+        const hasShift = keys.includes('Shift');
+        const hasMeta = keys.includes('Meta');
+        const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
+        
+        if (e.ctrlKey === hasCtrl && e.altKey === hasAlt && 
+            e.shiftKey === hasShift && e.metaKey === hasMeta && 
+            e.key.toUpperCase() === mainKey) {
+            e.preventDefault();
+            this.toggleVoiceInput();
+            return true;
+        }
+        return false;
     }
     
     async handleControl() {
@@ -237,6 +423,230 @@ class AIWebsiteController {
         }
         
         return null;
+    }
+    
+    // 初始化语音识别
+    initSpeechRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            console.warn('[AIControl] 浏览器不支持语音识别');
+            return;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'zh-CN';
+        
+        this.recognition.onstart = () => {
+            console.log('[AIControl] 语音识别已启动');
+            this.isRecording = true;
+            this.updateVoiceButtonState(true);
+        };
+        
+        this.recognition.onend = () => {
+            console.log('[AIControl] 语音识别已结束');
+            this.isRecording = false;
+            this.updateVoiceButtonState(false);
+            
+            // 如果一键常开模式开启，自动重启
+            if (this.voiceAlwaysOn && !this.isPaused) {
+                setTimeout(() => {
+                    if (this.voiceAlwaysOn && !this.isRecording) {
+                        this.startVoiceInput().catch(err => {
+                            console.error('[AIControl] 自动重启失败:', err);
+                        });
+                    }
+                }, 500);
+            }
+        };
+        
+        this.recognition.onresult = (event) => {
+            let finalTranscript = '';
+            let interimTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+            
+            // 更新输入框
+            const input = document.getElementById('ai-control-input');
+            if (input) {
+                if (finalTranscript) {
+                    input.value = finalTranscript;
+                    // 如果不是一键常开模式，自动执行
+                    if (!this.voiceAlwaysOn) {
+                        this.handleControl();
+                    }
+                } else if (interimTranscript) {
+                    input.value = interimTranscript;
+                }
+            }
+        };
+        
+        this.recognition.onerror = (event) => {
+            console.error('[AIControl] 语音识别错误:', event.error);
+            this.isRecording = false;
+            this.updateVoiceButtonState(false);
+        };
+    }
+    
+    // 切换语音输入
+    toggleVoiceInput() {
+        if (!this.recognition) {
+            alert('您的浏览器不支持语音识别功能');
+            return;
+        }
+        
+        if (this.isRecording) {
+            this.stopVoiceInput();
+        } else {
+            this.startVoiceInput();
+        }
+    }
+    
+    // 启动语音输入
+    startVoiceInput() {
+        if (!this.recognition) {
+            return Promise.reject('不支持语音识别');
+        }
+        
+        if (this.isRecording) {
+            return Promise.resolve();
+        }
+        
+        return new Promise((resolve, reject) => {
+            try {
+                this.recognition.start();
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+    
+    // 停止语音输入
+    stopVoiceInput() {
+        if (!this.recognition || !this.isRecording) {
+            return;
+        }
+        
+        this.recognition.stop();
+        this.isPaused = true;
+        
+        // 3秒后恢复自动重启
+        setTimeout(() => {
+            this.isPaused = false;
+        }, 3000);
+    }
+    
+    // 更新语音按钮状态
+    updateVoiceButtonState(isRecording) {
+        if (this.voiceBtn) {
+            if (isRecording) {
+                this.voiceBtn.classList.add('recording');
+                this.voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            } else {
+                this.voiceBtn.classList.remove('recording');
+                this.voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+        }
+    }
+    
+    // 加载语音设置
+    loadVoiceSettings() {
+        // 一键常开模式
+        const alwaysOn = localStorage.getItem('aiControlVoiceAlwaysOn') === 'true';
+        this.voiceAlwaysOn = alwaysOn;
+        
+        const toggle = document.getElementById('ai-control-voice-toggle');
+        if (toggle) {
+            toggle.checked = alwaysOn;
+        }
+        
+        // 快捷键
+        this.voiceShortcut = localStorage.getItem('aiControlVoiceShortcut') || '';
+        const shortcutInput = document.getElementById('ai-control-voice-shortcut');
+        if (shortcutInput) {
+            shortcutInput.value = this.voiceShortcut;
+        }
+        
+        // 绑定设置事件
+        this.bindVoiceSettingsEvents();
+    }
+    
+    // 绑定语音设置事件
+    bindVoiceSettingsEvents() {
+        // 一键常开开关
+        const toggle = document.getElementById('ai-control-voice-toggle');
+        if (toggle) {
+            toggle.addEventListener('change', (e) => {
+                this.voiceAlwaysOn = e.target.checked;
+                localStorage.setItem('aiControlVoiceAlwaysOn', this.voiceAlwaysOn);
+                this.showStatus(this.voiceAlwaysOn ? 'AI控制语音输入一键常开已启用' : 'AI控制语音输入一键常开已关闭', 'success');
+            });
+        }
+        
+        // 快捷键设置
+        const shortcutInput = document.getElementById('ai-control-voice-shortcut');
+        if (shortcutInput) {
+            shortcutInput.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                const keys = [];
+                if (e.ctrlKey) keys.push('Ctrl');
+                if (e.altKey) keys.push('Alt');
+                if (e.shiftKey) keys.push('Shift');
+                if (e.metaKey) keys.push('Meta');
+                if (e.key && !['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+                    keys.push(e.key.toUpperCase());
+                }
+                
+                if (keys.length > 0) {
+                    const shortcut = keys.join('+');
+                    this.voiceShortcut = shortcut;
+                    shortcutInput.value = shortcut;
+                    localStorage.setItem('aiControlVoiceShortcut', shortcut);
+                }
+            });
+        }
+        
+        // 清除快捷键
+        const clearBtn = document.getElementById('clear-ai-control-voice-shortcut');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.voiceShortcut = '';
+                if (shortcutInput) shortcutInput.value = '';
+                localStorage.removeItem('aiControlVoiceShortcut');
+            });
+        }
+    }
+    
+    // 处理语音快捷键
+    handleVoiceShortcut(e) {
+        if (!this.voiceShortcut) return false;
+        
+        const keys = this.voiceShortcut.split('+');
+        const hasCtrl = keys.includes('Ctrl');
+        const hasAlt = keys.includes('Alt');
+        const hasShift = keys.includes('Shift');
+        const hasMeta = keys.includes('Meta');
+        const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
+        
+        if (e.ctrlKey === hasCtrl && 
+            e.altKey === hasAlt && 
+            e.shiftKey === hasShift && 
+            e.metaKey === hasMeta && 
+            e.key.toUpperCase() === mainKey) {
+            e.preventDefault();
+            this.toggleVoiceInput();
+            return true;
+        }
+        return false;
     }
     
     async callAIForCode(command) {
@@ -3916,6 +4326,11 @@ class DoubaoVoiceSettings {
                 e.stopPropagation();
                 console.log('[VoiceSettings] 语音输入快捷键触发:', shortcut);
                 this.handleVoiceInputShortcut();
+            }
+            
+            // AI控制语音快捷键
+            if (window.aiController && window.aiController.handleVoiceShortcut(e)) {
+                return;
             }
             
             // 朗读模式快捷键
