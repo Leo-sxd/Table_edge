@@ -2626,15 +2626,30 @@ class DoubaoAI {
             </div>
         ` : '';
         
-        messageDiv.innerHTML = `
-            <div class="avatar">
-                ${avatar}
-            </div>
-            <div class="content">
-                ${headerHtml}
-                ${contentHtml}
-            </div>
-        `;
+        // 根据消息类型调整HTML结构顺序
+        // AI消息：头像在左，内容在右
+        // 用户消息：内容在左，头像在右
+        if (type === 'user') {
+            messageDiv.innerHTML = `
+                <div class="content">
+                    ${headerHtml}
+                    ${contentHtml}
+                </div>
+                <div class="avatar">
+                    ${avatar}
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="avatar">
+                    ${avatar}
+                </div>
+                <div class="content">
+                    ${headerHtml}
+                    ${contentHtml}
+                </div>
+            `;
+        }
         
         // 保存文本数据用于朗读
         if (textToSpeak) {
