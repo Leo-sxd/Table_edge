@@ -2935,18 +2935,53 @@ class VoiceManager {
         }
         
         if (this.isRecording) {
-            this.recognition.stop();
+            this.stopVoiceInput();
         } else {
-            // 请求麦克风权限
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(() => {
-                    this.recognition.start();
-                })
-                .catch((err) => {
-                    console.error('[Voice] 麦克风权限错误:', err);
-                    alert('无法访问麦克风，请检查权限设置');
-                });
+            this.startVoiceInput();
         }
+    }
+    
+    // 启动语音输入
+    startVoiceInput() {
+        if (!this.recognition) {
+            console.error('[Voice] 浏览器不支持语音识别');
+            return Promise.reject('不支持语音识别');
+        }
+        
+        if (this.isRecording) {
+            console.log('[Voice] 已经在录音中');
+            return Promise.resolve();
+        }
+        
+        console.log('[Voice] 请求麦克风权限...');
+        
+        // 请求麦克风权限并启动
+        return navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(() => {
+                console.log('[Voice] 麦克风权限已获取，启动语音识别...');
+                this.recognition.start();
+                return Promise.resolve();
+            })
+            .catch((err) => {
+                console.error('[Voice] 麦克风权限错误:', err);
+                throw err;
+            });
+    }
+    
+    // 停止语音输入
+    stopVoiceInput() {
+        if (!this.recognition) {
+            console.error('[Voice] 浏览器不支持语音识别');
+            return;
+        }
+        
+        if (!this.isRecording) {
+            console.log('[Voice] 没有正在进行的录音');
+            return;
+        }
+        
+        console.log('[Voice] 停止语音识别...');
+        this.recognition.stop();
     }
     
     updateVoiceButtonState(isRecording) {
@@ -3360,15 +3395,15 @@ class DoubaoVoiceSettings {
         this.voiceInputActive = true;
         
         // 立即启动语音识别
-        try {
-            window.voiceManager.startVoiceInput();
-            console.log('[VoiceSettings] 语音识别已启动');
-        } catch (err) {
-            console.error('[VoiceSettings] 启动语音识别失败:', err);
-            this.showNotification('启动语音识别失败: ' + err.message);
-            this.voiceInputActive = false;
-            return;
-        }
+        window.voiceManager.startVoiceInput()
+            .then(() => {
+                console.log('[VoiceSettings] 语音识别已启动');
+            })
+            .catch((err) => {
+                console.error('[VoiceSettings] 启动语音识别失败:', err);
+                this.showNotification('启动语音识别失败: ' + err.message);
+                this.voiceInputActive = false;
+            });
         
         // 保存状态到localStorage
         this.saveSetting('voiceInputActive', 'true');
@@ -3383,11 +3418,10 @@ class DoubaoVoiceSettings {
             // 如果不在录音状态，重新启动
             if (!window.voiceManager.isRecording) {
                 console.log('[VoiceSettings] 检测到录音停止，重新启动...');
-                try {
-                    window.voiceManager.startVoiceInput();
-                } catch (err) {
-                    console.error('[VoiceSettings] 重新启动语音识别失败:', err);
-                }
+                window.voiceManager.startVoiceInput()
+                    .catch((err) => {
+                        console.error('[VoiceSettings] 重新启动语音识别失败:', err);
+                    });
             }
             
             // 每3秒检查一次
@@ -3431,14 +3465,15 @@ class DoubaoVoiceSettings {
         this.voiceInputActive = true;
         
         // 启动单次监听
-        try {
-            window.voiceManager.startVoiceInput();
-        } catch (err) {
-            console.error('[VoiceSettings] 启动单次语音识别失败:', err);
-            this.showNotification('启动失败: ' + err.message);
-            this.voiceInputActive = false;
-            return;
-        }
+        window.voiceManager.startVoiceInput()
+            .then(() => {
+                console.log('[VoiceSettings] 单次语音识别已启动');
+            })
+            .catch((err) => {
+                console.error('[VoiceSettings] 启动单次语音识别失败:', err);
+                this.showNotification('启动失败: ' + err.message);
+                this.voiceInputActive = false;
+            });
         
         // 10秒后自动停止
         setTimeout(() => {
