@@ -2584,14 +2584,17 @@ class DoubaoAI {
         // 处理包含思考内容的对象
         if (typeof content === 'object' && content !== null && (content.thinking || content.text)) {
             let html = '';
+            console.log('[DoubaoAI] addMessage收到对象:', 'thinking长度:', content.thinking ? content.thinking.length : 0, 'text长度:', content.text ? content.text.length : 0);
             // 添加思考部分（如果有）
-            if (content.thinking) {
+            if (content.thinking && content.thinking.trim()) {
                 const processedThinking = this.processAiText(content.thinking);
+                console.log('[DoubaoAI] 添加思考部分到界面');
                 html += `<div class="thinking-content"><div class="thinking-label"><i class="fas fa-brain"></i> 思考过程</div><p>${processedThinking}</p></div>`;
             }
             // 添加回复部分（如果有）
-            if (content.text) {
+            if (content.text && content.text.trim()) {
                 const processedText = this.processAiText(content.text);
+                console.log('[DoubaoAI] 添加回复部分到界面');
                 html += `<div class="response-content"><p>${processedText}</p></div>`;
             }
             contentHtml = html;
@@ -2618,7 +2621,7 @@ class DoubaoAI {
     
     extractTextFromResponse(data) {
         console.log('[DoubaoAI] 开始解析响应:', typeof data);
-        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 3000));
+        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 5000));
         
         // 尝试多种可能的响应格式，提取文本内容和思考内容
         let thinkingText = null;
@@ -2632,21 +2635,25 @@ class DoubaoAI {
             
             for (let i = 0; i < data.output.length; i++) {
                 let item = data.output[i];
-                console.log('[DoubaoAI] 检查output[', i, ']: type=', item.type);
+                console.log('[DoubaoAI] 检查output[', i, ']: type=', item.type, 'role=', item.role);
+                console.log('[DoubaoAI] item内容:', JSON.stringify(item).substring(0, 500));
                 
                 // 提取思考内容 (type="reasoning")
                 if (item.type === 'reasoning') {
                     console.log('[DoubaoAI] 找到reasoning类型output');
                     if (item.content && Array.isArray(item.content)) {
-                        for (let content of item.content) {
+                        console.log('[DoubaoAI] reasoning content数组长度:', item.content.length);
+                        for (let j = 0; j < item.content.length; j++) {
+                            let content = item.content[j];
+                            console.log('[DoubaoAI] 检查reasoning content[', j, ']:', content);
                             if (content.type === 'output_text' && content.text) {
                                 thinkingText = content.text;
-                                console.log('[DoubaoAI] 提取到思考内容:', thinkingText.substring(0, 100));
-                            } else if (content.text) {
-                                thinkingText = content.text;
-                                console.log('[DoubaoAI] 提取到思考内容(备用):', thinkingText.substring(0, 100));
+                                console.log('[DoubaoAI] 提取到思考内容长度:', thinkingText.length);
+                                console.log('[DoubaoAI] 思考内容前100字:', thinkingText.substring(0, 100));
                             }
                         }
+                    } else {
+                        console.log('[DoubaoAI] reasoning没有content数组:', item.content);
                     }
                 }
                 
@@ -2654,15 +2661,18 @@ class DoubaoAI {
                 if (item.type === 'message') {
                     console.log('[DoubaoAI] 找到message类型output');
                     if (item.content && Array.isArray(item.content)) {
-                        for (let content of item.content) {
+                        console.log('[DoubaoAI] message content数组长度:', item.content.length);
+                        for (let j = 0; j < item.content.length; j++) {
+                            let content = item.content[j];
+                            console.log('[DoubaoAI] 检查message content[', j, ']:', content);
                             if (content.type === 'output_text' && content.text) {
                                 responseText = content.text;
-                                console.log('[DoubaoAI] 提取到回复内容:', responseText.substring(0, 100));
-                            } else if (content.text) {
-                                responseText = content.text;
-                                console.log('[DoubaoAI] 提取到回复内容(备用):', responseText.substring(0, 100));
+                                console.log('[DoubaoAI] 提取到回复内容长度:', responseText.length);
+                                console.log('[DoubaoAI] 回复内容前100字:', responseText.substring(0, 100));
                             }
                         }
+                    } else {
+                        console.log('[DoubaoAI] message没有content数组:', item.content);
                     }
                 }
             }
@@ -2670,7 +2680,7 @@ class DoubaoAI {
         
         // 如果找到了思考内容或回复内容，返回组合对象
         if (thinkingText || responseText) {
-            console.log('[DoubaoAI] 成功提取 - 思考:', !!thinkingText, '回复:', !!responseText);
+            console.log('[DoubaoAI] 成功提取 - 思考长度:', thinkingText ? thinkingText.length : 0, '回复长度:', responseText ? responseText.length : 0);
             return {
                 thinking: thinkingText,
                 text: responseText
