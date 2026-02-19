@@ -2856,7 +2856,7 @@ body.modal-open {
 
 .api-toggle-btn-header {
     position: absolute;
-    right: 0;
+    right: 15px; /* 向右移动，与边缘保持15px间距 */
     top: 0;
     width: 40px;
     height: 40px;
@@ -2888,7 +2888,7 @@ body.modal-open {
 .api-panel-header {
     position: absolute;
     top: 50px;
-    right: 0;
+    right: 15px; /* 与按钮保持一致的右边距 */
     width: 320px;
     background: rgba(30, 30, 50, 0.95);
     backdrop-filter: blur(10px);
