@@ -2612,7 +2612,7 @@ class DoubaoAI {
     
     extractTextFromResponse(data) {
         console.log('[DoubaoAI] 开始解析响应:', typeof data);
-        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 1000));
+        console.log('[DoubaoAI] 响应数据:', JSON.stringify(data, null, 2).substring(0, 2000));
         
         // 尝试多种可能的响应格式，提取文本内容和思考内容
         let thinkingText = null;
@@ -2624,12 +2624,26 @@ class DoubaoAI {
             for (let i = 0; i < data.output.length; i++) {
                 let item = data.output[i];
                 console.log('[DoubaoAI] 检查output[', i, ']:', item);
+                
+                // 检查item是否有reasoning字段（思考内容）
+                if (item.reasoning) {
+                    if (typeof item.reasoning === 'string') {
+                        thinkingText = item.reasoning;
+                    } else if (item.reasoning.content) {
+                        thinkingText = item.reasoning.content;
+                    }
+                    if (thinkingText) {
+                        console.log('[DoubaoAI] 找到item.reasoning内容:', thinkingText.substring(0, 100));
+                    }
+                }
+                
                 if (item.content && Array.isArray(item.content)) {
                     console.log('[DoubaoAI] 检测到content数组，长度:', item.content.length);
                     for (let j = 0; j < item.content.length; j++) {
                         let content = item.content[j];
                         console.log('[DoubaoAI] 检查content[', j, ']:', content);
-                        // 提取thinking类型的内容（多种可能的格式）
+                        
+                        // 提取thinking类型的内容
                         if (content.type === 'thinking') {
                             thinkingText = content.thinking || content.content || content.text;
                             if (thinkingText) {
@@ -2648,13 +2662,31 @@ class DoubaoAI {
                             responseText = content.text;
                             console.log('[DoubaoAI] 找到text内容:', responseText.substring(0, 100));
                         }
-                        // 如果content有reasoning字段，也提取为思考内容
-                        if (content.reasoning && typeof content.reasoning === 'string') {
-                            thinkingText = content.reasoning;
-                            console.log('[DoubaoAI] 找到reasoning字段:', thinkingText.substring(0, 100));
+                        // 如果content有reasoning字段
+                        if (content.reasoning) {
+                            if (typeof content.reasoning === 'string') {
+                                thinkingText = content.reasoning;
+                            } else if (content.reasoning.content) {
+                                thinkingText = content.reasoning.content;
+                            }
+                            if (thinkingText) {
+                                console.log('[DoubaoAI] 找到content.reasoning:', thinkingText.substring(0, 100));
+                            }
                         }
                     }
                 }
+            }
+        }
+        
+        // 检查data本身是否有reasoning字段
+        if (data.reasoning) {
+            if (typeof data.reasoning === 'string') {
+                thinkingText = data.reasoning;
+            } else if (data.reasoning.content) {
+                thinkingText = data.reasoning.content;
+            }
+            if (thinkingText) {
+                console.log('[DoubaoAI] 找到data.reasoning:', thinkingText.substring(0, 100));
             }
         }
         
