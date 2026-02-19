@@ -2228,7 +2228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
 });
 
-// ==================== 豆包AI功能 ====================
+// ==================== AI语音功能 ====================
 class DoubaoAI {
     constructor() {
         this.apiKey = localStorage.getItem('doubao_api_key') || '';
