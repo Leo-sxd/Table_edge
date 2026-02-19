@@ -2646,10 +2646,9 @@ class DoubaoAI {
         }
         // 先将\n转换为实际换行符，再进行HTML转义
         let processed = text
-            .replace(/\n/g, '
-')      // 将字符串\n转为换行符
-            .replace(/\t/g, '	')      // 将字符串\t转为制表符
-            .replace(/\\/g, '\');    // 处理\\转义
+            .replace(/\n/g, '<br>')      // 将字符串\n转为HTML换行符
+            .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')      // 将字符串\t转为制表符
+            .replace(/\\/g, '\\');    // 处理\\转义
         
         const div = document.createElement('div');
         div.textContent = processed;
@@ -2665,9 +2664,9 @@ class DoubaoAI {
         return text
             .replace(/\n/g, '<br>')     // 将\n转为HTML换行
             .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')  // 将\t转为空格
-            .replace(/\\/g, '\')     // 处理\\转义
-            .replace(/\"/g, '"')       // 处理\"转义
-            .replace(/\'/g, "'");       // 处理\'转义
+            .replace(/\\/g, '\\')     // 处理反斜杠转义
+            .replace(/\"/g, '"')       
+            .replace(/\'/g, "'");       
     }
 }
 
