@@ -2654,6 +2654,15 @@ class DoubaoAI {
         // 保存文本数据用于朗读
         if (textToSpeak) {
             messageDiv.dataset.text = textToSpeak;
+            console.log('[DoubaoAI] 消息文本已保存到dataset');
+        }
+        
+        // 如果开启了自动朗读，朗读AI回复
+        if (type === 'assistant' && textToSpeak && this.autoTtsEnabled && window.voiceManager) {
+            console.log('[DoubaoAI] 自动朗读已启用，开始朗读');
+            setTimeout(() => {
+                window.voiceManager.speak(textToSpeak);
+            }, 500);
         }
         
         this.messagesContainer.appendChild(messageDiv);
@@ -3264,6 +3273,8 @@ class DoubaoVoiceSettings {
     }
     
     handleVoiceInputShortcut() {
+        console.log('[VoiceSettings] 处理语音输入快捷键，当前状态:', this.voiceInputActive);
+        
         const isAlwaysOn = this.voiceInputToggle && this.voiceInputToggle.checked;
         
         if (isAlwaysOn) {
@@ -3279,12 +3290,21 @@ class DoubaoVoiceSettings {
             }
         } else {
             // 单次模式：触发一次语音输入，超时后自动关闭
-            this.startVoiceInputSingle();
-            this.showNotification('语音输入已启动（单次模式，10秒后自动关闭）');
+            if (this.voiceInputActive) {
+                // 如果已经在运行，先停止
+                this.stopVoiceInput();
+                this.showNotification('语音输入已停止');
+            } else {
+                // 启动单次模式
+                this.startVoiceInputSingle();
+                this.showNotification('语音输入已启动（单次模式，10秒后自动关闭）');
+            }
         }
     }
     
     handleTtsShortcut() {
+        console.log('[VoiceSettings] 处理朗读模式快捷键，当前状态:', this.ttsActive);
+        
         const isAlwaysOn = this.ttsToggle && this.ttsToggle.checked;
         
         if (isAlwaysOn) {
@@ -3303,65 +3323,127 @@ class DoubaoVoiceSettings {
                     window.doubaoAI.autoTtsEnabled = true;
                 }
                 this.showNotification('朗读模式已开启（一键常开模式）');
+                
+                // 立即朗读最后一条消息作为演示
+                if (window.doubaoAI) {
+                    setTimeout(() => {
+                        window.doubaoAI.speakLastMessage();
+                    }, 500);
+                }
             }
         } else {
             // 单次模式：朗读最后一条消息
             if (window.doubaoAI) {
                 window.doubaoAI.speakLastMessage();
                 this.showNotification('正在朗读最后一条消息');
+            } else {
+                this.showNotification('朗读功能未就绪');
             }
         }
     }
     
     startVoiceInput() {
+        console.log('[VoiceSettings] 启动语音输入...');
+        
         if (!window.voiceManager) {
-            this.showNotification('语音功能未初始化');
+            this.showNotification('语音功能未初始化，请刷新页面重试');
+            console.error('[VoiceSettings] voiceManager未初始化');
+            return;
+        }
+        
+        if (!window.voiceManager.recognition) {
+            this.showNotification('浏览器不支持语音识别');
+            console.error('[VoiceSettings] 浏览器不支持语音识别');
             return;
         }
         
         this.voiceInputActive = true;
         
-        // 启动持续监听
-        const startListening = () => {
-            if (!this.voiceInputActive) return;
-            
-            if (!window.voiceManager.isRecording) {
-                window.voiceManager.startVoiceInput();
-            }
-            
-            // 每5秒检查一次，确保持续监听
-            setTimeout(startListening, 5000);
-        };
-        
-        startListening();
+        // 立即启动语音识别
+        try {
+            window.voiceManager.startVoiceInput();
+            console.log('[VoiceSettings] 语音识别已启动');
+        } catch (err) {
+            console.error('[VoiceSettings] 启动语音识别失败:', err);
+            this.showNotification('启动语音识别失败: ' + err.message);
+            this.voiceInputActive = false;
+            return;
+        }
         
         // 保存状态到localStorage
         this.saveSetting('voiceInputActive', 'true');
+        
+        // 启动持续监听循环
+        const keepListening = () => {
+            if (!this.voiceInputActive) {
+                console.log('[VoiceSettings] 语音输入已停止，退出监听循环');
+                return;
+            }
+            
+            // 如果不在录音状态，重新启动
+            if (!window.voiceManager.isRecording) {
+                console.log('[VoiceSettings] 检测到录音停止，重新启动...');
+                try {
+                    window.voiceManager.startVoiceInput();
+                } catch (err) {
+                    console.error('[VoiceSettings] 重新启动语音识别失败:', err);
+                }
+            }
+            
+            // 每3秒检查一次
+            setTimeout(keepListening, 3000);
+        };
+        
+        // 延迟启动监听循环，避免与初始启动冲突
+        setTimeout(keepListening, 1000);
     }
     
     stopVoiceInput() {
+        console.log('[VoiceSettings] 停止语音输入...');
+        
         this.voiceInputActive = false;
         
-        if (window.voiceManager && window.voiceManager.isRecording) {
-            window.voiceManager.stopVoiceInput();
+        if (window.voiceManager) {
+            try {
+                window.voiceManager.stopVoiceInput();
+                console.log('[VoiceSettings] 语音识别已停止');
+            } catch (err) {
+                console.error('[VoiceSettings] 停止语音识别失败:', err);
+            }
         }
         
         this.saveSetting('voiceInputActive', 'false');
     }
     
     startVoiceInputSingle() {
+        console.log('[VoiceSettings] 启动单次语音输入...');
+        
         if (!window.voiceManager) {
             this.showNotification('语音功能未初始化');
             return;
         }
         
+        if (!window.voiceManager.recognition) {
+            this.showNotification('浏览器不支持语音识别');
+            return;
+        }
+        
+        this.voiceInputActive = true;
+        
         // 启动单次监听
-        window.voiceManager.startVoiceInput();
+        try {
+            window.voiceManager.startVoiceInput();
+        } catch (err) {
+            console.error('[VoiceSettings] 启动单次语音识别失败:', err);
+            this.showNotification('启动失败: ' + err.message);
+            this.voiceInputActive = false;
+            return;
+        }
         
         // 10秒后自动停止
         setTimeout(() => {
-            if (window.voiceManager && window.voiceManager.isRecording) {
-                window.voiceManager.stopVoiceInput();
+            if (this.voiceInputActive) {
+                this.stopVoiceInput();
                 this.showNotification('语音输入已自动关闭');
             }
         }, 10000);
