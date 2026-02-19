@@ -2857,6 +2857,26 @@ class VoiceManager {
                 this.isRecording = false;
                 this.updateVoiceButtonState(false);
                 console.log('[Voice] 语音识别已结束');
+                
+                // 检查是否是一键常开模式且应该继续保持监听
+                const isAlwaysOn = window.doubaoVoiceSettings && 
+                                   window.doubaoVoiceSettings.voiceInputToggle && 
+                                   window.doubaoVoiceSettings.voiceInputToggle.checked;
+                
+                if (isAlwaysOn && window.doubaoVoiceSettings && window.doubaoVoiceSettings.voiceInputActive) {
+                    console.log('[Voice] 一键常开模式：准备自动重启...');
+                    // 短暂延迟后自动重新启动
+                    setTimeout(() => {
+                        if (window.doubaoVoiceSettings && window.doubaoVoiceSettings.voiceInputActive) {
+                            console.log('[Voice] 自动重新启动语音识别');
+                            this.startVoiceInput().catch(err => {
+                                console.error('[Voice] 自动重启失败:', err);
+                                // 如果重启失败，停止一键常开模式
+                                window.doubaoVoiceSettings.stopVoiceInput();
+                            });
+                        }
+                    }, 500);
+                }
             };
             
             this.recognition.onresult = (event) => {
@@ -2891,24 +2911,54 @@ class VoiceManager {
             
             this.recognition.onerror = (event) => {
                 console.error('[Voice] 语音识别错误:', event.error);
-                this.isRecording = false;
-                this.updateVoiceButtonState(false);
                 
-                let errorMsg = '语音识别出错';
-                switch(event.error) {
-                    case 'no-speech':
-                        errorMsg = '未检测到语音，请重试';
-                        break;
-                    case 'audio-capture':
-                        errorMsg = '无法访问麦克风';
-                        break;
-                    case 'not-allowed':
-                        errorMsg = '麦克风权限被拒绝';
-                        break;
+                // 检查是否是一键常开模式
+                const isAlwaysOn = window.doubaoVoiceSettings && 
+                                   window.doubaoVoiceSettings.voiceInputToggle && 
+                                   window.doubaoVoiceSettings.voiceInputToggle.checked;
+                
+                // 清空输入栏
+                const inputField = document.getElementById('doubao-input');
+                if (inputField) {
+                    inputField.value = '';
                 }
                 
-                if (window.doubaoAI) {
-                    window.doubaoAI.addMessage('system', errorMsg);
+                switch(event.error) {
+                    case 'no-speech':
+                        // 未检测到语音，不显示提示，静默处理
+                        console.log('[Voice] 未检测到语音，已清空输入栏');
+                        // 如果是一键常开模式且长时间未检测到语音，保持监听状态
+                        if (isAlwaysOn && window.doubaoVoiceSettings && window.doubaoVoiceSettings.voiceInputActive) {
+                            console.log('[Voice] 一键常开模式：继续保持监听');
+                            // 3秒后自动重新启动（如果需要）
+                            setTimeout(() => {
+                                if (window.doubaoVoiceSettings && window.doubaoVoiceSettings.voiceInputActive && !this.isRecording) {
+                                    console.log('[Voice] 自动重新启动语音识别');
+                                    this.startVoiceInput().catch(err => console.error('[Voice] 自动重启失败:', err));
+                                }
+                            }, 3000);
+                        }
+                        break;
+                    case 'audio-capture':
+                        this.isRecording = false;
+                        this.updateVoiceButtonState(false);
+                        if (window.doubaoAI) {
+                            window.doubaoAI.addMessage('system', '无法访问麦克风');
+                        }
+                        break;
+                    case 'not-allowed':
+                        this.isRecording = false;
+                        this.updateVoiceButtonState(false);
+                        if (window.doubaoAI) {
+                            window.doubaoAI.addMessage('system', '麦克风权限被拒绝');
+                        }
+                        break;
+                    default:
+                        this.isRecording = false;
+                        this.updateVoiceButtonState(false);
+                        if (window.doubaoAI) {
+                            window.doubaoAI.addMessage('system', '语音识别出错: ' + event.error);
+                        }
                 }
             };
         } else {
@@ -3312,6 +3362,23 @@ class DoubaoVoiceSettings {
         
         const isAlwaysOn = this.voiceInputToggle && this.voiceInputToggle.checked;
         
+        // 当语音输入一键常开功能开启时，自动关闭朗读模式
+        if (isAlwaysOn && !this.voiceInputActive) {
+            console.log('[VoiceSettings] 语音输入一键常开模式开启，自动关闭朗读模式');
+            if (this.ttsActive) {
+                this.ttsActive = false;
+                if (window.doubaoAI) {
+                    window.doubaoAI.autoTtsEnabled = false;
+                }
+                // 更新朗读模式开关UI
+                if (this.ttsToggle) {
+                    this.ttsToggle.checked = false;
+                    this.saveSetting('doubaoTtsEnabled', false);
+                }
+                this.showNotification('朗读模式已自动关闭（语音输入优先）');
+            }
+        }
+        
         if (isAlwaysOn) {
             // 一键常开模式：切换持续监听状态
             if (this.voiceInputActive) {
@@ -3464,6 +3531,9 @@ class DoubaoVoiceSettings {
         
         this.voiceInputActive = true;
         
+        // 记录启动时间
+        const startTime = Date.now();
+        
         // 启动单次监听
         window.voiceManager.startVoiceInput()
             .then(() => {
@@ -3478,7 +3548,20 @@ class DoubaoVoiceSettings {
         // 10秒后自动停止
         setTimeout(() => {
             if (this.voiceInputActive) {
+                // 检查是否检测到过语音（通过检查输入栏是否有内容）
+                const inputField = document.getElementById('doubao-input');
+                const hasDetectedSpeech = inputField && inputField.value.trim().length > 0;
+                
                 this.stopVoiceInput();
+                
+                if (!hasDetectedSpeech) {
+                    // 10秒内未检测到语音，清空输入栏（静默处理，不显示提示）
+                    if (inputField) {
+                        inputField.value = '';
+                    }
+                    console.log('[VoiceSettings] 10秒内未检测到语音，已清空输入栏');
+                }
+                
                 this.showNotification('语音输入已自动关闭');
             }
         }, 10000);
