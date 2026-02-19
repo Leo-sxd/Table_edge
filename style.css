@@ -2102,6 +2102,9 @@ body.modal-open {
 .doubao-welcome {
     text-align: center;
     padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .welcome-avatar {
@@ -2680,3 +2683,56 @@ body.modal-open {
 .doubao-section.right-panel .doubao-api-settings.compact {
     padding: 10px 15px;
 }
+
+/* ==================== 豆包AI消息布局 ==================== */
+/* AI消息（assistant）在左侧 */
+.message.assistant-message {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.message.assistant-message .avatar {
+    order: 0;
+    margin-right: 12px;
+    margin-left: 0;
+}
+
+.message.assistant-message .content {
+    order: 1;
+    background: rgba(255, 255, 255, 0.2);
+    border-top-left-radius: 5px;
+}
+
+/* 用户消息（user）在右侧 */
+.message.user-message {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+.message.user-message .avatar {
+    order: 1;
+    margin-left: 12px;
+    margin-right: 0;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.message.user-message .content {
+    order: 0;
+    background: rgba(102, 126, 234, 0.4);
+    border-top-right-radius: 5px;
+}
+
+/* 系统消息居中 */
+.message:not(.user-message):not(.assistant-message) {
+    justify-content: center;
+}
+
+.message:not(.user-message):not(.assistant-message) .avatar {
+    display: none;
+}
+
+.message:not(.user-message):not(.assistant-message) .content {
+    background: rgba(255, 255, 255, 0.1);
+    max-width: 90%;
+}
+

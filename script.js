@@ -2573,7 +2573,7 @@ class DoubaoAI {
         }
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type === 'user' ? 'user-message' : ''}`;
+        messageDiv.className = `message ${type === 'user' ? 'user-message' : 'assistant-message'}`;
         
         const avatar = type === 'user' 
             ? '<i class="fas fa-user"></i>' 
