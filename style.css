@@ -2141,14 +2141,7 @@ body.modal-open {
     line-height: 1.6;
 }
 
-/* 消息气泡 */
-.message {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    animation: fadeInUp 0.3s ease;
-}
-
+/* 消息气泡基础动画 */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -2158,50 +2151,6 @@ body.modal-open {
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-.message.user-message {
-    flex-direction: row-reverse;
-}
-
-.message .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.message.user-message .avatar {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.message .avatar i {
-    color: white;
-    font-size: 18px;
-}
-
-.message .content {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 12px 18px;
-    border-radius: 18px;
-    max-width: 70%;
-    word-wrap: break-word;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.message.user-message .content {
-    background: rgba(102, 126, 234, 0.4);
-}
-
-.message .content p {
-    margin: 0;
-    color: white;
-    line-height: 1.5;
-    font-size: 15px;
 }
 
 /* 功能快捷按钮 */
@@ -2650,12 +2599,13 @@ body.modal-open {
     align-items: flex-start;
     margin-bottom: 20px;
     width: 100%;
+    animation: fadeInUp 0.3s ease;
 }
 
 /* 豆包AI消息在左侧 */
 .doubao-messages .message.assistant-message {
-    flex-direction: row;
-    justify-content: flex-start;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
 }
 
 .doubao-messages .message.assistant-message .avatar {
@@ -2669,6 +2619,7 @@ body.modal-open {
     flex-shrink: 0;
     margin-right: 12px;
     margin-left: 0;
+    order: 0;
 }
 
 .doubao-messages .message.assistant-message .avatar i {
@@ -2684,12 +2635,20 @@ body.modal-open {
     max-width: 70%;
     word-wrap: break-word;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    order: 1;
+}
+
+.doubao-messages .message.assistant-message .content p {
+    margin: 0;
+    color: white;
+    line-height: 1.5;
+    font-size: 15px;
 }
 
 /* 用户消息在右侧 */
 .doubao-messages .message.user-message {
-    flex-direction: row-reverse;
-    justify-content: flex-start;
+    flex-direction: row-reverse !important;
+    justify-content: flex-start !important;
 }
 
 .doubao-messages .message.user-message .avatar {
@@ -2703,6 +2662,7 @@ body.modal-open {
     flex-shrink: 0;
     margin-left: 12px;
     margin-right: 0;
+    order: 1;
 }
 
 .doubao-messages .message.user-message .avatar i {
@@ -2718,6 +2678,14 @@ body.modal-open {
     max-width: 70%;
     word-wrap: break-word;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    order: 0;
+}
+
+.doubao-messages .message.user-message .content p {
+    margin: 0;
+    color: white;
+    line-height: 1.5;
+    font-size: 15px;
 }
 
 /* 系统消息居中 */
