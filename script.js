@@ -2235,7 +2235,11 @@ class DoubaoAI {
         this.messages = [];
         this.isOnline = false;
         this.currentImage = null; // 存储当前上传的图片
+        this.currentFiles = []; // 存储当前上传的文件列表
         this.deepThinkEnabled = false; // 深度思考模式开关
+        this.webSearchEnabled = false; // 联网搜索开关
+        this.codeRunEnabled = false; // 代码执行开关
+        this.conversationHistory = []; // 对话历史上下文
         
         this.init();
     }
@@ -2290,6 +2294,48 @@ class DoubaoAI {
         if (this.deepThinkBtn) {
             this.deepThinkBtn.addEventListener('click', () => {
                 this.toggleDeepThink();
+            });
+        }
+        
+        // 文件上传按钮
+        this.fileInput = document.getElementById('doubao-file-input');
+        this.fileUploadBtn = document.getElementById('doubao-file-upload');
+        this.filePreviewArea = document.getElementById('file-preview-area');
+        this.filePreviewList = document.getElementById('file-preview-list');
+        
+        if (this.fileUploadBtn) {
+            this.fileUploadBtn.addEventListener('click', () => {
+                this.fileInput.click();
+            });
+        }
+        
+        if (this.fileInput) {
+            this.fileInput.addEventListener('change', (e) => {
+                this.handleFileUpload(e);
+            });
+        }
+        
+        // 联网搜索按钮
+        this.webSearchBtn = document.getElementById('doubao-web-search');
+        if (this.webSearchBtn) {
+            this.webSearchBtn.addEventListener('click', () => {
+                this.toggleWebSearch();
+            });
+        }
+        
+        // 代码执行按钮
+        this.codeRunBtn = document.getElementById('doubao-code-run');
+        if (this.codeRunBtn) {
+            this.codeRunBtn.addEventListener('click', () => {
+                this.toggleCodeRun();
+            });
+        }
+        
+        // 清除上下文按钮
+        this.clearContextBtn = document.getElementById('doubao-clear-context');
+        if (this.clearContextBtn) {
+            this.clearContextBtn.addEventListener('click', () => {
+                this.clearConversationHistory();
             });
         }
         
@@ -2362,6 +2408,105 @@ class DoubaoAI {
         console.log('[DoubaoAI] 图片已移除');
     }
     
+    // 处理文件上传
+    handleFileUpload(e) {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        
+        files.forEach(file => {
+            // 检查文件大小（最大10MB）
+            if (file.size > 10 * 1024 * 1024) {
+                alert(`文件 ${file.name} 超过10MB限制`);
+                return;
+            }
+            
+            // 读取文件内容
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const fileData = {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    content: event.target.result
+                };
+                this.currentFiles.push(fileData);
+                this.updateFilePreview();
+                console.log('[DoubaoAI] 文件已上传:', file.name);
+            };
+            
+            // 根据文件类型选择读取方式
+            if (file.type.startsWith('text/') || file.name.match(/\.(txt|csv|json|js|py|html|css|md)$/i)) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // 清空input以便可以重复选择相同文件
+        this.fileInput.value = '';
+    }
+    
+    // 更新文件预览
+    updateFilePreview() {
+        if (this.currentFiles.length === 0) {
+            this.filePreviewArea.style.display = 'none';
+            return;
+        }
+        
+        this.filePreviewArea.style.display = 'block';
+        this.filePreviewList.innerHTML = this.currentFiles.map((file, index) => `
+            <div class="file-preview-item">
+                <i class="fas fa-file"></i>
+                <span class="file-name">${file.name}</span>
+                <span class="file-size">(${(file.size / 1024).toFixed(1)} KB)</span>
+                <button class="remove-file-btn" onclick="window.doubaoAI.removeFile(${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    // 移除文件
+    removeFile(index) {
+        this.currentFiles.splice(index, 1);
+        this.updateFilePreview();
+        console.log('[DoubaoAI] 文件已移除');
+    }
+    
+    // 切换联网搜索
+    toggleWebSearch() {
+        this.webSearchEnabled = !this.webSearchEnabled;
+        if (this.webSearchBtn) {
+            this.webSearchBtn.classList.toggle('active', this.webSearchEnabled);
+        }
+        console.log('[DoubaoAI] 联网搜索:', this.webSearchEnabled ? '开启' : '关闭');
+        this.addMessage('system', `联网搜索已${this.webSearchEnabled ? '开启' : '关闭'}`);
+    }
+    
+    // 切换代码执行
+    toggleCodeRun() {
+        this.codeRunEnabled = !this.codeRunEnabled;
+        if (this.codeRunBtn) {
+            this.codeRunBtn.classList.toggle('active', this.codeRunEnabled);
+        }
+        console.log('[DoubaoAI] 代码执行:', this.codeRunEnabled ? '开启' : '关闭');
+        this.addMessage('system', `代码执行已${this.codeRunEnabled ? '开启' : '关闭'}`);
+    }
+    
+    // 清除对话历史
+    clearConversationHistory() {
+        this.conversationHistory = [];
+        // 保留欢迎消息，清除其他消息
+        const messagesContainer = document.getElementById('doubao-messages');
+        const welcomeMsg = messagesContainer.querySelector('.doubao-welcome');
+        messagesContainer.innerHTML = '';
+        if (welcomeMsg) {
+            messagesContainer.appendChild(welcomeMsg);
+        }
+        console.log('[DoubaoAI] 对话历史已清除');
+        this.addMessage('system', '对话历史已清除');
+    }
+    
     saveApiKey() {
         const key = this.apiKeyInput.value.trim();
         if (!key) {
@@ -2420,8 +2565,27 @@ class DoubaoAI {
             // response可以是字符串或{thinking, text}对象
             this.addMessage('assistant', response);
             
-            // 清除图片
+            // 保存对话历史
+            this.conversationHistory.push({
+                role: 'user',
+                content: content
+            });
+            
+            const assistantContent = typeof response === 'object' ? response.text : response;
+            this.conversationHistory.push({
+                role: 'assistant',
+                content: assistantContent
+            });
+            
+            // 限制历史记录长度
+            if (this.conversationHistory.length > 40) {
+                this.conversationHistory = this.conversationHistory.slice(-40);
+            }
+            
+            // 清除图片和文件
             this.removeImage();
+            this.currentFiles = [];
+            this.updateFilePreview();
             
         } catch (error) {
             console.error('[DoubaoAI] API调用失败:', error);
@@ -2461,6 +2625,27 @@ class DoubaoAI {
             console.log('[DoubaoAI] 已添加图片到请求');
         }
         
+        // 如果有文件，添加文件内容
+        if (this.currentFiles && this.currentFiles.length > 0) {
+            this.currentFiles.forEach(file => {
+                if (file.content.startsWith('data:')) {
+                    // 二进制文件
+                    content.push({
+                        type: 'input_file',
+                        file_url: file.content,
+                        file_name: file.name
+                    });
+                } else {
+                    // 文本文件，作为文本内容添加
+                    content.push({
+                        type: 'input_text',
+                        text: `【文件: ${file.name}】\n\n${file.content.substring(0, 50000)}` // 限制大小
+                    });
+                }
+            });
+            console.log('[DoubaoAI] 已添加', this.currentFiles.length, '个文件到请求');
+        }
+        
         // 添加文本
         if (text) {
             content.push({
@@ -2469,15 +2654,33 @@ class DoubaoAI {
             });
         }
         
+        // 构建消息列表（包含历史上下文）
+        const messages = [];
+        
+        // 添加系统提示
+        messages.push({
+            role: 'system',
+            content: '你是豆包AI助手，一个强大的多模态AI。你可以处理文本、图片、文档，执行代码，进行联网搜索等任务。'
+        });
+        
+        // 添加历史对话（最多保留10轮）
+        const recentHistory = this.conversationHistory.slice(-20);
+        messages.push(...recentHistory);
+        
+        // 添加当前消息
+        messages.push({
+            role: 'user',
+            content: content
+        });
+        
         // 构建请求体
         const requestBody = {
             model: 'doubao-seed-2-0-pro-260215',
-            input: [
-                {
-                    role: 'user',
-                    content: content
-                }
-            ]
+            input: messages,
+            parameters: {
+                temperature: 0.7,
+                max_tokens: 4096
+            }
         };
         
         // 如果启用了深度思考，添加相关参数
@@ -2486,6 +2689,33 @@ class DoubaoAI {
                 type: 'thinking'
             };
             console.log('[DoubaoAI] 已启用深度思考模式');
+        }
+        
+        // 如果启用了联网搜索，添加工具
+        if (this.webSearchEnabled) {
+            requestBody.tools = [
+                {
+                    type: 'web_search',
+                    function: {
+                        name: 'web_search',
+                        description: '搜索互联网获取最新信息'
+                    }
+                }
+            ];
+            console.log('[DoubaoAI] 已启用联网搜索');
+        }
+        
+        // 如果启用了代码执行，添加代码解释器
+        if (this.codeRunEnabled) {
+            if (!requestBody.tools) requestBody.tools = [];
+            requestBody.tools.push({
+                type: 'code_interpreter',
+                function: {
+                    name: 'code_interpreter',
+                    description: '执行Python代码'
+                }
+            });
+            console.log('[DoubaoAI] 已启用代码执行');
         }
         
         console.log('[DoubaoAI] 请求体:', JSON.stringify(requestBody, null, 2));

@@ -295,15 +295,41 @@
                     <div class="doubao-input-box">
                         <input type="text" id="doubao-input" placeholder="输入消息或 / 选择技能...">
                         <div class="input-actions">
+                            <!-- 文件上传 -->
+                            <input type="file" id="doubao-file-input" accept=".pdf,.doc,.docx,.txt,.csv,.json,.js,.py,.html,.css,.md" style="display: none;">
+                            <button class="action-btn" id="doubao-file-upload" title="上传文档">
+                                <i class="fas fa-file-upload"></i>
+                            </button>
+                            
+                            <!-- 图片上传 -->
                             <input type="file" id="doubao-image-input" accept="image/*" style="display: none;">
                             <button class="action-btn" id="doubao-attach" title="上传图片">
                                 <i class="fas fa-image"></i>
                             </button>
-                            <button class="action-btn" id="doubao-deep-think" title="深度思考">
-                                <i class="fas fa-brain"></i> 深度思考
+                            
+                            <!-- 联网搜索 -->
+                            <button class="action-btn" id="doubao-web-search" title="联网搜索">
+                                <i class="fas fa-globe"></i>
                             </button>
+                            
+                            <!-- 代码执行 -->
+                            <button class="action-btn" id="doubao-code-run" title="代码执行">
+                                <i class="fas fa-terminal"></i>
+                            </button>
+                            
+                            <!-- 深度思考 -->
+                            <button class="action-btn" id="doubao-deep-think" title="深度思考">
+                                <i class="fas fa-brain"></i>
+                            </button>
+                            
+                            <!-- 语音输入 -->
                             <button class="action-btn" id="doubao-voice-input" title="语音输入">
                                 <i class="fas fa-microphone"></i>
+                            </button>
+                            
+                            <!-- 清除上下文 -->
+                            <button class="action-btn" id="doubao-clear-context" title="清除对话历史">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
                     </div>
@@ -311,6 +337,13 @@
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
+                <!-- 文件预览区域 -->
+                <div class="file-preview-area" id="file-preview-area" style="display: none;">
+                    <div class="file-preview-list" id="file-preview-list">
+                        <!-- 动态添加文件预览 -->
+                    </div>
+                </div>
+                
                 <!-- 图片预览区域 -->
                 <div class="image-preview-area" id="image-preview-area" style="display: none;">
                     <div class="image-preview">

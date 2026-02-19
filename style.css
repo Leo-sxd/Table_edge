@@ -2981,3 +2981,119 @@ body.modal-open {
     position: relative;
 }
 
+/* ==================== 豆包AI Pro功能样式 ==================== */
+
+/* 功能按钮激活状态 */
+.action-btn.active {
+    background: rgba(140, 0, 255, 0.4) !important;
+    color: #8c00ff !important;
+    border-color: #8c00ff !important;
+    box-shadow: 0 0 10px rgba(140, 0, 255, 0.3);
+}
+
+/* 文件预览区域 */
+.file-preview-area {
+    margin: 10px 20px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.file-preview-item i {
+    color: #8c00ff;
+}
+
+.file-preview-item .file-name {
+    flex: 1;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-preview-item .file-size {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+}
+
+.remove-file-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.remove-file-btn:hover {
+    background: rgba(255, 71, 87, 0.2);
+    color: #ff4757;
+}
+
+/* 输入按钮组样式优化 */
+.input-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* 深度思考按钮特殊样式 */
+#doubao-deep-think.active {
+    background: rgba(118, 75, 162, 0.4) !important;
+    color: #764ba2 !important;
+    border-color: #764ba2 !important;
+}
+
+/* 联网搜索按钮特殊样式 */
+#doubao-web-search.active {
+    background: rgba(0, 150, 255, 0.4) !important;
+    color: #0096ff !important;
+    border-color: #0096ff !important;
+}
+
+/* 代码执行按钮特殊样式 */
+#doubao-code-run.active {
+    background: rgba(0, 200, 100, 0.4) !important;
+    color: #00c864 !important;
+    border-color: #00c864 !important;
+}
+
