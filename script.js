@@ -2227,3 +2227,182 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 500);
 });
+
+// ==================== 豆包AI功能 ====================
+class DoubaoAI {
+    constructor() {
+        this.apiKey = localStorage.getItem('doubao_api_key') || '';
+        this.messages = [];
+        this.isOnline = false;
+        
+        this.init();
+    }
+    
+    init() {
+        // 获取DOM元素
+        this.apiKeyInput = document.getElementById('doubao-api-key');
+        this.saveApiKeyBtn = document.getElementById('save-doubao-api-key');
+        this.messagesContainer = document.getElementById('doubao-messages');
+        this.inputField = document.getElementById('doubao-input');
+        this.sendBtn = document.getElementById('doubao-send');
+        this.statusDot = document.getElementById('doubao-status-dot');
+        this.statusText = document.getElementById('doubao-status-text');
+        
+        // 如果有保存的API密钥，显示在输入框
+        if (this.apiKey) {
+            this.apiKeyInput.value = this.apiKey;
+            this.updateStatus(true);
+        }
+        
+        // 绑定事件
+        this.bindEvents();
+        
+        console.log('[DoubaoAI] 初始化完成');
+    }
+    
+    bindEvents() {
+        // 保存API密钥
+        this.saveApiKeyBtn.addEventListener('click', () => {
+            this.saveApiKey();
+        });
+        
+        // 发送消息
+        this.sendBtn.addEventListener('click', () => {
+            this.sendMessage();
+        });
+        
+        // 回车发送
+        this.inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendMessage();
+            }
+        });
+    }
+    
+    saveApiKey() {
+        const key = this.apiKeyInput.value.trim();
+        if (!key) {
+            alert('请输入API密钥');
+            return;
+        }
+        
+        this.apiKey = key;
+        localStorage.setItem('doubao_api_key', key);
+        this.updateStatus(true);
+        
+        // 显示成功提示
+        this.addMessage('system', 'API密钥已保存，可以开始对话了！');
+        
+        console.log('[DoubaoAI] API密钥已保存');
+    }
+    
+    updateStatus(online) {
+        this.isOnline = online;
+        if (online) {
+            this.statusDot.classList.add('online');
+            this.statusText.textContent = '在线';
+        } else {
+            this.statusDot.classList.remove('online');
+            this.statusText.textContent = '离线';
+        }
+    }
+    
+    async sendMessage() {
+        const message = this.inputField.value.trim();
+        if (!message) return;
+        
+        if (!this.apiKey) {
+            alert('请先输入并保存API密钥');
+            return;
+        }
+        
+        // 添加用户消息到界面
+        this.addMessage('user', message);
+        this.inputField.value = '';
+        
+        // 添加到消息历史
+        this.messages.push({ role: 'user', content: message });
+        
+        // 显示加载状态
+        this.sendBtn.disabled = true;
+        
+        try {
+            // 调用豆包API
+            const response = await this.callDoubaoAPI(message);
+            
+            // 添加AI回复到界面
+            this.addMessage('assistant', response);
+            this.messages.push({ role: 'assistant', content: response });
+            
+        } catch (error) {
+            console.error('[DoubaoAI] API调用失败:', error);
+            this.addMessage('system', '抱歉，请求失败，请检查API密钥是否正确。');
+            this.updateStatus(false);
+        } finally {
+            this.sendBtn.disabled = false;
+        }
+    }
+    
+    async callDoubaoAPI(message) {
+        // 豆包API调用（使用火山引擎API）
+        const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'doubao-pro-32k',
+                messages: [
+                    { role: 'system', content: '你是一个 helpful assistant' },
+                    ...this.messages.slice(-10), // 保留最近10条消息
+                    { role: 'user', content: message }
+                ],
+                stream: false
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+    
+    addMessage(type, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message doubao-message ${type === 'user' ? 'user-message' : ''}`;
+        
+        const avatar = type === 'user' 
+            ? '<i class="fas fa-user"></i>' 
+            : (type === 'system' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-brain"></i>');
+        
+        const avatarBg = type === 'user' 
+            ? 'style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"' 
+            : '';
+        
+        messageDiv.innerHTML = `
+            <div class="avatar" ${avatarBg}>
+                ${avatar}
+            </div>
+            <div class="content">
+                <p>${this.escapeHtml(content)}</p>
+            </div>
+        `;
+        
+        this.messagesContainer.appendChild(messageDiv);
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// 初始化豆包AI
+document.addEventListener('DOMContentLoaded', () => {
+    window.doubaoAI = new DoubaoAI();
+});
