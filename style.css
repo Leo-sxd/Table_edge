@@ -273,15 +273,25 @@ html, body {
 /* 主内容区域 */
 .main-content {
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-columns: 1fr 1.5fr 380px;
     gap: 25px;
     margin-bottom: 30px;
+    align-items: start;
 }
 
 @media (max-width: 1200px) {
     .main-content {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto;
+    }
+    
+    .doubao-section.right-panel {
+        grid-column: span 2;
+        width: 100%;
+        max-width: 100%;
+        height: 500px;
+        position: relative;
+        top: 0;
     }
     
     .map-section {
@@ -297,6 +307,15 @@ html, body {
     
     .map-section {
         grid-column: span 1;
+    }
+    
+    .doubao-section.right-panel {
+        grid-column: span 1;
+        width: 100%;
+        max-width: 100%;
+        height: 500px;
+        position: relative;
+        top: 0;
     }
     
     .header {
@@ -1025,7 +1044,7 @@ html, body {
     }
     
     body.desktop-mode .main-content {
-        grid-template-columns: 1fr 1.5fr 1fr !important;
+        grid-template-columns: 1fr 1.5fr 380px !important;
     }
     
     body.desktop-mode .header {
@@ -2601,4 +2620,63 @@ body.modal-open {
     display: flex;
     gap: 8px;
 }
+.doubao-section {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto 30px;
+    padding: 0 20px;
+}
 
+/* 右侧面板样式 */
+.doubao-section.right-panel {
+    width: 380px;
+    min-width: 350px;
+    max-width: 400px;
+    margin: 0;
+    padding: 0;
+    height: calc(100vh - 200px);
+    position: sticky;
+    top: 20px;
+}
+
+.doubao-section.right-panel .doubao-chat-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.doubao-section.right-panel .doubao-header.compact {
+    padding: 15px 20px;
+}
+
+.doubao-section.right-panel .doubao-header.compact .doubao-title {
+    font-size: 18px;
+}
+
+.doubao-section.right-panel .doubao-messages.compact {
+    flex: 1;
+    min-height: 200px;
+    max-height: none;
+}
+
+.doubao-section.right-panel .doubao-features.compact {
+    padding: 10px 15px;
+    gap: 8px;
+}
+
+.doubao-section.right-panel .doubao-features.compact .feature-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+.doubao-section.right-panel .doubao-features.compact .feature-btn span {
+    display: none;
+}
+
+.doubao-section.right-panel .doubao-input-wrapper.compact {
+    padding: 10px 15px;
+}
+
+.doubao-section.right-panel .doubao-api-settings.compact {
+    padding: 10px 15px;
+}

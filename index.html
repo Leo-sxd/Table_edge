@@ -174,12 +174,12 @@
             </div>
         </header>
         
-        <!-- 豆包AI板块 - 居中对话式布局 -->
-        <section class="doubao-section">
+        <!-- 豆包AI板块 - 右侧布局 -->
+        <section class="doubao-section right-panel">
             <div class="doubao-chat-container">
                 <!-- 顶部标题区 -->
-                <div class="doubao-header">
-                    <h1 class="doubao-title">你好，我是豆包</h1>
+                <div class="doubao-header compact">
+                    <h1 class="doubao-title"><i class="fas fa-brain"></i> 豆包AI</h1>
                     <div class="doubao-status">
                         <span class="status-dot" id="doubao-status-dot"></span>
                         <span class="status-text" id="doubao-status-text">准备就绪</span>
@@ -187,7 +187,7 @@
                 </div>
                 
                 <!-- 消息展示区 -->
-                <div class="doubao-messages" id="doubao-messages">
+                <div class="doubao-messages compact" id="doubao-messages">
                     <div class="message doubao-welcome">
                         <div class="welcome-avatar">
                             <i class="fas fa-brain"></i>
@@ -199,32 +199,32 @@
                 </div>
                 
                 <!-- 功能快捷按钮 -->
-                <div class="doubao-features">
-                    <button class="feature-btn" data-prompt="帮我写一篇文章">
-                        <i class="fas fa-pen"></i> 帮我写作
+                <div class="doubao-features compact">
+                    <button class="feature-btn" data-prompt="帮我写一篇文章" title="帮我写作">
+                        <i class="fas fa-pen"></i>
                     </button>
-                    <button class="feature-btn" data-prompt="翻译这段话">
-                        <i class="fas fa-language"></i> 翻译
+                    <button class="feature-btn" data-prompt="翻译这段话" title="翻译">
+                        <i class="fas fa-language"></i>
                     </button>
-                    <button class="feature-btn" data-prompt="帮我写一段代码">
-                        <i class="fas fa-code"></i> 编程
+                    <button class="feature-btn" data-prompt="帮我写一段代码" title="编程">
+                        <i class="fas fa-code"></i>
                     </button>
-                    <button class="feature-btn" data-prompt="深入研究这个问题">
-                        <i class="fas fa-search"></i> 深入研究
+                    <button class="feature-btn" data-prompt="深入研究这个问题" title="深入研究">
+                        <i class="fas fa-search"></i>
                     </button>
                 </div>
                 
                 <!-- 输入区域 -->
-                <div class="doubao-input-wrapper">
+                <div class="doubao-input-wrapper compact">
                     <div class="doubao-input-box">
-                        <input type="text" id="doubao-input" placeholder="输入消息或 / 选择技能...">
+                        <input type="text" id="doubao-input" placeholder="输入消息...">
                         <div class="input-actions">
                             <input type="file" id="doubao-image-input" accept="image/*" style="display: none;">
                             <button class="action-btn" id="doubao-attach" title="上传图片">
                                 <i class="fas fa-image"></i>
                             </button>
                             <button class="action-btn" id="doubao-deep-think" title="深度思考">
-                                <i class="fas fa-brain"></i> 深度思考
+                                <i class="fas fa-brain"></i>
                             </button>
                             <button class="action-btn" id="doubao-voice-input" title="语音输入">
                                 <i class="fas fa-microphone"></i>
@@ -246,7 +246,7 @@
                 </div>
                 
                 <!-- API密钥设置（可折叠） -->
-                <div class="doubao-api-settings">
+                <div class="doubao-api-settings compact">
                     <button class="api-toggle-btn" id="api-toggle-btn">
                         <i class="fas fa-key"></i> API设置
                     </button>
