@@ -322,6 +322,13 @@ class AIWebsiteController {
             e.shiftKey === hasShift && e.metaKey === hasMeta && 
             e.key.toUpperCase() === mainKey) {
             e.preventDefault();
+            
+            // 强制停止正在进行的朗读（无论当前状态如何）
+            if (window.voiceManager) {
+                console.log('[AIControl] 强制停止当前朗读');
+                window.voiceManager.stop();
+            }
+            
             this.toggleVoiceInput();
             return true;
         }
@@ -586,6 +593,10 @@ class AIWebsiteController {
             alert('您的浏览器不支持语音识别功能');
             return;
         }
+        
+        // 强制停止正在进行的朗读（无论当前状态如何）
+        console.log('[VoiceManager] 强制停止当前朗读');
+        this.stop();
         
         if (this.isRecording) {
             this.stopVoiceInput();
@@ -4056,6 +4067,10 @@ class VoiceManager {
             return;
         }
         
+        // 强制停止正在进行的朗读（无论当前状态如何）
+        console.log('[VoiceManager] 强制停止当前朗读');
+        this.stop();
+        
         if (this.isRecording) {
             this.stopVoiceInput();
         } else {
@@ -4437,6 +4452,12 @@ class DoubaoVoiceSettings {
     
     handleVoiceInputShortcut() {
         console.log('[VoiceSettings] 处理语音输入快捷键，当前状态:', this.voiceInputActive);
+        
+        // 强制停止正在进行的朗读（无论当前状态如何）
+        if (window.voiceManager) {
+            console.log('[VoiceSettings] 强制停止当前朗读');
+            window.voiceManager.stop();
+        }
         
         const isAlwaysOn = this.voiceInputToggle && this.voiceInputToggle.checked;
         
