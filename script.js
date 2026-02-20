@@ -195,13 +195,21 @@ class AIWebsiteController {
             if (input) {
                 if (finalTranscript) {
                     input.value = finalTranscript;
+                    // 非一键常开模式下，检测到最终结果后自动停止
                     if (!this.voiceAlwaysOn) {
-                        this.handleControl();
+                        // 延迟一点时间确保所有结果都接收到了
+                        setTimeout(() => {
+                            this.stopVoiceInput();
+                            this.handleControl();
+                        }, 500);
                     }
                 } else if (interimTranscript) {
                     input.value = interimTranscript;
                 }
             }
+            
+            // 重置静音检测计时器
+            this.resetSilenceTimer();
         };
         
         this.recognition.onerror = (event) => {
@@ -240,7 +248,39 @@ class AIWebsiteController {
         if (!this.recognition || !this.isRecording) return;
         this.recognition.stop();
         this.isPaused = true;
+        // 清除静音检测计时器
+        this.clearSilenceTimer();
         setTimeout(() => { this.isPaused = false; }, 3000);
+    }
+    
+    // 重置静音检测计时器
+    resetSilenceTimer() {
+        // 清除之前的计时器
+        this.clearSilenceTimer();
+        
+        // 非一键常开模式下才需要静音检测
+        if (this.voiceAlwaysOn) return;
+        
+        // 设置新的计时器：1.5秒静音后自动停止
+        this.silenceTimer = setTimeout(() => {
+            if (this.isRecording && !this.voiceAlwaysOn) {
+                console.log('[AIControl] 检测到说话结束，自动停止录音');
+                this.stopVoiceInput();
+                // 如果有内容，执行控制命令
+                const input = document.getElementById('ai-control-input');
+                if (input && input.value.trim()) {
+                    this.handleControl();
+                }
+            }
+        }, 1500); // 1.5秒静音后停止
+    }
+    
+    // 清除静音检测计时器
+    clearSilenceTimer() {
+        if (this.silenceTimer) {
+            clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+        }
     }
     
     updateVoiceButtonState(isRecording) {
@@ -3990,6 +4030,11 @@ class VoiceManager {
                         inputField.value = interimTranscript;
                     }
                 }
+                
+                // 重置静音检测计时器（单次模式下）
+                if (window.doubaoVoiceSettings && !window.doubaoVoiceSettings.voiceInputToggle.checked) {
+                    window.doubaoVoiceSettings.resetVoiceSilenceTimer();
+                }
             };
             
             this.recognition.onerror = (event) => {
@@ -4601,6 +4646,9 @@ class DoubaoVoiceSettings {
     stopVoiceInput() {
         console.log('[VoiceSettings] 停止语音输入...');
         
+        // 清除静音检测计时器
+        this.clearVoiceSilenceTimer();
+        
         this.voiceInputActive = false;
         
         if (window.voiceManager) {
@@ -4630,8 +4678,8 @@ class DoubaoVoiceSettings {
         
         this.voiceInputActive = true;
         
-        // 记录启动时间
-        const startTime = Date.now();
+        // 清除之前的静音计时器
+        this.clearVoiceSilenceTimer();
         
         // 启动单次监听
         window.voiceManager.startVoiceInput()
@@ -4643,27 +4691,35 @@ class DoubaoVoiceSettings {
                 this.showNotification('启动失败: ' + err.message);
                 this.voiceInputActive = false;
             });
+    }
+    
+    // 重置静音检测计时器（豆包AI）
+    resetVoiceSilenceTimer() {
+        this.clearVoiceSilenceTimer();
         
-        // 10秒后自动停止
-        setTimeout(() => {
-            if (this.voiceInputActive) {
-                // 检查是否检测到过语音（通过检查输入栏是否有内容）
-                const inputField = document.getElementById('doubao-input');
-                const hasDetectedSpeech = inputField && inputField.value.trim().length > 0;
-                
+        // 1.5秒静音后自动停止
+        this.voiceSilenceTimer = setTimeout(() => {
+            if (this.voiceInputActive && !this.voiceInputToggle.checked) {
+                console.log('[VoiceSettings] 检测到说话结束，自动停止录音');
                 this.stopVoiceInput();
                 
-                if (!hasDetectedSpeech) {
-                    // 10秒内未检测到语音，清空输入栏（静默处理，不显示提示）
-                    if (inputField) {
-                        inputField.value = '';
-                    }
-                    console.log('[VoiceSettings] 10秒内未检测到语音，已清空输入栏');
+                // 如果没有检测到语音，清空输入栏
+                const inputField = document.getElementById('doubao-input');
+                if (inputField && !inputField.value.trim()) {
+                    inputField.value = '';
                 }
                 
                 this.showNotification('语音输入已自动关闭');
             }
-        }, 10000);
+        }, 1500); // 1.5秒静音后停止
+    }
+    
+    // 清除静音检测计时器（豆包AI）
+    clearVoiceSilenceTimer() {
+        if (this.voiceSilenceTimer) {
+            clearTimeout(this.voiceSilenceTimer);
+            this.voiceSilenceTimer = null;
+        }
     }
     
     showNotification(message) {
