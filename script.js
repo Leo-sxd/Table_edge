@@ -262,10 +262,17 @@ class AIWebsiteController {
         this.clearSilenceTimer();
         
         // 非一键常开模式下才需要静音检测
-        if (this.voiceAlwaysOn) return;
+        if (this.voiceAlwaysOn) {
+            console.log('[AIControl] 一键常开模式，跳过静音检测');
+            return;
+        }
+        
+        console.log('[AIControl] 重置静音检测计时器（1.5秒后自动关闭）');
         
         // 设置新的计时器：1.5秒静音后自动停止
         this.silenceTimer = setTimeout(() => {
+            console.log('[AIControl] 计时器触发，检查状态...');
+            console.log('[AIControl] isRecording:', this.isRecording, 'voiceAlwaysOn:', this.voiceAlwaysOn);
             if (this.isRecording && !this.voiceAlwaysOn) {
                 console.log('[AIControl] 检测到说话结束，自动停止录音');
                 this.stopVoiceInput();
@@ -275,7 +282,7 @@ class AIWebsiteController {
                     this.handleControl();
                 }
             }
-        }, 1500); // 1.5秒静音后停止（已确认）
+        }, 1500); // 1.5秒静音后停止
     }
     
     // 清除静音检测计时器
