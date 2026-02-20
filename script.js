@@ -635,8 +635,10 @@ class AIWebsiteController {
         }
         
         // 强制停止正在进行的朗读（无论当前状态如何）
-        console.log('[VoiceManager] 强制停止当前朗读');
-        this.stop();
+        if (window.voiceManager) {
+            console.log('[AIControl] 强制停止当前朗读');
+            window.voiceManager.stop();
+        }
         
         if (this.isRecording) {
             this.stopVoiceInput();
@@ -4815,4 +4817,3 @@ class DoubaoVoiceSettings {
 document.addEventListener('DOMContentLoaded', () => {
     window.doubaoVoiceSettings = new DoubaoVoiceSettings();
 });
-
