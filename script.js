@@ -272,7 +272,7 @@ class AIWebsiteController {
                     this.handleControl();
                 }
             }
-        }, 1500); // 1.5秒静音后停止
+        }, 1500); // 1.5秒静音后停止（已确认）
     }
     
     // 清除静音检测计时器
@@ -4713,7 +4713,7 @@ class DoubaoVoiceSettings {
                 
                 this.showNotification('语音输入已自动关闭');
             }
-        }, 1500); // 1.5秒静音后停止
+        }, 1500); // 1.5秒静音后停止（已确认）
     }
     
     // 清除静音检测计时器（豆包AI）
