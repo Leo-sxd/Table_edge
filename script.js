@@ -195,14 +195,7 @@ class AIWebsiteController {
             if (input) {
                 if (finalTranscript) {
                     input.value = finalTranscript;
-                    // 非一键常开模式下，检测到最终结果后自动停止
-                    if (!this.voiceAlwaysOn) {
-                        // 延迟一点时间确保所有结果都接收到了
-                        setTimeout(() => {
-                            this.stopVoiceInput();
-                            this.handleControl();
-                        }, 500);
-                    }
+                    // 不再立即关闭，让1.5秒静音检测计时器来控制关闭
                 } else if (interimTranscript) {
                     input.value = interimTranscript;
                 }
