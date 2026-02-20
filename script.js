@@ -160,6 +160,10 @@ class AIWebsiteController {
             if (window.voiceSoundManager) {
                 window.voiceSoundManager.playStartSound();
             }
+            // 启动静音检测计时器（非一键常开模式下）
+            if (!this.voiceAlwaysOn) {
+                this.resetSilenceTimer();
+            }
         };
         
         this.recognition.onend = () => {
@@ -567,6 +571,10 @@ class AIWebsiteController {
             // 播放开启提示音
             if (window.voiceSoundManager) {
                 window.voiceSoundManager.playStartSound();
+            }
+            // 启动静音检测计时器（非一键常开模式下）
+            if (!this.voiceAlwaysOn) {
+                this.resetSilenceTimer();
             }
         };
         
