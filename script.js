@@ -160,6 +160,16 @@ class AIWebsiteController {
             if (window.voiceSoundManager) {
                 window.voiceSoundManager.playStartSound();
             }
+            // 非一键常开模式下启动静音检测（给用户3秒时间开始说话）
+            if (!this.voiceAlwaysOn) {
+                this.clearSilenceTimer();
+                this.silenceTimer = setTimeout(() => {
+                    if (this.isRecording && !this.voiceAlwaysOn) {
+                        console.log('[AIControl] 用户未说话，自动停止录音');
+                        this.stopVoiceInput();
+                    }
+                }, 3000); // 3秒后开始检测
+            }
         };
         
         this.recognition.onend = () => {
@@ -560,6 +570,16 @@ class AIWebsiteController {
             // 播放开启提示音
             if (window.voiceSoundManager) {
                 window.voiceSoundManager.playStartSound();
+            }
+            // 非一键常开模式下启动静音检测（给用户3秒时间开始说话）
+            if (!this.voiceAlwaysOn) {
+                this.clearSilenceTimer();
+                this.silenceTimer = setTimeout(() => {
+                    if (this.isRecording && !this.voiceAlwaysOn) {
+                        console.log('[AIControl] 用户未说话，自动停止录音');
+                        this.stopVoiceInput();
+                    }
+                }, 3000); // 3秒后开始检测
             }
         };
         
