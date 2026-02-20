@@ -4,6 +4,77 @@
  * 包含：粒子效果 + 主脚本 + 诗句模块
  * ============================================
  */
+// ==================== 语音输入提示音管理器 ====================
+class VoiceSoundManager {
+    constructor() {
+        this.audioContext = null;
+        this.initAudioContext();
+    }
+    
+    initAudioContext() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn('[VoiceSound] 浏览器不支持Web Audio API');
+        }
+    }
+    
+    // 恢复音频上下文（处理浏览器自动播放策略）
+    async resumeContext() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+    }
+    
+    // 播放开启提示音（上升音调，表示开始）
+    playStartSound() {
+        this.resumeContext().then(() => {
+            setTimeout(() => {
+                this.generateTone(880, 0.4, 'sine', 0.7); // A5音符，0.4秒，正弦波，音量0.7
+                setTimeout(() => {
+                    this.generateTone(1100, 0.3, 'sine', 0.7); // 更高音调，形成上升效果
+                }, 100);
+            }, 500); // 延迟0.5秒播放
+        });
+    }
+    
+    // 播放关闭提示音（下降音调，表示结束）
+    playStopSound() {
+        this.resumeContext().then(() => {
+            setTimeout(() => {
+                this.generateTone(1100, 0.4, 'sine', 0.7); // 高音开始
+                setTimeout(() => {
+                    this.generateTone(880, 0.3, 'sine', 0.7); // 下降到低音
+                }, 100);
+            }, 500); // 延迟0.5秒播放
+        });
+    }
+    
+    // 生成音调
+    generateTone(frequency, duration, type = 'sine', volume = 0.7) {
+        if (!this.audioContext) return;
+        
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        
+        // 设置音量（0.7约等于70%音量，在60-80分贝范围内）
+        gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + duration);
+    }
+}
+
+// 创建全局实例
+window.voiceSoundManager = new VoiceSoundManager();
+
 // ==================== AI网站控制功能 ====================
 class AIWebsiteController {
     constructor() {
@@ -85,6 +156,10 @@ class AIWebsiteController {
             console.log('[AIControl] 语音识别已启动');
             this.isRecording = true;
             this.updateVoiceButtonState(true);
+            // 播放开启提示音
+            if (window.voiceSoundManager) {
+                window.voiceSoundManager.playStartSound();
+            }
         };
         
         this.recognition.onend = () => {
@@ -442,12 +517,21 @@ class AIWebsiteController {
             console.log('[AIControl] 语音识别已启动');
             this.isRecording = true;
             this.updateVoiceButtonState(true);
+            // 播放开启提示音
+            if (window.voiceSoundManager) {
+                window.voiceSoundManager.playStartSound();
+            }
         };
         
         this.recognition.onend = () => {
             console.log('[AIControl] 语音识别已结束');
             this.isRecording = false;
             this.updateVoiceButtonState(false);
+            
+            // 播放关闭提示音（如果不是自动重启）
+            if (window.voiceSoundManager && (!this.voiceAlwaysOn || this.isPaused)) {
+                window.voiceSoundManager.playStopSound();
+            }
             
             // 如果一键常开模式开启，自动重启
             if (this.voiceAlwaysOn && !this.isPaused) {
@@ -3829,12 +3913,20 @@ class VoiceManager {
             
             this.recognition.onstart = () => {
                 this.isRecording = true;
+                // 播放开启提示音
+                if (window.voiceSoundManager) {
+                    window.voiceSoundManager.playStartSound();
+                }
                 this.updateVoiceButtonState(true);
                 console.log('[Voice] 语音识别已启动');
             };
             
             this.recognition.onend = () => {
                 this.isRecording = false;
+                // 播放关闭提示音
+                if (window.voiceSoundManager && !this.voiceInputActive) {
+                    window.voiceSoundManager.playStopSound();
+                }
                 this.updateVoiceButtonState(false);
                 console.log('[Voice] 语音识别已结束');
                 
