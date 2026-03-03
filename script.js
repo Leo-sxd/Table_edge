@@ -375,7 +375,7 @@ class AIWebsiteController {
         }
     }
     
-    handleVoiceShortcut(e) {
+    async handleVoiceShortcut(e) {
         if (!this.voiceShortcut) return false;
         const keys = this.voiceShortcut.split('+');
         const hasCtrl = keys.includes('Ctrl');
@@ -395,7 +395,7 @@ class AIWebsiteController {
                 window.voiceManager.stop();
             }
             
-            this.toggleVoiceInput();
+            await this.toggleVoiceInput();
             return true;
         }
         return false;
@@ -4573,7 +4573,7 @@ class DoubaoVoiceSettings {
         console.log('[VoiceSettings] 绑定全局快捷键...');
         
         // 使用keydown事件，确保在捕获阶段处理
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', async (e) => {
             // 如果正在设置快捷键，不触发功能
             if (this.recordingShortcut) return;
             
@@ -4589,8 +4589,9 @@ class DoubaoVoiceSettings {
             }
             
             // AI控制语音快捷键
-            if (window.aiController && window.aiController.handleVoiceShortcut(e)) {
-                return;
+            if (window.aiController) {
+                const handled = await window.aiController.handleVoiceShortcut(e);
+                if (handled) return;
             }
             
             // 朗读模式快捷键
