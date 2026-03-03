@@ -163,10 +163,10 @@ class AIWebsiteController {
             // 非一键常开模式下启动静音检测（给用户3秒时间开始说话）
             if (!this.voiceAlwaysOn) {
                 this.clearSilenceTimer();
-                this.silenceTimer = setTimeout(() => {
+                this.silenceTimer = setTimeout(async () => {
                     if (this.isRecording && !this.voiceAlwaysOn) {
                         console.log('[AIControl] 用户未说话，自动停止录音');
-                        this.stopVoiceInput();
+                        await this.stopVoiceInput();
                     }
                 }, 3000); // 3秒后开始检测
             }
@@ -256,20 +256,44 @@ class AIWebsiteController {
     }
     
     async stopVoiceInput() {
-        if (!this.recognition || !this.isRecording) return;
-        this.recognition.stop();
+        if (!this.recognition || !this.isRecording) {
+            console.log('[AIControl] stopVoiceInput: 未在录音状态，直接返回');
+            return;
+        }
+        
+        console.log('[AIControl] stopVoiceInput: 开始停止录音，voiceAlwaysOn:', this.voiceAlwaysOn);
+        
+        // 先保存输入内容
+        const input = document.getElementById('ai-control-input');
+        const command = input && input.value.trim();
+        
+        // 设置暂停标志（防止一键常开模式自动重启）
         this.isPaused = true;
+        
+        // 停止录音
+        this.recognition.stop();
+        
         // 清除静音检测计时器
         this.clearSilenceTimer();
         
-        // 自动执行控制命令（如果有内容）
-        const input = document.getElementById('ai-control-input');
-        if (input && input.value.trim()) {
-            console.log('[AIControl] 语音输入停止，自动执行指令:', input.value.trim());
-            await this.handleControl();
+        // 自动执行控制命令（如果有内容）- 无论是否一键常开模式都执行
+        if (command) {
+            console.log('[AIControl] 语音输入停止，自动执行指令:', command);
+            try {
+                await this.handleControl();
+                console.log('[AIControl] 指令执行完成');
+            } catch (err) {
+                console.error('[AIControl] 指令执行失败:', err);
+            }
+        } else {
+            console.log('[AIControl] 语音输入停止，无指令内容');
         }
         
-        setTimeout(() => { this.isPaused = false; }, 3000);
+        // 3秒后恢复暂停标志
+        setTimeout(() => { 
+            this.isPaused = false; 
+            console.log('[AIControl] isPaused已重置为false');
+        }, 3000);
     }
     
     // 重置静音检测计时器
@@ -286,17 +310,12 @@ class AIWebsiteController {
         console.log('[AIControl] 重置静音检测计时器（1.5秒后自动关闭）');
         
         // 设置新的计时器：1.5秒静音后自动停止
-        this.silenceTimer = setTimeout(() => {
+        this.silenceTimer = setTimeout(async () => {
             console.log('[AIControl] 计时器触发，检查状态...');
             console.log('[AIControl] isRecording:', this.isRecording, 'voiceAlwaysOn:', this.voiceAlwaysOn);
             if (this.isRecording && !this.voiceAlwaysOn) {
                 console.log('[AIControl] 检测到说话结束，自动停止录音');
-                this.stopVoiceInput();
-                // 如果有内容，执行控制命令
-                const input = document.getElementById('ai-control-input');
-                if (input && input.value.trim()) {
-                    this.handleControl();
-                }
+                await this.stopVoiceInput();
             }
         }, 1500); // 1.5秒静音后停止
     }
@@ -667,10 +686,10 @@ class AIWebsiteController {
             // 非一键常开模式下启动静音检测（给用户3秒时间开始说话）
             if (!this.voiceAlwaysOn) {
                 this.clearSilenceTimer();
-                this.silenceTimer = setTimeout(() => {
+                this.silenceTimer = setTimeout(async () => {
                     if (this.isRecording && !this.voiceAlwaysOn) {
                         console.log('[AIControl] 用户未说话，自动停止录音');
-                        this.stopVoiceInput();
+                        await this.stopVoiceInput();
                     }
                 }, 3000); // 3秒后开始检测
             }
