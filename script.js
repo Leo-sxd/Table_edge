@@ -231,13 +231,17 @@ class AIWebsiteController {
     }
     
     async toggleVoiceInput() {
+        console.log('[AIControl] toggleVoiceInput: 当前录音状态:', this.isRecording);
         if (!this.recognition) {
             alert('您的浏览器不支持语音识别功能');
             return;
         }
         if (this.isRecording) {
+            console.log('[AIControl] toggleVoiceInput: 正在录音，准备停止');
             await this.stopVoiceInput();
+            console.log('[AIControl] toggleVoiceInput: 停止完成');
         } else {
+            console.log('[AIControl] toggleVoiceInput: 未在录音，准备开始');
             this.startVoiceInput();
         }
     }
@@ -261,32 +265,36 @@ class AIWebsiteController {
             return;
         }
         
-        console.log('[AIControl] stopVoiceInput: 开始停止录音，voiceAlwaysOn:', this.voiceAlwaysOn);
+        console.log('[AIControl] stopVoiceInput: 开始停止录音，voiceAlwaysOn:', this.voiceAlwaysOn, 'isRecording:', this.isRecording);
         
-        // 先保存输入内容
+        // 先保存输入内容（必须在停止录音前保存）
         const input = document.getElementById('ai-control-input');
         const command = input && input.value.trim();
+        console.log('[AIControl] stopVoiceInput: 保存的指令内容:', command);
         
         // 设置暂停标志（防止一键常开模式自动重启）
         this.isPaused = true;
-        
-        // 停止录音
-        this.recognition.stop();
+        console.log('[AIControl] stopVoiceInput: 已设置isPaused为true');
         
         // 清除静音检测计时器
         this.clearSilenceTimer();
         
-        // 自动执行控制命令（如果有内容）- 无论是否一键常开模式都执行
+        // 停止录音（这会触发onend事件，但isPaused已经设置为true，不会自动重启）
+        console.log('[AIControl] stopVoiceInput: 调用recognition.stop()');
+        this.recognition.stop();
+        
+        // 立即执行控制命令（如果有内容）- 无论是否一键常开模式都执行
         if (command) {
-            console.log('[AIControl] 语音输入停止，自动执行指令:', command);
+            console.log('[AIControl] 语音输入停止，准备执行指令:', command);
             try {
+                console.log('[AIControl] 开始调用handleControl...');
                 await this.handleControl();
-                console.log('[AIControl] 指令执行完成');
+                console.log('[AIControl] handleControl执行完成');
             } catch (err) {
                 console.error('[AIControl] 指令执行失败:', err);
             }
         } else {
-            console.log('[AIControl] 语音输入停止，无指令内容');
+            console.log('[AIControl] 语音输入停止，无指令内容，跳过执行');
         }
         
         // 3秒后恢复暂停标志
@@ -395,7 +403,12 @@ class AIWebsiteController {
     }
     
     async handleVoiceShortcut(e) {
-        if (!this.voiceShortcut) return false;
+        console.log('[AIControl] handleVoiceShortcut: 快捷键被触发', e.key);
+        if (!this.voiceShortcut) {
+            console.log('[AIControl] handleVoiceShortcut: 未设置快捷键，忽略');
+            return false;
+        }
+        
         const keys = this.voiceShortcut.split('+');
         const hasCtrl = keys.includes('Ctrl');
         const hasAlt = keys.includes('Alt');
@@ -403,10 +416,16 @@ class AIWebsiteController {
         const hasMeta = keys.includes('Meta');
         const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
         
+        console.log('[AIControl] handleVoiceShortcut: 检查快捷键匹配', {
+            期望: this.voiceShortcut,
+            当前: `${e.ctrlKey ? 'Ctrl+' : ''}${e.altKey ? 'Alt+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key.toUpperCase()}`
+        });
+        
         if (e.ctrlKey === hasCtrl && e.altKey === hasAlt && 
             e.shiftKey === hasShift && e.metaKey === hasMeta && 
             e.key.toUpperCase() === mainKey) {
             e.preventDefault();
+            console.log('[AIControl] handleVoiceShortcut: 快捷键匹配成功');
             
             // 强制停止正在进行的朗读（无论当前状态如何）
             if (window.voiceManager) {
@@ -414,7 +433,9 @@ class AIWebsiteController {
                 window.voiceManager.stop();
             }
             
+            console.log('[AIControl] handleVoiceShortcut: 调用toggleVoiceInput');
             await this.toggleVoiceInput();
+            console.log('[AIControl] handleVoiceShortcut: toggleVoiceInput执行完成');
             return true;
         }
         return false;
@@ -888,7 +909,7 @@ class AIWebsiteController {
         }
     }
     
-    
+
     async callAIForCode(command) {
         const apiKey = localStorage.getItem('doubao_api_key');
         if (!apiKey) {
