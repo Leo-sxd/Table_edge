@@ -253,6 +253,14 @@ class AIWebsiteController {
         this.isPaused = true;
         // 清除静音检测计时器
         this.clearSilenceTimer();
+        
+        // 自动执行控制命令（如果有内容）
+        const input = document.getElementById('ai-control-input');
+        if (input && input.value.trim()) {
+            console.log('[AIControl] 语音输入停止，自动执行指令:', input.value.trim());
+            this.handleControl();
+        }
+        
         setTimeout(() => { this.isPaused = false; }, 3000);
     }
     
