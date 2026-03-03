@@ -207,100 +207,100 @@ class AIWebsiteController {
     };
 }
 
-// 切换语音输入 - 简化版
-async toggleVoiceInput() {
-    if (!this.recognition) {
-        alert('您的浏览器不支持语音识别功能');
-        return;
+    // 切换语音输入 - 简化版
+    async toggleVoiceInput() {
+        if (!this.recognition) {
+            alert('您的浏览器不支持语音识别功能');
+            return;
+        }
+        
+        if (this.isRecording) {
+            // 停止录音
+            this.isPaused = true;
+            this.recognition.stop();
+            
+            // 直接执行pendingCommand（如果有）
+            const command = this.pendingCommand;
+            if (command) {
+                // 确保输入框显示指令
+                const input = document.getElementById('ai-control-input');
+                if (input) input.value = command;
+                
+                // 延迟执行，确保状态更新
+                setTimeout(() => {
+                    this.handleControl();
+                    this.pendingCommand = null; // 清空待执行指令
+                }, 100);
+            }
+            
+            // 恢复暂停标志
+            setTimeout(() => { this.isPaused = false; }, 3000);
+        } else {
+            // 开始录音
+            this.pendingCommand = null; // 清空之前的指令
+            this.startVoiceInput();
+        }
     }
-    
-    if (this.isRecording) {
-        // 停止录音
+
+    // 停止语音输入 - 简化版
+    stopVoiceInput() {
+        if (!this.recognition || !this.isRecording) return;
+        
         this.isPaused = true;
         this.recognition.stop();
         
         // 直接执行pendingCommand（如果有）
         const command = this.pendingCommand;
         if (command) {
-            // 确保输入框显示指令
             const input = document.getElementById('ai-control-input');
             if (input) input.value = command;
             
-            // 延迟执行，确保状态更新
             setTimeout(() => {
                 this.handleControl();
-                this.pendingCommand = null; // 清空待执行指令
+                this.pendingCommand = null;
             }, 100);
         }
         
-        // 恢复暂停标志
         setTimeout(() => { this.isPaused = false; }, 3000);
-    } else {
-        // 开始录音
-        this.pendingCommand = null; // 清空之前的指令
-        this.startVoiceInput();
     }
-}
 
-// 停止语音输入 - 简化版
-stopVoiceInput() {
-    if (!this.recognition || !this.isRecording) return;
-    
-    this.isPaused = true;
-    this.recognition.stop();
-    
-    // 直接执行pendingCommand（如果有）
-    const command = this.pendingCommand;
-    if (command) {
-        const input = document.getElementById('ai-control-input');
-        if (input) input.value = command;
-        
-        setTimeout(() => {
-            this.handleControl();
-            this.pendingCommand = null;
-        }, 100);
-    }
-    
-    setTimeout(() => { this.isPaused = false; }, 3000);
-}
-
-// 开始语音输入
-startVoiceInput() {
-    if (!this.recognition || this.isRecording) return;
-    try {
-        this.recognition.start();
-    } catch (err) {
-        // 忽略错误
-    }
-}
-
-// 处理语音快捷键 - 简化版
-async handleVoiceShortcut(e) {
-    if (!this.voiceShortcut) return false;
-    
-    const keys = this.voiceShortcut.split('+');
-    const hasCtrl = keys.includes('Ctrl');
-    const hasAlt = keys.includes('Alt');
-    const hasShift = keys.includes('Shift');
-    const hasMeta = keys.includes('Meta');
-    const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
-    
-    if (e.ctrlKey === hasCtrl && e.altKey === hasAlt && 
-        e.shiftKey === hasShift && e.metaKey === hasMeta && 
-        e.key.toUpperCase() === mainKey) {
-        e.preventDefault();
-        
-        // 停止朗读
-        if (window.voiceManager) {
-            window.voiceManager.stop();
+    // 开始语音输入
+    startVoiceInput() {
+        if (!this.recognition || this.isRecording) return;
+        try {
+            this.recognition.start();
+        } catch (err) {
+            // 忽略错误
         }
-        
-        // 执行语音输入切换
-        await this.toggleVoiceInput();
-        return true;
     }
-    return false;
-}
+
+    // 处理语音快捷键 - 简化版
+    async handleVoiceShortcut(e) {
+        if (!this.voiceShortcut) return false;
+        
+        const keys = this.voiceShortcut.split('+');
+        const hasCtrl = keys.includes('Ctrl');
+        const hasAlt = keys.includes('Alt');
+        const hasShift = keys.includes('Shift');
+        const hasMeta = keys.includes('Meta');
+        const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
+        
+        if (e.ctrlKey === hasCtrl && e.altKey === hasAlt && 
+            e.shiftKey === hasShift && e.metaKey === hasMeta && 
+            e.key.toUpperCase() === mainKey) {
+            e.preventDefault();
+            
+            // 停止朗读
+            if (window.voiceManager) {
+                window.voiceManager.stop();
+            }
+            
+            // 执行语音输入切换
+            await this.toggleVoiceInput();
+            return true;
+        }
+        return false;
+    }
     
     async handleControl() {
         try {
