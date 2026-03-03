@@ -3756,7 +3756,7 @@ class DoubaoAI {
             <div class="message-header">
                 <span></span>
                 <div class="message-actions">
-                    <button class="tts-btn" title="朗读" onclick="window.voiceManager.speak(this.closest('.message').dataset.text, this.closest('.message')); this.classList.toggle('playing');">
+                    <button class="tts-btn" title="朗读" onclick="if(this.classList.contains('playing')){window.voiceManager.stop();this.classList.remove('playing');}else{window.voiceManager.speak(this.closest('.message').dataset.text, this.closest('.message'));this.classList.add('playing');}">
                         <i class="fas fa-volume-up"></i>
                     </button>
                 </div>
