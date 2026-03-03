@@ -150,9 +150,9 @@ class AIWebsiteController {
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.lang = 'zh-CN';
-
-    // 语音输入控制 - 简化版
-    this.pendingCommand = null; // 保存待执行的指令
+        
+        // 语音输入控制 - 简化版
+        this.pendingCommand = null; // 保存待执行的指令
     
     this.recognition.onstart = () => {
         this.isRecording = true;
@@ -301,40 +301,6 @@ async handleVoiceShortcut(e) {
     }
     return false;
 }
-    
-    // 语音相关方法已在上面的 initSpeechRecognition 中定义
-        
-        const keys = this.voiceShortcut.split('+');
-        const hasCtrl = keys.includes('Ctrl');
-        const hasAlt = keys.includes('Alt');
-        const hasShift = keys.includes('Shift');
-        const hasMeta = keys.includes('Meta');
-        const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
-        
-        console.log('[AIControl] handleVoiceShortcut: 检查快捷键匹配', {
-            期望: this.voiceShortcut,
-            当前: `${e.ctrlKey ? 'Ctrl+' : ''}${e.altKey ? 'Alt+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key.toUpperCase()}`
-        });
-        
-        if (e.ctrlKey === hasCtrl && e.altKey === hasAlt && 
-            e.shiftKey === hasShift && e.metaKey === hasMeta && 
-            e.key.toUpperCase() === mainKey) {
-            e.preventDefault();
-            console.log('[AIControl] handleVoiceShortcut: 快捷键匹配成功');
-            
-            // 强制停止正在进行的朗读（无论当前状态如何）
-            if (window.voiceManager) {
-                console.log('[AIControl] 强制停止当前朗读');
-                window.voiceManager.stop();
-            }
-            
-            console.log('[AIControl] handleVoiceShortcut: 调用toggleVoiceInput');
-            await this.toggleVoiceInput();
-            console.log('[AIControl] handleVoiceShortcut: toggleVoiceInput执行完成');
-            return true;
-        }
-        return false;
-    }
     
     async handleControl() {
         try {
