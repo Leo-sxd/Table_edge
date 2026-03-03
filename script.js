@@ -554,43 +554,73 @@ class AIWebsiteController {
             return `document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
         }
         
-        // 待办事项设置 - 支持"xx年xx月xx日，xxxx"格式
+        // 待办事项设置 - 支持"xx年xx月xx日xx时xx分，xxxx"格式
         if (cmd.includes('待办') || cmd.includes('todo') || cmd.includes('任务') || cmd.includes('提醒')) {
-            // 匹配日期格式：2025年12月25日 或 2025-12-25 或 12月25日
+            // 匹配完整日期时间格式：2025年12月25日15时30分 或 2025-12-25 15:30 或 12月25日15:30
+            const dateTimeMatch = command.match(/(\d{4})?[年\-/]?(\d{1,2})[月\-/](\d{1,2})[日]?[\s]*(\d{1,2})[时:：](\d{1,2})[分]?/);
+            // 匹配仅日期格式：2025年12月25日 或 2025-12-25 或 12月25日
             const dateMatch = command.match(/(\d{4})?[年\-/]?(\d{1,2})[月\-/](\d{1,2})[日]?/);
-            if (dateMatch) {
-                const year = dateMatch[1] || new Date().getFullYear();
-                const month = dateMatch[2].padStart(2, '0');
-                const day = dateMatch[3].padStart(2, '0');
-                const deadline = `${year}-${month}-${day}T23:59:59`;
-                
-                // 提取待办事项名称（日期之后的文字）
-                let todoText = command;
-                // 移除日期部分
+            
+            let year, month, day, hour, minute;
+            let hasSpecificTime = false;
+            
+            if (dateTimeMatch) {
+                // 有具体时间（精确到分钟）
+                year = dateTimeMatch[1] || new Date().getFullYear();
+                month = dateTimeMatch[2];
+                day = dateTimeMatch[3];
+                hour = dateTimeMatch[4];
+                minute = dateTimeMatch[5];
+                hasSpecificTime = true;
+            } else if (dateMatch) {
+                // 只有日期，默认时间为23:59
+                year = dateMatch[1] || new Date().getFullYear();
+                month = dateMatch[2];
+                day = dateMatch[3];
+                hour = '23';
+                minute = '59';
+            } else {
+                return null;
+            }
+            
+            // 格式化时间
+            const formattedMonth = String(month).padStart(2, '0');
+            const formattedDay = String(day).padStart(2, '0');
+            const formattedHour = String(hour).padStart(2, '0');
+            const formattedMinute = String(minute).padStart(2, '0');
+            const deadline = `${year}-${formattedMonth}-${formattedDay}T${formattedHour}:${formattedMinute}:00`;
+            
+            // 提取待办事项名称（移除日期时间部分）
+            let todoText = command;
+            // 移除日期时间部分
+            if (dateTimeMatch) {
+                todoText = todoText.replace(dateTimeMatch[0], '');
+            } else if (dateMatch) {
                 todoText = todoText.replace(dateMatch[0], '');
-                // 移除常见前缀词
-                todoText = todoText.replace(/待办|todo|任务|提醒|添加|设置|一个|条/gi, '');
-                // 移除标点符号
-                todoText = todoText.replace(/[，,。.:：;；]/g, '');
-                todoText = todoText.trim();
-                
-                if (todoText) {
-                    return `(() => {
-                        const todo = {
-                            id: Date.now().toString(),
-                            text: '${todoText}',
-                            startTime: new Date().toISOString(),
-                            endTime: '${deadline}',
-                            completed: false
-                        };
-                        const todos = JSON.parse(localStorage.getItem('todos')) || [];
-                        todos.push(todo);
-                        localStorage.setItem('todos', JSON.stringify(todos));
-                        if (typeof loadTodos === 'function') loadTodos();
-                        if (typeof updateTodoCounts === 'function') updateTodoCounts();
-                        console.log('[AIControl] 已添加待办事项:', '${todoText}', '截止日期:', '${deadline}');
-                    })();`;
-                }
+            }
+            // 移除常见前缀词
+            todoText = todoText.replace(/待办|todo|任务|提醒|添加|设置|一个|条/gi, '');
+            // 移除标点符号
+            todoText = todoText.replace(/[，,。.:：;；]/g, '');
+            todoText = todoText.trim();
+            
+            if (todoText) {
+                const timeType = hasSpecificTime ? '精确时间' : '默认时间(23:59)';
+                return `(() => {
+                    const todo = {
+                        id: Date.now().toString(),
+                        text: '${todoText}',
+                        startTime: new Date().toISOString(),
+                        endTime: '${deadline}',
+                        completed: false
+                    };
+                    const todos = JSON.parse(localStorage.getItem('todos')) || [];
+                    todos.push(todo);
+                    localStorage.setItem('todos', JSON.stringify(todos));
+                    if (typeof loadTodos === 'function') loadTodos();
+                    if (typeof updateTodoCounts === 'function') updateTodoCounts();
+                    console.log('[AIControl] 已添加待办事项:', '${todoText}', '截止时间:', '${deadline}', '(${timeType})');
+                })();`;
             }
         }
         
