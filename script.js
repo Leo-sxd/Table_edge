@@ -281,9 +281,30 @@ class AIWebsiteController {
         
         // 停止录音（这会触发onend事件，但isPaused已经设置为true，不会自动重启）
         console.log('[AIControl] stopVoiceInput: 调用recognition.stop()');
-        this.recognition.stop();
         
-        // 立即执行控制命令（如果有内容）- 无论是否一键常开模式都执行
+        // 创建一个Promise来等待录音真正停止
+        await new Promise((resolve) => {
+            const checkStopped = () => {
+                if (!this.isRecording) {
+                    console.log('[AIControl] 录音已停止，继续执行');
+                    resolve();
+                } else {
+                    setTimeout(checkStopped, 50);
+                }
+            };
+            this.recognition.stop();
+            // 最多等待500ms
+            setTimeout(() => {
+                console.log('[AIControl] 等待录音停止超时，强制继续');
+                resolve();
+            }, 500);
+            checkStopped();
+        });
+        
+        // 添加小延迟确保状态同步（解决开发者工具关闭时的时序问题）
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // 执行控制命令（如果有内容）- 无论是否一键常开模式都执行
         if (command) {
             console.log('[AIControl] 语音输入停止，准备执行指令:', command);
             try {
