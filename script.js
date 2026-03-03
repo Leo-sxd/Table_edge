@@ -888,29 +888,7 @@ class AIWebsiteController {
         }
     }
     
-        // 处理语音快捷键
-    handleVoiceShortcut(e) {
-        if (!this.voiceShortcut) return false;
-        
-        const keys = this.voiceShortcut.split('+');
-        const hasCtrl = keys.includes('Ctrl');
-        const hasAlt = keys.includes('Alt');
-        const hasShift = keys.includes('Shift');
-        const hasMeta = keys.includes('Meta');
-        const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
-        
-        if (e.ctrlKey === hasCtrl && 
-            e.altKey === hasAlt && 
-            e.shiftKey === hasShift && 
-            e.metaKey === hasMeta && 
-            e.key.toUpperCase() === mainKey) {
-            e.preventDefault();
-            this.toggleVoiceInput();
-            return true;
-        }
-        return false;
-    }
-  
+    
     async callAIForCode(command) {
         const apiKey = localStorage.getItem('doubao_api_key');
         if (!apiKey) {
