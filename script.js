@@ -888,7 +888,7 @@ class AIWebsiteController {
         }
     }
     
-    // 处理语音快捷键
+        // 处理语音快捷键
     handleVoiceShortcut(e) {
         if (!this.voiceShortcut) return false;
         
@@ -910,7 +910,7 @@ class AIWebsiteController {
         }
         return false;
     }
-    
+  
     async callAIForCode(command) {
         const apiKey = localStorage.getItem('doubao_api_key');
         if (!apiKey) {
