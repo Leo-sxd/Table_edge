@@ -205,13 +205,21 @@ class AIWebsiteController {
             if (input) {
                 if (finalTranscript) {
                     input.value = finalTranscript;
-                    // 不再立即关闭，让1.5秒静音检测计时器来控制关闭
+                    // 一键常开模式下，检测到最终结果后自动执行
+                    if (this.voiceAlwaysOn) {
+                        console.log('[AIControl] 一键常开模式，检测到最终结果，自动执行');
+                        setTimeout(() => {
+                            if (input.value.trim()) {
+                                this.handleControl();
+                            }
+                        }, 500); // 延迟500毫秒确保结果完整
+                    }
                 } else if (interimTranscript) {
                     input.value = interimTranscript;
                 }
             }
             
-            // 重置静音检测计时器
+            // 重置静音检测计时器（非一键常开模式下）
             this.resetSilenceTimer();
         };
         
