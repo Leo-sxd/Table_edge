@@ -261,67 +261,44 @@ class AIWebsiteController {
     
     async stopVoiceInput() {
         if (!this.recognition || !this.isRecording) {
-            console.log('[AIControl] stopVoiceInput: 未在录音状态，直接返回');
             return;
         }
-        
-        console.log('[AIControl] stopVoiceInput: 开始停止录音，voiceAlwaysOn:', this.voiceAlwaysOn, 'isRecording:', this.isRecording);
         
         // 先保存输入内容（必须在停止录音前保存）
         const input = document.getElementById('ai-control-input');
         const command = input && input.value.trim();
-        console.log('[AIControl] stopVoiceInput: 保存的指令内容:', command);
         
         // 设置暂停标志（防止一键常开模式自动重启）
         this.isPaused = true;
-        console.log('[AIControl] stopVoiceInput: 已设置isPaused为true');
         
         // 清除静音检测计时器
         this.clearSilenceTimer();
         
-        // 停止录音（这会触发onend事件，但isPaused已经设置为true，不会自动重启）
-        console.log('[AIControl] stopVoiceInput: 调用recognition.stop()');
+        // 停止录音
+        this.recognition.stop();
         
-        // 创建一个Promise来等待录音真正停止
-        await new Promise((resolve) => {
-            const checkStopped = () => {
-                if (!this.isRecording) {
-                    console.log('[AIControl] 录音已停止，继续执行');
-                    resolve();
-                } else {
-                    setTimeout(checkStopped, 50);
-                }
-            };
-            this.recognition.stop();
-            // 最多等待500ms
-            setTimeout(() => {
-                console.log('[AIControl] 等待录音停止超时，强制继续');
-                resolve();
-            }, 500);
-            checkStopped();
-        });
+        // 等待录音停止（使用更可靠的方式）
+        let waitCount = 0;
+        while (this.isRecording && waitCount < 20) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            waitCount++;
+        }
         
-        // 添加小延迟确保状态同步（解决开发者工具关闭时的时序问题）
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // 添加延迟确保状态同步
+        await new Promise(resolve => setTimeout(resolve, 150));
         
-        // 执行控制命令（如果有内容）- 无论是否一键常开模式都执行
+        // 执行控制命令（如果有内容）
         if (command) {
-            console.log('[AIControl] 语音输入停止，准备执行指令:', command);
             try {
-                console.log('[AIControl] 开始调用handleControl...');
                 await this.handleControl();
-                console.log('[AIControl] handleControl执行完成');
             } catch (err) {
-                console.error('[AIControl] 指令执行失败:', err);
+                // 错误已在handleControl中处理
             }
-        } else {
-            console.log('[AIControl] 语音输入停止，无指令内容，跳过执行');
         }
         
         // 3秒后恢复暂停标志
         setTimeout(() => { 
             this.isPaused = false; 
-            console.log('[AIControl] isPaused已重置为false');
         }, 3000);
     }
     
@@ -508,9 +485,9 @@ class AIWebsiteController {
     // 直接执行代码
     executeCode(code, originalCommand) {
         try {
-            console.log('[AIControl] 执行代码:', code);
+            // 使用安全的方式执行代码
             const func = new Function(code);
-            func();
+            const result = func();
             
             // 显示成功状态
             this.showStatus('指令已执行: ' + originalCommand, 'success');
@@ -519,9 +496,12 @@ class AIWebsiteController {
             const input = document.getElementById('ai-control-input');
             if (input) input.value = '';
             
+            return result;
         } catch (error) {
-            console.error('[AIControl] 执行失败:', error);
+            // 显示错误状态（无论控制台是否打开）
             this.showStatus('执行失败: ' + error.message, 'error');
+            // 重新抛出错误以便上层处理
+            throw error;
         }
     }
     
