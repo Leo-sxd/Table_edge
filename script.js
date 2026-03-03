@@ -230,13 +230,13 @@ class AIWebsiteController {
         };
     }
     
-    toggleVoiceInput() {
+    async toggleVoiceInput() {
         if (!this.recognition) {
             alert('您的浏览器不支持语音识别功能');
             return;
         }
         if (this.isRecording) {
-            this.stopVoiceInput();
+            await this.stopVoiceInput();
         } else {
             this.startVoiceInput();
         }
@@ -255,7 +255,7 @@ class AIWebsiteController {
         });
     }
     
-    stopVoiceInput() {
+    async stopVoiceInput() {
         if (!this.recognition || !this.isRecording) return;
         this.recognition.stop();
         this.isPaused = true;
@@ -266,7 +266,7 @@ class AIWebsiteController {
         const input = document.getElementById('ai-control-input');
         if (input && input.value.trim()) {
             console.log('[AIControl] 语音输入停止，自动执行指令:', input.value.trim());
-            this.handleControl();
+            await this.handleControl();
         }
         
         setTimeout(() => { this.isPaused = false; }, 3000);
