@@ -142,7 +142,6 @@ class AIWebsiteController {
     // 初始化语音识别
     initSpeechRecognition() {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            console.warn('[AIControl] 浏览器不支持语音识别');
             return;
         }
         
@@ -151,261 +150,159 @@ class AIWebsiteController {
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.lang = 'zh-CN';
+
+    // 语音输入控制 - 简化版
+    this.pendingCommand = null; // 保存待执行的指令
+    
+    this.recognition.onstart = () => {
+        this.isRecording = true;
+        this.updateVoiceButtonState(true);
+        if (window.voiceSoundManager) {
+            window.voiceSoundManager.playStartSound();
+        }
+    };
+    
+    this.recognition.onend = () => {
+        this.isRecording = false;
+        this.updateVoiceButtonState(false);
         
-        this.recognition.onstart = () => {
-            console.log('[AIControl] 语音识别已启动');
-            this.isRecording = true;
-            this.updateVoiceButtonState(true);
-            // 播放开启提示音
-            if (window.voiceSoundManager) {
-                window.voiceSoundManager.playStartSound();
-            }
-            // 非一键常开模式下启动静音检测（给用户3秒时间开始说话）
-            if (!this.voiceAlwaysOn) {
-                this.clearSilenceTimer();
-                this.silenceTimer = setTimeout(async () => {
-                    if (this.isRecording && !this.voiceAlwaysOn) {
-                        console.log('[AIControl] 用户未说话，自动停止录音');
-                        await this.stopVoiceInput();
-                    }
-                }, 3000); // 3秒后开始检测
-            }
-        };
-        
-        this.recognition.onend = () => {
-            console.log('[AIControl] 语音识别已结束');
-            this.isRecording = false;
-            this.updateVoiceButtonState(false);
-            
-            if (this.voiceAlwaysOn && !this.isPaused) {
-                setTimeout(() => {
-                    if (this.voiceAlwaysOn && !this.isRecording) {
-                        this.startVoiceInput().catch(err => {
-                            console.error('[AIControl] 自动重启失败:', err);
-                        });
-                    }
-                }, 500);
-            }
-        };
-        
-        this.recognition.onresult = (event) => {
-            let finalTranscript = '';
-            let interimTranscript = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    finalTranscript += transcript;
-                } else {
-                    interimTranscript += transcript;
+        // 一键常开模式下自动重启
+        if (this.voiceAlwaysOn && !this.isPaused) {
+            setTimeout(() => {
+                if (this.voiceAlwaysOn && !this.isRecording) {
+                    this.startVoiceInput().catch(() => {});
                 }
-            }
-            
-            const input = document.getElementById('ai-control-input');
-            if (input) {
-                if (finalTranscript) {
-                    input.value = finalTranscript;
-                    // 一键常开模式下，检测到最终结果后自动执行
-                    if (this.voiceAlwaysOn) {
-                        console.log('[AIControl] 一键常开模式，检测到最终结果，自动执行');
-                        setTimeout(() => {
-                            if (input.value.trim()) {
-                                this.handleControl();
-                            }
-                        }, 500); // 延迟500毫秒确保结果完整
-                    }
-                } else if (interimTranscript) {
-                    input.value = interimTranscript;
-                }
-            }
-            
-            // 重置静音检测计时器（非一键常开模式下）
-            this.resetSilenceTimer();
-        };
+            }, 500);
+        }
+    };
+    
+    this.recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
         
-        this.recognition.onerror = (event) => {
-            console.error('[AIControl] 语音识别错误:', event.error);
-            this.isRecording = false;
-            this.updateVoiceButtonState(false);
-        };
-    }
-    
-    async toggleVoiceInput() {
-        console.log('[AIControl] toggleVoiceInput: 当前录音状态:', this.isRecording);
-        if (!this.recognition) {
-            alert('您的浏览器不支持语音识别功能');
-            return;
-        }
-        if (this.isRecording) {
-            console.log('[AIControl] toggleVoiceInput: 正在录音，准备停止');
-            await this.stopVoiceInput();
-            console.log('[AIControl] toggleVoiceInput: 停止完成');
-        } else {
-            console.log('[AIControl] toggleVoiceInput: 未在录音，准备开始');
-            this.startVoiceInput();
-        }
-    }
-    
-    startVoiceInput() {
-        if (!this.recognition) return Promise.reject('不支持语音识别');
-        if (this.isRecording) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            try {
-                this.recognition.start();
-                resolve();
-            } catch (err) {
-                reject(err);
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
             }
-        });
-    }
-    
-    async stopVoiceInput() {
-        if (!this.recognition || !this.isRecording) {
-            return;
         }
         
-        // 先保存输入内容（必须在停止录音前保存）
         const input = document.getElementById('ai-control-input');
-        const command = input && input.value.trim();
-        
-        // 设置暂停标志（防止一键常开模式自动重启）
-        this.isPaused = true;
-        
-        // 清除静音检测计时器
-        this.clearSilenceTimer();
-        
+        if (input) {
+            if (finalTranscript) {
+                input.value = finalTranscript;
+                // 保存到pendingCommand，供快捷键关闭时执行
+                this.pendingCommand = finalTranscript;
+            } else if (interimTranscript) {
+                input.value = interimTranscript;
+            }
+        }
+    };
+    
+    this.recognition.onerror = () => {
+        this.isRecording = false;
+        this.updateVoiceButtonState(false);
+    };
+}
+
+// 切换语音输入 - 简化版
+async toggleVoiceInput() {
+    if (!this.recognition) {
+        alert('您的浏览器不支持语音识别功能');
+        return;
+    }
+    
+    if (this.isRecording) {
         // 停止录音
+        this.isPaused = true;
         this.recognition.stop();
         
-        // 等待录音停止（使用更可靠的方式）
-        let waitCount = 0;
-        while (this.isRecording && waitCount < 20) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-            waitCount++;
-        }
-        
-        // 添加延迟确保状态同步
-        await new Promise(resolve => setTimeout(resolve, 150));
-        
-        // 执行控制命令（如果有内容）
+        // 直接执行pendingCommand（如果有）
+        const command = this.pendingCommand;
         if (command) {
-            try {
-                await this.handleControl();
-            } catch (err) {
-                // 错误已在handleControl中处理
-            }
+            // 确保输入框显示指令
+            const input = document.getElementById('ai-control-input');
+            if (input) input.value = command;
+            
+            // 延迟执行，确保状态更新
+            setTimeout(() => {
+                this.handleControl();
+                this.pendingCommand = null; // 清空待执行指令
+            }, 100);
         }
         
-        // 3秒后恢复暂停标志
-        setTimeout(() => { 
-            this.isPaused = false; 
-        }, 3000);
+        // 恢复暂停标志
+        setTimeout(() => { this.isPaused = false; }, 3000);
+    } else {
+        // 开始录音
+        this.pendingCommand = null; // 清空之前的指令
+        this.startVoiceInput();
+    }
+}
+
+// 停止语音输入 - 简化版
+stopVoiceInput() {
+    if (!this.recognition || !this.isRecording) return;
+    
+    this.isPaused = true;
+    this.recognition.stop();
+    
+    // 直接执行pendingCommand（如果有）
+    const command = this.pendingCommand;
+    if (command) {
+        const input = document.getElementById('ai-control-input');
+        if (input) input.value = command;
+        
+        setTimeout(() => {
+            this.handleControl();
+            this.pendingCommand = null;
+        }, 100);
     }
     
-    // 重置静音检测计时器
-    resetSilenceTimer() {
-        // 清除之前的计时器
-        this.clearSilenceTimer();
-        
-        // 非一键常开模式下才需要静音检测
-        if (this.voiceAlwaysOn) {
-            console.log('[AIControl] 一键常开模式，跳过静音检测');
-            return;
-        }
-        
-        console.log('[AIControl] 重置静音检测计时器（1.5秒后自动关闭）');
-        
-        // 设置新的计时器：1.5秒静音后自动停止
-        this.silenceTimer = setTimeout(async () => {
-            console.log('[AIControl] 计时器触发，检查状态...');
-            console.log('[AIControl] isRecording:', this.isRecording, 'voiceAlwaysOn:', this.voiceAlwaysOn);
-            if (this.isRecording && !this.voiceAlwaysOn) {
-                console.log('[AIControl] 检测到说话结束，自动停止录音');
-                await this.stopVoiceInput();
-            }
-        }, 1500); // 1.5秒静音后停止
+    setTimeout(() => { this.isPaused = false; }, 3000);
+}
+
+// 开始语音输入
+startVoiceInput() {
+    if (!this.recognition || this.isRecording) return;
+    try {
+        this.recognition.start();
+    } catch (err) {
+        // 忽略错误
     }
+}
+
+// 处理语音快捷键 - 简化版
+async handleVoiceShortcut(e) {
+    if (!this.voiceShortcut) return false;
     
-    // 清除静音检测计时器
-    clearSilenceTimer() {
-        if (this.silenceTimer) {
-            clearTimeout(this.silenceTimer);
-            this.silenceTimer = null;
-        }
-    }
+    const keys = this.voiceShortcut.split('+');
+    const hasCtrl = keys.includes('Ctrl');
+    const hasAlt = keys.includes('Alt');
+    const hasShift = keys.includes('Shift');
+    const hasMeta = keys.includes('Meta');
+    const mainKey = keys.find(k => !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(k));
     
-    updateVoiceButtonState(isRecording) {
-        if (this.voiceBtn) {
-            if (isRecording) {
-                this.voiceBtn.classList.add('recording');
-                this.voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
-            } else {
-                this.voiceBtn.classList.remove('recording');
-                this.voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            }
-        }
-    }
-    
-    loadVoiceSettings() {
-        const alwaysOn = localStorage.getItem('aiControlVoiceAlwaysOn') === 'true';
-        this.voiceAlwaysOn = alwaysOn;
-        const toggle = document.getElementById('ai-control-voice-toggle');
-        if (toggle) toggle.checked = alwaysOn;
+    if (e.ctrlKey === hasCtrl && e.altKey === hasAlt && 
+        e.shiftKey === hasShift && e.metaKey === hasMeta && 
+        e.key.toUpperCase() === mainKey) {
+        e.preventDefault();
         
-        this.voiceShortcut = localStorage.getItem('aiControlVoiceShortcut') || '';
-        const shortcutInput = document.getElementById('ai-control-voice-shortcut');
-        if (shortcutInput) shortcutInput.value = this.voiceShortcut;
-        
-        this.bindVoiceSettingsEvents();
-    }
-    
-    bindVoiceSettingsEvents() {
-        const toggle = document.getElementById('ai-control-voice-toggle');
-        if (toggle) {
-            toggle.addEventListener('change', (e) => {
-                this.voiceAlwaysOn = e.target.checked;
-                localStorage.setItem('aiControlVoiceAlwaysOn', this.voiceAlwaysOn);
-                this.showStatus(this.voiceAlwaysOn ? 'AI控制语音输入一键常开已启用' : 'AI控制语音输入一键常开已关闭', 'success');
-            });
+        // 停止朗读
+        if (window.voiceManager) {
+            window.voiceManager.stop();
         }
         
-        const shortcutInput = document.getElementById('ai-control-voice-shortcut');
-        if (shortcutInput) {
-            shortcutInput.addEventListener('keydown', (e) => {
-                e.preventDefault();
-                const keys = [];
-                if (e.ctrlKey) keys.push('Ctrl');
-                if (e.altKey) keys.push('Alt');
-                if (e.shiftKey) keys.push('Shift');
-                if (e.metaKey) keys.push('Meta');
-                if (e.key && !['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
-                    keys.push(e.key.toUpperCase());
-                }
-                if (keys.length > 0) {
-                    const shortcut = keys.join('+');
-                    this.voiceShortcut = shortcut;
-                    shortcutInput.value = shortcut;
-                    localStorage.setItem('aiControlVoiceShortcut', shortcut);
-                }
-            });
-        }
-        
-        const clearBtn = document.getElementById('clear-ai-control-voice-shortcut');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                this.voiceShortcut = '';
-                if (shortcutInput) shortcutInput.value = '';
-                localStorage.removeItem('aiControlVoiceShortcut');
-            });
-        }
+        // 执行语音输入切换
+        await this.toggleVoiceInput();
+        return true;
     }
+    return false;
+}
     
-    async handleVoiceShortcut(e) {
-        console.log('[AIControl] handleVoiceShortcut: 快捷键被触发', e.key);
-        if (!this.voiceShortcut) {
-            console.log('[AIControl] handleVoiceShortcut: 未设置快捷键，忽略');
-            return false;
-        }
+    // 语音相关方法已在上面的 initSpeechRecognition 中定义
         
         const keys = this.voiceShortcut.split('+');
         const hasCtrl = keys.includes('Ctrl');
