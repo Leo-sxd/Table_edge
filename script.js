@@ -1851,7 +1851,279 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 筛选功能
+    
+// ==================== 待办事项提醒系统 ====================
+class TodoReminderSystem {
+    constructor() {
+        this.remindedTodos = new Set(); // 已提醒的任务ID
+        this.snoozedTodos = new Map(); // 被暂停提醒的任务 {todoId: snoozeUntil}
+        this.checkInterval = null;
+        this.init();
+    }
+    
+    init() {
+        // 每分钟检查一次
+        this.checkInterval = setInterval(() => this.checkDeadlines(), 60000);
+        // 页面加载时立即检查一次
+        this.checkDeadlines();
+        console.log('[TodoReminder] 提醒系统已启动');
+    }
+    
+    // 检查所有待办事项的截止时间
+    checkDeadlines() {
+        const todos = JSON.parse(localStorage.getItem('todos')) || [];
+        const now = new Date();
+        
+        todos.forEach(todo => {
+            if (todo.completed || !todo.endTime) return;
+            
+            const endTime = new Date(todo.endTime);
+            const diffMs = endTime - now;
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            const diffHours = diffMinutes / 60;
+            
+            // 检查是否被暂停提醒
+            if (this.snoozedTodos.has(todo.id)) {
+                const snoozeUntil = this.snoozedTodos.get(todo.id);
+                if (now < snoozeUntil) return; // 还在暂停期内
+                this.snoozedTodos.delete(todo.id); // 暂停期结束
+            }
+            
+            // 截止时间前1小时提醒（55-65分钟之间，避免重复提醒）
+            if (diffMinutes <= 60 && diffMinutes > 50 && !this.remindedTodos.has(`1h_${todo.id}`)) {
+                this.showOneHourReminder(todo, endTime);
+                this.remindedTodos.add(`1h_${todo.id}`);
+            }
+            
+            // 截止时间到达提醒（0-5分钟内）
+            if (diffMinutes <= 0 && diffMinutes > -5 && !this.remindedTodos.has(`due_${todo.id}`)) {
+                this.showDeadlineReminder(todo, endTime);
+                this.remindedTodos.add(`due_${todo.id}`);
+            }
+            
+            // 清理过期的提醒记录（任务已完成或已过期很久）
+            if (diffMinutes < -60) {
+                this.remindedTodos.delete(`1h_${todo.id}`);
+                this.remindedTodos.delete(`due_${todo.id}`);
+            }
+        });
+    }
+    
+    // 显示1小时前提醒
+    showOneHourReminder(todo, endTime) {
+        const timeString = this.formatTime(endTime);
+        this.showReminderModal({
+            title: '任务即将截止',
+            message: '该任务距离截止时间仅剩1小时',
+            taskName: todo.text,
+            timeText: `截止时间：${timeString}`,
+            isUrgent: false,
+            todoId: todo.id
+        });
+        
+        // 播放语音提示
+        this.speakText('该任务距离截止时间仅剩1小时');
+        
+        // 发送浏览器通知（如果用户允许）
+        this.sendNotification('任务即将截止', `任务"${todo.text}"距离截止时间仅剩1小时`);
+    }
+    
+    // 显示截止提醒
+    showDeadlineReminder(todo, endTime) {
+        const timeString = this.formatTime(endTime);
+        this.showReminderModal({
+            title: '任务已截止',
+            message: '该任务已到达截止时间',
+            taskName: todo.text,
+            timeText: `截止时间：${timeString}`,
+            isUrgent: true,
+            todoId: todo.id
+        });
+        
+        // 播放铃声
+        this.playAlarmSound();
+        
+        // 发送浏览器通知
+        this.sendNotification('任务已截止', `任务"${todo.text}"已到达截止时间`);
+    }
+    
+    // 显示提醒弹窗
+    showReminderModal(options) {
+        const overlay = document.getElementById('todo-reminder-overlay');
+        const modal = overlay.querySelector('.todo-reminder-modal');
+        const title = document.getElementById('todo-reminder-title');
+        const message = document.getElementById('todo-reminder-message');
+        const taskName = document.getElementById('todo-reminder-task-name');
+        const timeText = document.getElementById('todo-reminder-time');
+        
+        // 设置内容
+        title.textContent = options.title;
+        message.textContent = options.message;
+        taskName.textContent = options.taskName;
+        timeText.textContent = options.timeText;
+        
+        // 设置紧急样式
+        if (options.isUrgent) {
+            modal.classList.add('urgent');
+        } else {
+            modal.classList.remove('urgent');
+        }
+        
+        // 保存当前提醒的任务ID
+        modal.dataset.todoId = options.todoId;
+        
+        // 显示弹窗
+        overlay.classList.add('show');
+        
+        // 播放提示音
+        if (window.voiceSoundManager) {
+            window.voiceSoundManager.playStartSound();
+        }
+    }
+    
+    // 关闭提醒弹窗
+    closeReminder() {
+        const overlay = document.getElementById('todo-reminder-overlay');
+        overlay.classList.remove('show');
+    }
+    
+    // 暂停提醒（10分钟）
+    snoozeReminder() {
+        const overlay = document.getElementById('todo-reminder-overlay');
+        const modal = overlay.querySelector('.todo-reminder-modal');
+        const todoId = parseInt(modal.dataset.todoId);
+        
+        if (todoId) {
+            // 10分钟后再次提醒
+            const snoozeUntil = new Date(Date.now() + 10 * 60 * 1000);
+            this.snoozedTodos.set(todoId, snoozeUntil);
+            console.log(`[TodoReminder] 任务 ${todoId} 暂停提醒10分钟`);
+        }
+        
+        this.closeReminder();
+    }
+    
+    // 语音合成播报
+    speakText(text) {
+        if ('speechSynthesis' in window) {
+            // 取消之前的语音
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 0.8;
+            
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+    
+    // 播放截止铃声
+    playAlarmSound() {
+        // 使用Web Audio API生成提示音
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // 创建振荡器
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 设置音调（双音调警报效果）
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+            oscillator.frequency.setValueAtTime(698, audioContext.currentTime + 0.2); // F5
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.4);
+            oscillator.frequency.setValueAtTime(698, audioContext.currentTime + 0.6);
+            
+            oscillator.type = 'sine';
+            
+            // 设置音量包络
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
+            
+            // 播放第二遍
+            setTimeout(() => {
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.setValueAtTime(880, audioContext.currentTime);
+                osc2.frequency.setValueAtTime(698, audioContext.currentTime + 0.2);
+                osc2.type = 'sine';
+                gain2.gain.setValueAtTime(0.5, audioContext.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc2.start(audioContext.currentTime);
+                osc2.stop(audioContext.currentTime + 0.5);
+            }, 200);
+            
+        } catch (e) {
+            console.warn('[TodoReminder] 无法播放铃声:', e);
+        }
+    }
+    
+    // 发送浏览器通知
+    sendNotification(title, body) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(title, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238c00ff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>',
+                badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238c00ff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>',
+                tag: 'todo-reminder',
+                requireInteraction: true
+            });
+        } else if ('Notification' in window && Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    this.sendNotification(title, body);
+                }
+            });
+        }
+    }
+    
+    // 格式化时间
+    formatTime(date) {
+        const d = new Date(date);
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${month}月${day}日 ${hours}:${minutes}`;
+    }
+}
+
+// 全局提醒系统实例
+let todoReminderSystem = null;
+
+// 初始化提醒系统（在DOM加载完成后）
+function initTodoReminderSystem() {
+    if (!todoReminderSystem) {
+        todoReminderSystem = new TodoReminderSystem();
+    }
+}
+
+// 关闭提醒弹窗（全局函数，供HTML调用）
+function closeTodoReminder() {
+    if (todoReminderSystem) {
+        todoReminderSystem.closeReminder();
+    }
+}
+
+// 暂停提醒（全局函数，供HTML调用）
+function snoozeTodoReminder() {
+    if (todoReminderSystem) {
+        todoReminderSystem.snoozeReminder();
+    }
+}
+
+// ==================== 待办事项提醒系统结束 ====================
+
+// 筛选功能
     filterButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             filterButtons.forEach(b => b.classList.remove('active'));

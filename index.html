@@ -542,5 +542,30 @@
     
     <!-- 整合后的JavaScript文件 -->
     <script src="/Table_edge/script.js"></script>
+
+<!-- 待办事项提醒弹窗 -->
+<div id="todo-reminder-overlay" class="todo-reminder-overlay">
+    <div class="todo-reminder-modal">
+        <div class="todo-reminder-header">
+            <div class="todo-reminder-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h3 id="todo-reminder-title">任务提醒</h3>
+            <button class="todo-reminder-close" onclick="closeTodoReminder()">&times;</button>
+        </div>
+        <div class="todo-reminder-content">
+            <p id="todo-reminder-message">您有任务即将截止</p>
+            <div class="todo-reminder-task" id="todo-reminder-task-name"></div>
+            <div class="todo-reminder-time" id="todo-reminder-time"></div>
+        </div>
+        <div class="todo-reminder-actions">
+            <button class="todo-reminder-btn todo-reminder-btn-primary" onclick="closeTodoReminder()">我知道了</button>
+            <button class="todo-reminder-btn todo-reminder-btn-secondary" onclick="snoozeTodoReminder()">稍后提醒(10分钟)</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
