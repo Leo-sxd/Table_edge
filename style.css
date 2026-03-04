@@ -3612,7 +3612,8 @@ body.modal-open {
 
 
 
-/* 顶部区域左右布局 */
+
+/* 顶部区域左右七三分布局 */
 .top-section {
     width: 100%;
     padding: 20px;
@@ -3624,6 +3625,7 @@ body.modal-open {
     gap: 20px;
     max-width: 1400px;
     margin: 0 auto;
+    align-items: flex-start;
 }
 
 /* 左侧：瀚海天行 (70%) */
@@ -3641,9 +3643,7 @@ body.modal-open {
 
 .ai-control-wrapper .ai-control-section {
     margin: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    height: auto;
 }
 
 .ai-control-wrapper .ai-control-content {
@@ -3675,4 +3675,6 @@ body.modal-open {
         flex: 0 0 100%;
         width: 100%;
     }
+}
+
 }
