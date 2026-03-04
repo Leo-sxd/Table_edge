@@ -3613,7 +3613,13 @@ body.modal-open {
 
 
 
-/* 顶部区域左右七三分布局 */
+
+}
+
+}
+
+
+/* ==================== 顶部区域左右七三分布局 ==================== */
 .top-section {
     width: 100%;
     padding: 20px;
@@ -3621,29 +3627,42 @@ body.modal-open {
 }
 
 .top-container {
-    display: flex;
+    display: flex !important;
+    flex-direction: row !important;
     gap: 20px;
     max-width: 1400px;
     margin: 0 auto;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 /* 左侧：瀚海天行 (70%) */
-.top-container .doubao-section {
-    flex: 0 0 70%;
-    width: 70%;
-    margin: 0;
+.top-container > .doubao-section {
+    flex: 0 0 70% !important;
+    width: 70% !important;
+    max-width: 70% !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box;
+}
+
+/* 瀚海天行内部容器占满宽度 */
+.top-container .doubao-chat-container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    width: 100%;
 }
 
 /* 右侧：AI网站控制 (30%) */
 .ai-control-wrapper {
-    flex: 0 0 30%;
-    width: 30%;
+    flex: 0 0 30% !important;
+    width: 30% !important;
+    max-width: 30% !important;
+    box-sizing: border-box;
 }
 
 .ai-control-wrapper .ai-control-section {
     margin: 0;
-    height: auto;
+    height: 100%;
 }
 
 .ai-control-wrapper .ai-control-content {
@@ -3667,14 +3686,13 @@ body.modal-open {
 /* 响应式布局 */
 @media (max-width: 1024px) {
     .top-container {
-        flex-direction: column;
+        flex-direction: column !important;
     }
     
-    .top-container .doubao-section,
+    .top-container > .doubao-section,
     .ai-control-wrapper {
-        flex: 0 0 100%;
-        width: 100%;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
-}
-
 }
