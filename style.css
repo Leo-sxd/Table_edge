@@ -3610,3 +3610,69 @@ body.modal-open {
     50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
 }
 
+
+
+/* 顶部区域左右布局 */
+.top-section {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.top-container {
+    display: flex;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* 左侧：瀚海天行 (70%) */
+.top-container .doubao-section {
+    flex: 0 0 70%;
+    width: 70%;
+    margin: 0;
+}
+
+/* 右侧：AI网站控制 (30%) */
+.ai-control-wrapper {
+    flex: 0 0 30%;
+    width: 30%;
+}
+
+.ai-control-wrapper .ai-control-section {
+    margin: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-control-wrapper .ai-control-content {
+    flex-direction: column;
+}
+
+.ai-control-wrapper .ai-control-left,
+.ai-control-wrapper .ai-control-right {
+    width: 100%;
+}
+
+.ai-control-wrapper .ai-control-right {
+    margin-top: 15px;
+}
+
+.ai-control-wrapper .ai-control-instructions {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* 响应式布局 */
+@media (max-width: 1024px) {
+    .top-container {
+        flex-direction: column;
+    }
+    
+    .top-container .doubao-section,
+    .ai-control-wrapper {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+}
