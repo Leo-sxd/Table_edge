@@ -1862,8 +1862,8 @@ class TodoReminderSystem {
     }
     
     init() {
-        // 每分钟检查一次
-        this.checkInterval = setInterval(() => this.checkDeadlines(), 60000);
+        // 每10秒检查一次（测试用），生产环境建议60000（1分钟）
+        this.checkInterval = setInterval(() => this.checkDeadlines(), 10000);
         // 页面加载时立即检查一次
         this.checkDeadlines();
         console.log('[TodoReminder] 提醒系统已启动');
@@ -1874,13 +1874,20 @@ class TodoReminderSystem {
         const todos = JSON.parse(localStorage.getItem('todos')) || [];
         const now = new Date();
         
+        console.log('[TodoReminder] 检查截止时间，当前时间:', now.toLocaleString(), '待办数量:', todos.length);
+        
         todos.forEach(todo => {
-            if (todo.completed || !todo.endTime) return;
+            if (todo.completed || !todo.endTime) {
+                console.log('[TodoReminder] 跳过任务:', todo.text, '已完成:', todo.completed, '有截止时间:', !!todo.endTime);
+                return;
+            }
             
             const endTime = new Date(todo.endTime);
             const diffMs = endTime - now;
             const diffMinutes = Math.floor(diffMs / (1000 * 60));
             const diffHours = diffMinutes / 60;
+            
+            console.log('[TodoReminder] 任务:', todo.text, '截止时间:', endTime.toLocaleString(), '剩余分钟:', diffMinutes);
             
             // 检查是否被暂停提醒
             if (this.snoozedTodos.has(todo.id)) {
@@ -1911,6 +1918,7 @@ class TodoReminderSystem {
     
     // 显示1小时前提醒
     showOneHourReminder(todo, endTime) {
+        console.log('[TodoReminder] 显示1小时前提醒:', todo.text);
         const timeString = this.formatTime(endTime);
         this.showReminderModal({
             title: '任务即将截止',
@@ -1949,7 +1957,12 @@ class TodoReminderSystem {
     
     // 显示提醒弹窗
     showReminderModal(options) {
+        console.log('[TodoReminder] 显示弹窗:', options.title, options.taskName);
         const overlay = document.getElementById('todo-reminder-overlay');
+        if (!overlay) {
+            console.error('[TodoReminder] 找不到弹窗元素 todo-reminder-overlay');
+            return;
+        }
         const modal = overlay.querySelector('.todo-reminder-modal');
         const title = document.getElementById('todo-reminder-title');
         const message = document.getElementById('todo-reminder-message');
@@ -2135,6 +2148,11 @@ function snoozeTodoReminder() {
     // 初始加载
     setDefaultTimes();
     loadTodos();
+    
+    // 初始化待办事项提醒系统
+    if (typeof initTodoReminderSystem === 'function') {
+        initTodoReminderSystem();
+    }
     
     // ==================== 5. 高德地图功能 ====================
     let map = null;
