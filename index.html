@@ -264,12 +264,9 @@
             </div>
         </header>
         
-        <!-- 顶部区域：瀚海天行和AI网站控制左右布局 -->
-        <section class="top-section">
-            <div class="top-container">
-                <!-- 左侧：瀚海天行 (70%) -->
-                <div class="doubao-section">
-                <div class="doubao-chat-container">
+        <!-- 豆包AI板块 - 居中对话式布局 -->
+        <section class="doubao-section">
+            <div class="doubao-chat-container">
                 <!-- 顶部标题区 -->
                 <div class="doubao-header">
                     <div class="doubao-header-left">
@@ -385,54 +382,42 @@
                     </div>
                 </div>
                 
-                
-            </div>
-            </div>
-                
-                <!-- 右侧：AI网站控制 (30%) -->
-                <div class="ai-control-wrapper">
-                <!-- AI网站控制区域 -->
+<!-- AI网站控制区域 -->
                 <div class="ai-control-section">
                     <div class="ai-control-header">
                         <i class="fas fa-robot"></i>
                         <span>AI网站控制</span>
                         <span class="ai-control-hint">用自然语言控制网站</span>
                     </div>
-                    <div class="ai-control-content">
-                        <div class="ai-control-left">
-                            <div class="ai-control-input-wrapper">
-                                <input type="text" id="ai-control-input" placeholder="例如：把背景换成蓝色，屏保时间改成2分钟...">
-                                <button id="ai-control-voice-btn" class="ai-control-btn ai-voice-btn" title="语音输入">
-                                    <i class="fas fa-microphone"></i>
-                                </button>
-                                <button id="ai-control-send" class="ai-control-btn">
-                                    <i class="fas fa-magic"></i>
-                                </button>
-                            </div>
-                            <!-- 状态提示 -->
-                            <div class="ai-status-toast" id="ai-status-toast"></div>
-                        </div>
-                        <div class="ai-control-right">
-                            <div class="ai-control-instructions">
-                                <h4><i class="fas fa-list"></i> 可用指令</h4>
-                                <ul>
-                                    <li><span class="instruction-num">1</span>将背景换为（晨露之森/沧浪之水/自然之桥/精骛八极/蓝/紫/黑）</li>
-                                    <li><span class="instruction-num">2</span>开/关视觉防疲劳效果</li>
-                                    <li><span class="instruction-num">3</span>开/关屏保（可设时间）</li>
-                                    <li><span class="instruction-num">4</span>增大/减小网页字体</li>
-                                    <li><span class="instruction-num">5</span>添加待办 xxxx年xx月xx日xx时xx分，xxxx</li>
-                                    <li><span class="instruction-num">6</span>在高德地图中搜索xxxx</li>
-                                    <li><span class="instruction-num">7</span>在浏览器中搜索xxxx</li>
-                                </ul>
-                            </div>
-                        </div>
+                    <div class="ai-control-input-wrapper">
+                        <input type="text" id="ai-control-input" placeholder="例如：把背景换成蓝色，屏保时间改成2分钟...">
+                        <button id="ai-control-voice-btn" class="ai-control-btn ai-voice-btn" title="语音输入">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button id="ai-control-send" class="ai-control-btn">
+                            <i class="fas fa-magic"></i>
+                        </button>
                     </div>
+                    <div class="ai-control-text-hint">
+                            <li>1.将背景换为（晨露之森/沧浪之水/自然之桥/精骛八极/蓝/紫/黑）</li>
+                            <li>2.开/关视觉防疲劳效果</li>
+                            <li>3.开/关屏保（可设时间）</li>
+                            <li>4.增大/减小网页字体</li>
+                            <li>5.添加待办 xxxx年xx月xx日xx时xx分，xxxx</li>
+                            <li>6.在高德地图中搜索xxxx</li>
+                            <li>7.在浏览器中搜索xxxx</li>
+                            </ul>
+                    </div>
+                    <!-- 状态提示 -->
+                    <div class="ai-status-toast" id="ai-status-toast"></div>
                 </div>
+                
+                
+
             </div>
-        </div>
         </section>
         
-<!-- 主内容区域 -->
+        <!-- 主内容区域 -->
         <main class="main-content">
             <!-- 左侧：待办事项 -->
             <section class="todo-section">
