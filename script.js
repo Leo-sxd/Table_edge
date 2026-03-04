@@ -209,6 +209,8 @@ class AIWebsiteController {
 
     // 切换语音输入 - 简化版
     async toggleVoiceInput() {
+        console.log('[AIControl] toggleVoiceInput 被调用, isRecording:', this.isRecording);
+        
         if (!this.recognition) {
             alert('您的浏览器不支持语音识别功能');
             return;
@@ -216,28 +218,39 @@ class AIWebsiteController {
         
         if (this.isRecording) {
             // 停止录音
+            console.log('[AIControl] 停止录音，准备执行指令');
             this.isPaused = true;
             this.recognition.stop();
             
-            // 直接执行pendingCommand（如果有）
-            const command = this.pendingCommand;
+            // 获取输入框内容（优先使用pendingCommand，如果没有则使用输入框当前值）
+            const input = document.getElementById('ai-control-input');
+            const inputValue = input ? input.value.trim() : '';
+            const command = this.pendingCommand || inputValue;
+            
+            console.log('[AIControl] pendingCommand:', this.pendingCommand);
+            console.log('[AIControl] inputValue:', inputValue);
+            console.log('[AIControl] 最终command:', command);
+            
             if (command) {
                 // 确保输入框显示指令
-                const input = document.getElementById('ai-control-input');
                 if (input) input.value = command;
                 
                 // 延迟执行，确保状态更新
                 setTimeout(() => {
+                    console.log('[AIControl] 执行指令:', command);
                     this.handleControl();
-                    this.pendingCommand = null; // 清空待执行指令
+                    this.pendingCommand = null;
                 }, 100);
+            } else {
+                console.log('[AIControl] 没有可执行的指令');
             }
             
             // 恢复暂停标志
             setTimeout(() => { this.isPaused = false; }, 3000);
         } else {
             // 开始录音
-            this.pendingCommand = null; // 清空之前的指令
+            console.log('[AIControl] 开始录音');
+            this.pendingCommand = null;
             this.startVoiceInput();
         }
     }
