@@ -557,6 +557,87 @@ class AIWebsiteController {
             }
         }
         
+        // 高德地图搜索
+        const mapSearchMatch = cmd.match(/在高德地图中搜索(.+)/) || cmd.match(/高德地图搜索(.+)/) || cmd.match(/地图搜索(.+)/);
+        if (mapSearchMatch) {
+            const keyword = mapSearchMatch[1].trim();
+            if (keyword) {
+                return `(() => {
+                    // 切换到地图面板
+                    const mapSection = document.getElementById('map-section');
+                    if (mapSection) {
+                        // 隐藏其他面板
+                        document.querySelectorAll('.feature-section').forEach(section => {
+                            section.classList.remove('active');
+                        });
+                        // 显示地图面板
+                        mapSection.classList.add('active');
+                        // 更新导航按钮状态
+                        document.querySelectorAll('.nav-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                            if (btn.dataset.section === 'map') {
+                                btn.classList.add('active');
+                            }
+                        });
+                    }
+                    
+                    // 设置搜索关键词
+                    const searchInput = document.getElementById('map-search-input');
+                    if (searchInput) {
+                        searchInput.value = '${keyword}';
+                    }
+                    
+                    // 触发搜索
+                    setTimeout(() => {
+                        const searchBtn = document.getElementById('map-search-btn');
+                        if (searchBtn) {
+                            searchBtn.click();
+                        } else if (typeof searchPlace === 'function') {
+                            searchPlace();
+                        }
+                    }, 500);
+                    
+                    console.log('[AIControl] 高德地图搜索:', '${keyword}');
+                })();`;
+            }
+        }
+        
+        // Bing搜索
+        const bingSearchMatch = cmd.match(/在浏览器中搜索(.+)/) || cmd.match(/浏览器搜索(.+)/) || cmd.match(/必应搜索(.+)/) || cmd.match(/bing搜索(.+)/);
+        if (bingSearchMatch) {
+            const keyword = bingSearchMatch[1].trim();
+            if (keyword) {
+                return `(() => {
+                    // 切换到Bing搜索面板
+                    const bingSection = document.getElementById('bing-section');
+                    if (bingSection) {
+                        // 隐藏其他面板
+                        document.querySelectorAll('.feature-section').forEach(section => {
+                            section.classList.remove('active');
+                        });
+                        // 显示Bing面板
+                        bingSection.classList.add('active');
+                        // 更新导航按钮状态
+                        document.querySelectorAll('.nav-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                            if (btn.dataset.section === 'bing') {
+                                btn.classList.add('active');
+                            }
+                        });
+                    }
+                    
+                    // 更新iframe搜索
+                    const bingIframe = document.getElementById('bing-iframe');
+                    if (bingIframe) {
+                        const encodedKeyword = encodeURIComponent('${keyword}');
+                        bingIframe.src = 'https://www.bing.com/search?q=' + encodedKeyword;
+                    }
+                    
+                    console.log('[AIControl] Bing搜索:', '${keyword}');
+                })();`;
+            }
+        }
+        
         return null;
     }
     
