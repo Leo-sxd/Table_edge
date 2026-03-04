@@ -650,60 +650,7 @@ class AIWebsiteController {
         };
     }
     
-    // 切换语音输入
-    toggleVoiceInput() {
-        if (!this.recognition) {
-            alert('您的浏览器不支持语音识别功能');
-            return;
-        }
-        
-        // 强制停止正在进行的朗读（无论当前状态如何）
-        if (window.voiceManager) {
-            console.log('[AIControl] 强制停止当前朗读');
-            window.voiceManager.stop();
-        }
-        
-        if (this.isRecording) {
-            this.stopVoiceInput();
-        } else {
-            this.startVoiceInput();
-        }
-    }
-    
-    // 启动语音输入
-    startVoiceInput() {
-        if (!this.recognition) {
-            return Promise.reject('不支持语音识别');
-        }
-        
-        if (this.isRecording) {
-            return Promise.resolve();
-        }
-        
-        return new Promise((resolve, reject) => {
-            try {
-                this.recognition.start();
-                resolve();
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-    
-    // 停止语音输入
-    stopVoiceInput() {
-        if (!this.recognition || !this.isRecording) {
-            return;
-        }
-        
-        this.recognition.stop();
-        this.isPaused = true;
-        
-        // 3秒后恢复自动重启
-        setTimeout(() => {
-            this.isPaused = false;
-        }, 3000);
-    }
+    // 语音输入方法已在上方定义
     
     // 更新语音按钮状态
     updateVoiceButtonState(isRecording) {
