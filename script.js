@@ -1130,9 +1130,29 @@ class AIWebsiteController {
             }
         }
         
-        // 进入收藏网站 - 简化指令："进入收藏网站" 或 "打开收藏网站"
-        if (cmd.includes('进入收藏网站') || cmd.includes('打开收藏网站') || cmd.includes('收藏网站')) {
+        // 进入收藏网站 - 多种匹配方式，增加容错性
+        // 匹配："进入收藏网站"、"打开收藏网站"、"收藏网站"、"进入收藏"、"打开收藏"等
+        const favoriteSitePatterns = [
+            /进入收藏网站/,
+            /打开收藏网站/,
+            /进入收藏网/,
+            /打开收藏网/,
+            /收藏网站/,
+            /收藏网/,
+            /进入收藏/,
+            /打开收藏/,
+            /去收藏/,
+            /看收藏/,
+            /收藏网页/,
+            /收藏页面/
+        ];
+        
+        const isFavoriteSiteCommand = favoriteSitePatterns.some(pattern => pattern.test(cmd));
+        
+        if (isFavoriteSiteCommand) {
             return `(() => {
+                console.log('[AIControl] 识别到收藏网站指令，正在执行...');
+                
                 // 找到收藏网站按钮并点击
                 const favoriteBtn = document.querySelector('a[href*="favorite_file.github.io"]');
                 if (favoriteBtn) {
