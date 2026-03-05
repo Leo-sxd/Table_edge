@@ -3532,86 +3532,70 @@ body.modal-open {
 }
 
 
-/* ==================== 瀚海天行和AI控制左右七三分布局 - 强制覆盖 ==================== */
 
-/* 顶部区域容器 */
+}
+
+
+/* ==================== 顶部布局：瀚海天行 + AI控制 ==================== */
+
 .top-section {
-    width: 100% !important;
-    padding: 20px 20px 30px 20px !important;
-    box-sizing: border-box !important;
-    display: block !important;
-    margin-bottom: 25px !important;
+    padding: 20px 20px 45px 20px;
+    box-sizing: border-box;
 }
 
-/* Flex容器 - 强制横向排列 */
 .top-container {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 25px !important;
-    max-width: 1400px !important;
-    margin: 0 auto !important;
-    align-items: stretch !important;
-    justify-content: space-between !important;
+    display: flex;
+    flex-direction: row;
+    gap: 25px;
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: stretch;
 }
 
-/* 左侧：瀚海天行 - 与下方左中两列对齐 */
-.top-container > .doubao-section-wrapper {
-    flex: 0 0 calc((100% - 25px) * 2.5/3.5) !important;
-    width: calc((100% - 25px) * 2.5/3.5) !important;
-    max-width: calc((100% - 25px) * 2.5/3.5) !important;
-    min-width: calc((100% - 25px) * 2.5/3.5) !important;
-    margin: 0 !important;
-    box-sizing: border-box !important;
+/* 瀚海天行占左侧约71.4% (2.5/3.5) */
+.doubao-section-wrapper {
+    flex: 2.5;
+    min-width: 0;
 }
 
-/* 瀚海天行内部容器 - 移除max-width限制 */
-.doubao-section-wrapper > .doubao-chat-container {
-    background-color: rgba(255, 255, 255, 0.15) !important;
-    border-radius: 20px !important;
-    padding: 40px !important;
-    padding-bottom: 100px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    min-height: 550px !important;
-    max-width: none !important;
-    margin: 0 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+.doubao-section-wrapper .doubao-chat-container {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 40px;
+    padding-bottom: 100px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-height: 550px;
+    max-width: none;
+    margin: 0;
 }
 
-/* 右侧：AI网站控制 - 与下方右列对齐 */
-.top-container > .ai-control-wrapper {
-    flex: 0 0 calc((100% - 25px) * 1/3.5) !important;
-    width: calc((100% - 25px) * 1/3.5) !important;
-    max-width: calc((100% - 25px) * 1/3.5) !important;
-    min-width: calc((100% - 25px) * 1/3.5) !important;
-    margin: 0 !important;
-    box-sizing: border-box !important;
+/* AI控制占右侧约28.6% (1/3.5) */
+.ai-control-wrapper {
+    flex: 1;
+    min-width: 0;
 }
 
 .ai-control-wrapper .ai-control-section {
-    margin: 0 !important;
-    padding: 15px !important;
-    background: rgba(140, 0, 255, 0.1) !important;
-    border-radius: 12px !important;
-    border: 1px solid rgba(140, 0, 255, 0.3) !important;
-    height: 100% !important;
-    box-sizing: border-box !important;
+    margin: 0;
+    padding: 15px;
+    background: rgba(140, 0, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(140, 0, 255, 0.3);
+    height: 100%;
+    box-sizing: border-box;
 }
 
-/* 响应式布局 */
+/* 响应式 */
 @media (max-width: 1024px) {
     .top-container {
-        flex-direction: column !important;
+        flex-direction: column;
     }
     
-    .top-container > .doubao-section-wrapper,
-    .top-container > .ai-control-wrapper {
-        flex: 0 0 100% !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 100% !important;
+    .doubao-section-wrapper,
+    .ai-control-wrapper {
+        flex: none;
+        width: 100%;
     }
 }
