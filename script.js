@@ -487,7 +487,49 @@ class AIWebsiteController {
             return `document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
         }
         
-        // 待办事项设置 - 支持"xx年xx月xx日xx时xx分，xxxx"格式
+        // 待办事项设置 - 支持"xxxx年xx月xx日xx点xx分，xxxx"格式
+        // 简化指令：直接匹配时间+内容格式
+        const todoSimpleMatch = command.match(/(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})点(\d{1,2})分[，,\s]*(.+)/);
+        if (todoSimpleMatch) {
+            const year = todoSimpleMatch[1];
+            const month = String(todoSimpleMatch[2]).padStart(2, '0');
+            const day = String(todoSimpleMatch[3]).padStart(2, '0');
+            const hour = String(todoSimpleMatch[4]).padStart(2, '0');
+            const minute = String(todoSimpleMatch[5]).padStart(2, '0');
+            const todoText = todoSimpleMatch[6].trim();
+            const deadline = `${year}-${month}-${day}T${hour}:${minute}:00`;
+            
+            if (todoText) {
+                return `(() => {
+                    const todo = {
+                        id: Date.now().toString(),
+                        text: '${todoText}',
+                        startTime: new Date().toISOString(),
+                        endTime: '${deadline}',
+                        completed: false
+                    };
+                    const todos = JSON.parse(localStorage.getItem('todos')) || [];
+                    todos.push(todo);
+                    localStorage.setItem('todos', JSON.stringify(todos));
+                    if (typeof loadTodos === 'function') loadTodos();
+                    if (typeof updateTodoCounts === 'function') updateTodoCounts();
+                    
+                    // 滚动到待办事项区域
+                    setTimeout(() => {
+                        const todoSection = document.querySelector('.todo-section');
+                        if (todoSection) {
+                            const rect = todoSection.getBoundingClientRect();
+                            const scrollTop = window.pageYOffset + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+                            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                        }
+                    }, 300);
+                    
+                    console.log('[AIControl] 已添加待办事项:', '${todoText}', '截止时间:', '${deadline}');
+                })();`;
+            }
+        }
+        
+        // 保留原有的待办识别作为备选
         if (cmd.includes('待办') || cmd.includes('todo') || cmd.includes('任务') || cmd.includes('提醒')) {
             // 匹配完整日期时间格式：2025年12月25日15时30分 或 2025-12-25 15:30 或 12月25日15:30
             const dateTimeMatch = command.match(/(\d{4})?[年\-/]?(\d{1,2})[月\-/](\d{1,2})[日]?[\s]*(\d{1,2})[时:：](\d{1,2})[分]?/);
@@ -568,8 +610,8 @@ class AIWebsiteController {
             }
         }
         
-        // 高德地图搜索
-        const mapSearchMatch = cmd.match(/在高德地图中搜索(.+)/) || cmd.match(/高德地图搜索(.+)/) || cmd.match(/地图搜索(.+)/);
+        // 高德地图搜索 - 简化指令："地图搜索xxxx"
+        const mapSearchMatch = cmd.match(/地图搜索(.+)/) || cmd.match(/在高德地图中搜索(.+)/) || cmd.match(/高德地图搜索(.+)/);
         if (mapSearchMatch) {
             const keyword = mapSearchMatch[1].trim();
             if (keyword) {
@@ -623,8 +665,8 @@ class AIWebsiteController {
             }
         }
         
-        // Bing搜索
-        const bingSearchMatch = cmd.match(/在浏览器中搜索(.+)/) || cmd.match(/浏览器搜索(.+)/) || cmd.match(/必应搜索(.+)/) || cmd.match(/bing搜索(.+)/);
+        // Bing搜索 - 简化指令："浏览器搜索xxxx"
+        const bingSearchMatch = cmd.match(/浏览器搜索(.+)/) || cmd.match(/在浏览器中搜索(.+)/) || cmd.match(/必应搜索(.+)/) || cmd.match(/bing搜索(.+)/);
         if (bingSearchMatch) {
             const keyword = bingSearchMatch[1].trim();
             if (keyword) {
