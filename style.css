@@ -274,6 +274,8 @@ html, body {
     grid-template-columns: 1fr 1.5fr 1fr;
     gap: 25px;
     margin-bottom: 30px;
+    padding: 0 20px;
+    box-sizing: border-box;
 }
 
 @media (max-width: 1200px) {
@@ -3560,9 +3562,10 @@ body.modal-open {
     display: flex !important;
     flex-direction: row !important;
     gap: 25px !important;
-    max-width: 1400px !important;
-    margin: 0 auto !important;
+    max-width: none !important;
+    margin: 0 !important;
     align-items: stretch !important;
+    width: 100% !important;
 }
 
 /* 瀚海天行占左侧约71.4% (2.5/3.5) */
