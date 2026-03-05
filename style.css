@@ -3497,9 +3497,6 @@ body.modal-open {
     50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
 }
 
-}
-
-}
 
 /* 瀚海天行占左侧约71.4% (2.5/3.5) */
 .doubao-section-wrapper {
@@ -3529,9 +3526,9 @@ body.modal-open {
 .ai-control-wrapper .ai-control-section {
     margin: 0;
     padding: 15px;
-    background: rgba(140, 0, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    border: 1px solid rgba(140, 0, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     height: 100%;
     box-sizing: border-box;
 }
