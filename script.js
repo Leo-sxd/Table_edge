@@ -552,6 +552,17 @@ class AIWebsiteController {
                     localStorage.setItem('todos', JSON.stringify(todos));
                     if (typeof loadTodos === 'function') loadTodos();
                     if (typeof updateTodoCounts === 'function') updateTodoCounts();
+                    
+                    // 滚动到待办事项区域
+                    setTimeout(() => {
+                        const todoSection = document.querySelector('.todo-section');
+                        if (todoSection) {
+                            const rect = todoSection.getBoundingClientRect();
+                            const scrollTop = window.pageYOffset + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+                            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                        }
+                    }, 300);
+                    
                     console.log('[AIControl] 已添加待办事项:', '${todoText}', '截止时间:', '${deadline}', '(${timeType})');
                 })();`;
             }
@@ -597,6 +608,16 @@ class AIWebsiteController {
                         }
                     }, 500);
                     
+                    // 滚动到地图区域
+                    setTimeout(() => {
+                        const mapSection = document.getElementById('map-section');
+                        if (mapSection) {
+                            const rect = mapSection.getBoundingClientRect();
+                            const scrollTop = window.pageYOffset + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+                            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                        }
+                    }, 600);
+                    
                     console.log('[AIControl] 高德地图搜索:', '${keyword}');
                 })();`;
             }
@@ -632,6 +653,16 @@ class AIWebsiteController {
                         const encodedKeyword = encodeURIComponent('${keyword}');
                         bingIframe.src = 'https://www.bing.com/search?q=' + encodedKeyword;
                     }
+                    
+                    // 滚动到Bing搜索区域
+                    setTimeout(() => {
+                        const bingSection = document.getElementById('bing-section');
+                        if (bingSection) {
+                            const rect = bingSection.getBoundingClientRect();
+                            const scrollTop = window.pageYOffset + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+                            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                        }
+                    }, 300);
                     
                     console.log('[AIControl] Bing搜索:', '${keyword}');
                 })();`;
