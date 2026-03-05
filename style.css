@@ -3526,3 +3526,77 @@ body.modal-open {
     50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
 }
 
+
+
+/* ==================== 瀚海天行和AI控制左右七三分布局 ==================== */
+
+/* 顶部区域容器 */
+.top-section {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Flex容器 */
+.top-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+/* 左侧：瀚海天行 (70%) */
+.doubao-section-wrapper {
+    flex: 0 0 70%;
+    width: 70%;
+    max-width: 70%;
+}
+
+/* 瀚海天行内部容器 */
+.doubao-section-wrapper .doubao-chat-container {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 40px;
+    padding-bottom: 100px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-height: 550px;
+    transition: all 0.3s ease;
+}
+
+.doubao-section-wrapper .doubao-chat-container:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* 右侧：AI网站控制 (30%) */
+.ai-control-wrapper {
+    flex: 0 0 30%;
+    width: 30%;
+    max-width: 30%;
+}
+
+.ai-control-wrapper .ai-control-section {
+    margin: 0;
+    padding: 15px;
+    background: rgba(140, 0, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(140, 0, 255, 0.3);
+}
+
+/* 响应式布局 */
+@media (max-width: 1024px) {
+    .top-container {
+        flex-direction: column;
+    }
+    
+    .doubao-section-wrapper,
+    .ai-control-wrapper {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+}
