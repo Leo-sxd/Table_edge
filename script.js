@@ -960,6 +960,53 @@ class AIWebsiteController {
             }
         }
         
+        // 查找视频 - 简化指令："查找视频xxxx"
+        const findVideoMatch = cmd.match(/查找视频(.+)/) || cmd.match(/搜索视频(.+)/) || cmd.match(/找视频(.+)/);
+        if (findVideoMatch) {
+            const keyword = findVideoMatch[1].trim();
+            if (keyword) {
+                return `(() => {
+                    // 滚动到B站板块
+                    const bilibiliSection = document.getElementById('bilibili-section');
+                    if (bilibiliSection) {
+                        bilibiliSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    
+                    // 设置搜索关键词
+                    const searchInput = document.getElementById('bilibili-search-input');
+                    if (searchInput) {
+                        searchInput.value = '${keyword}';
+                    }
+                    
+                    // 执行搜索
+                    setTimeout(() => {
+                        if (typeof bilibiliModule !== 'undefined' && bilibiliModule.searchVideos) {
+                            bilibiliModule.searchVideos();
+                        } else {
+                            // 备用方案：直接设置iframe
+                            const grid = document.getElementById('bilibili-video-grid');
+                            if (grid) {
+                                const searchUrl = 'https://m.bilibili.com/search?keyword=' + encodeURIComponent('${keyword}');
+                                grid.innerHTML = \`
+                                    <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
+                                        <div class="bilibili-player-header">
+                                            <h3>B站搜索结果：${keyword}</h3>
+                                            <button class="bilibili-close-player" onclick="bilibiliModule.closeSearchResult()">
+                                                <i class="fas fa-times"></i> 关闭
+                                            </button>
+                                        </div>
+                                        <iframe src="\${searchUrl}" width="100%" height="600" frameborder="0"></iframe>
+                                    </div>
+                                \`;
+                            }
+                        }
+                    }, 500);
+                    
+                    console.log('[AIControl] 查找视频:', '${keyword}');
+                })();`;
+            }
+        }
+        
         return null;
     }
     
