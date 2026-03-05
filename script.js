@@ -4,6 +4,65 @@
  * 包含：粒子效果 + 主脚本 + 诗句模块
  * ============================================
  */
+// ==================== 语音识别优化工具类 ====================
+class VoiceRecognitionOptimizer {
+    constructor() {
+        // 常见同音字/近音字映射
+        this.homophoneMap = {
+            '待办': ['待办', '代办', '带班', '戴班'],
+            '地图': ['地图', '地圖', '弟图'],
+            '搜索': ['搜索', '搜素', '搜缩'],
+            '浏览器': ['浏览器', '刘兰器', '流览器', '刘览器'],
+            '背景': ['背景', '被景', '背境'],
+            '屏保': ['屏保', '平保', '屏宝'],
+            '字体': ['字体', '字體', '子体'],
+            '增大': ['增大', '曾大', '增达'],
+            '减小': ['减小', '减小小', '见小'],
+            '开启': ['开启', '开起', 'kaiqi'],
+            '关闭': ['关闭', '关必', '官闭'],
+            '添加': ['添加', '天加', '填加'],
+            '高德': ['高德', '高的', 'gaode'],
+            '报告': ['报告', '报稿', '抱告'],
+            '完成': ['完成', '完程', '玩成'],
+            '故宫': ['故宫', '古宫', '故工']
+        };
+    }
+    
+    // 纠正识别结果
+    correct(text) {
+        let corrected = text;
+        
+        // 1. 同音字纠正
+        for (const [correct, variants] of Object.entries(this.homophoneMap)) {
+            for (const variant of variants) {
+                if (corrected.includes(variant) && variant !== correct) {
+                    corrected = corrected.replace(new RegExp(variant, 'g'), correct);
+                    console.log('[VoiceCorrect] 纠正:', variant, '->', correct);
+                }
+            }
+        }
+        
+        // 2. 数字格式统一（中文数字->阿拉伯数字）
+        corrected = corrected.replace(/[零一二三四五六七八九]/g, match => {
+            const map = {'零': '0', '一': '1', '二': '2', '三': '3', '四': '4', 
+                        '五': '5', '六': '6', '七': '7', '八': '8', '九': '9'};
+            return map[match] || match;
+        });
+        
+        // 3. 年份格式统一
+        corrected = corrected.replace(/(\d{4})年/g, '$1年');
+        
+        // 4. 标点符号规范化
+        corrected = corrected.replace(/[，。！？；：]/g, ',');
+        
+        return corrected;
+    }
+}
+
+// 创建全局优化器实例
+window.voiceOptimizer = new VoiceRecognitionOptimizer();
+
+// ==================== 原脚本内容 ====================
 // ==================== 语音输入提示音管理器 ====================
 class VoiceSoundManager {
     constructor() {
