@@ -121,8 +121,8 @@ class BilibiliModule {
         }
     }
     
-    // 搜索视频（使用B站搜索页面嵌入）
-    searchVideos() {
+    // 搜索视频 - 使用B站API获取搜索结果
+    async searchVideos() {
         const keyword = document.getElementById('bilibili-search-input').value.trim();
         if (!keyword) {
             this.showEmpty('请输入搜索关键词');
@@ -131,10 +131,35 @@ class BilibiliModule {
         
         this.showLoading();
         
-        // 使用B站移动端搜索页面
-        const searchUrl = `https://m.bilibili.com/search?keyword=${encodeURIComponent(keyword)}`;
+        try {
+            // 使用B站搜索API
+            const response = await fetch(`https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=${encodeURIComponent(keyword)}&page=1`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.data && data.data.result && data.data.result.length > 0) {
+                this.renderVideoList(data.data.result, `搜索结果：${keyword}`);
+            } else {
+                // 如果API失败，使用备用方案：直接嵌入B站搜索页面
+                this.loadBilibiliSearchPage(keyword);
+            }
+        } catch (error) {
+            console.error('[Bilibili] 搜索失败:', error);
+            // 备用方案
+            this.loadBilibiliSearchPage(keyword);
+        }
         
-        // 显示搜索结果（使用iframe嵌入B站搜索）
+        this.hideLoading();
+    }
+    
+    // 备用：嵌入B站搜索页面
+    loadBilibiliSearchPage(keyword) {
+        const searchUrl = `https://m.bilibili.com/search?keyword=${encodeURIComponent(keyword)}`;
         const grid = document.getElementById('bilibili-video-grid');
         grid.innerHTML = `
             <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
@@ -147,15 +172,91 @@ class BilibiliModule {
                 <iframe src="${searchUrl}" width="100%" height="600" frameborder="0"></iframe>
             </div>
         `;
+    }
+    
+    // 渲染视频列表
+    renderVideoList(videos, title) {
+        const grid = document.getElementById('bilibili-video-grid');
+        
+        let html = `
+            <div class="bilibili-search-results-header" style="grid-column: 1 / -1; margin-bottom: 15px;">
+                <h3 style="color: #fff; font-size: 18px;">${title}</h3>
+                <p style="color: rgba(255,255,255,0.6); font-size: 14px; margin-top: 5px;">点击视频卡片即可播放</p>
+            </div>
+        `;
+        
+        videos.forEach(video => {
+            const bvid = video.bvid || '';
+            const title = video.title ? video.title.replace(/<[^>]+>/g, '') : '无标题';
+            const pic = video.pic || '';
+            const author = video.author || '未知UP主';
+            const play = video.play ? this.formatNumber(video.play) : '0';
+            const duration = video.duration || '';
+            
+            html += `
+                <div class="bilibili-video-card" onclick="bilibiliModule.playVideo('${bvid}', '${title.replace(/'/g, "\'")}')">
+                    <div class="bilibili-video-cover">
+                        <img src="${pic}" alt="${title}" loading="lazy">
+                        ${duration ? `<span class="bilibili-video-duration">${duration}</span>` : ''}
+                    </div>
+                    <div class="bilibili-video-info">
+                        <div class="bilibili-video-title" title="${title}">${title}</div>
+                        <div class="bilibili-video-meta">
+                            <div class="bilibili-video-up">
+                                <i class="fas fa-user-circle"></i>
+                                <span>${author}</span>
+                            </div>
+                            <div class="bilibili-video-stats">
+                                <span><i class="fas fa-play"></i> ${play}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        grid.innerHTML = html;
+    }
+    
+    // 格式化数字
+    formatNumber(num) {
+        if (num >= 10000) {
+            return (num / 10000).toFixed(1) + '万';
+        }
+        return num.toString();
+    }
+    
+    // 加载热门视频 - 使用API获取
+    async loadHotVideos() {
+        this.showLoading();
+        
+        try {
+            // 使用B站热门API
+            const response = await fetch('https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.data && data.data.list && data.data.list.length > 0) {
+                this.renderVideoList(data.data.list.slice(0, 20), '热门视频');
+            } else {
+                // 备用方案
+                this.loadBilibiliRankingPage();
+            }
+        } catch (error) {
+            console.error('[Bilibili] 获取热门失败:', error);
+            this.loadBilibiliRankingPage();
+        }
         
         this.hideLoading();
     }
     
-    // 加载热门视频
-    loadHotVideos() {
-        this.showLoading();
-        
-        // 使用B站热门页面
+    // 备用：嵌入B站热门页面
+    loadBilibiliRankingPage() {
         const grid = document.getElementById('bilibili-video-grid');
         grid.innerHTML = `
             <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
@@ -165,15 +266,39 @@ class BilibiliModule {
                 <iframe src="https://m.bilibili.com/ranking" width="100%" height="600" frameborder="0"></iframe>
             </div>
         `;
+    }
+    
+    // 加载推荐视频 - 使用API获取
+    async loadRecommendVideos() {
+        this.showLoading();
+        
+        try {
+            // 使用B站推荐API
+            const response = await fetch('https://api.bilibili.com/x/web-interface/index/top/feed/rcmd?ps=20', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.data && data.data.item && data.data.item.length > 0) {
+                this.renderVideoList(data.data.item, '推荐视频');
+            } else {
+                // 备用方案
+                this.loadBilibiliRecommendPage();
+            }
+        } catch (error) {
+            console.error('[Bilibili] 获取推荐失败:', error);
+            this.loadBilibiliRecommendPage();
+        }
         
         this.hideLoading();
     }
     
-    // 加载推荐视频
-    loadRecommendVideos() {
-        this.showLoading();
-        
-        // 使用B站首页推荐
+    // 备用：嵌入B站推荐页面
+    loadBilibiliRecommendPage() {
         const grid = document.getElementById('bilibili-video-grid');
         grid.innerHTML = `
             <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
@@ -183,8 +308,6 @@ class BilibiliModule {
                 <iframe src="https://m.bilibili.com/index.html" width="100%" height="600" frameborder="0"></iframe>
             </div>
         `;
-        
-        this.hideLoading();
     }
     
     // 播放视频
