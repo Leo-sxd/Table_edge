@@ -3639,7 +3639,7 @@ body.modal-open {
 }
 
 .bilibili-section .section-header h2 {
-    color: #00a1d6;
+    color: #8c00ff;
     font-size: 1.5rem;
     display: flex;
     align-items: center;
@@ -3647,7 +3647,7 @@ body.modal-open {
 }
 
 .bilibili-section .section-header h2 i {
-    color: #00a1d6;
+    color: #8c00ff;
 }
 
 /* 标签页 */
@@ -3672,7 +3672,7 @@ body.modal-open {
 }
 
 .bilibili-tab.active {
-    background: #00a1d6;
+    background: #8c00ff;
     color: white;
 }
 
@@ -3705,7 +3705,7 @@ body.modal-open {
 }
 
 .bilibili-search-box input:focus {
-    border-color: #00a1d6;
+    border-color: #8c00ff;
     background: rgba(255, 255, 255, 0.15);
 }
 
@@ -3713,7 +3713,7 @@ body.modal-open {
     padding: 12px 25px;
     border: none;
     border-radius: 25px;
-    background: #00a1d6;
+    background: #8c00ff;
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -3723,7 +3723,7 @@ body.modal-open {
 }
 
 .bilibili-search-btn:hover {
-    background: #0084b3;
+    background: #8c00ff;
     transform: translateY(-2px);
 }
 
