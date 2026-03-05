@@ -3528,75 +3528,89 @@ body.modal-open {
 
 
 
-/* ==================== 瀚海天行和AI控制左右七三分布局 ==================== */
+
+}
+
+
+/* ==================== 瀚海天行和AI控制左右七三分布局 - 强制覆盖 ==================== */
 
 /* 顶部区域容器 */
 .top-section {
-    width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
+    width: 100% !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    display: block !important;
 }
 
-/* Flex容器 */
+/* Flex容器 - 强制横向排列 */
 .top-container {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-    align-items: flex-start;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 20px !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    align-items: stretch !important;
+    justify-content: space-between !important;
 }
 
-/* 左侧：瀚海天行 (70%) */
-.doubao-section-wrapper {
-    flex: 0 0 70%;
-    width: 70%;
-    max-width: 70%;
+/* 左侧：瀚海天行 (70%) - 强制设置 */
+.top-container > .doubao-section-wrapper {
+    flex: 0 0 70% !important;
+    width: 70% !important;
+    max-width: 70% !important;
+    min-width: 70% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
 }
 
-/* 瀚海天行内部容器 */
-.doubao-section-wrapper .doubao-chat-container {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 40px;
-    padding-bottom: 100px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    min-height: 550px;
-    transition: all 0.3s ease;
+/* 瀚海天行内部容器 - 移除max-width限制 */
+.doubao-section-wrapper > .doubao-chat-container {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important;
+    padding: 40px !important;
+    padding-bottom: 100px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    min-height: 550px !important;
+    max-width: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
-.doubao-section-wrapper .doubao-chat-container:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* 右侧：AI网站控制 (30%) */
-.ai-control-wrapper {
-    flex: 0 0 30%;
-    width: 30%;
-    max-width: 30%;
+/* 右侧：AI网站控制 (30%) - 强制设置 */
+.top-container > .ai-control-wrapper {
+    flex: 0 0 30% !important;
+    width: 30% !important;
+    max-width: 30% !important;
+    min-width: 30% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
 }
 
 .ai-control-wrapper .ai-control-section {
-    margin: 0;
-    padding: 15px;
-    background: rgba(140, 0, 255, 0.1);
-    border-radius: 12px;
-    border: 1px solid rgba(140, 0, 255, 0.3);
+    margin: 0 !important;
+    padding: 15px !important;
+    background: rgba(140, 0, 255, 0.1) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(140, 0, 255, 0.3) !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* 响应式布局 */
 @media (max-width: 1024px) {
     .top-container {
-        flex-direction: column;
+        flex-direction: column !important;
     }
     
-    .doubao-section-wrapper,
-    .ai-control-wrapper {
-        flex: 0 0 100%;
-        width: 100%;
-        max-width: 100%;
+    .top-container > .doubao-section-wrapper,
+    .top-container > .ai-control-wrapper {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
     }
 }
