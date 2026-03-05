@@ -416,6 +416,8 @@
                             <li>5.xxxx年xx月xx日xx点xx分，xxxx</li>
                             <li>6.地图搜索xxxx</li>
                             <li>7.浏览器搜索xxxx</li>
+                            <li>8.B站搜索xxxx</li>
+                            <li>9.打开B站热门/推荐</li>
                             </ul>
                     </div>
                     <!-- 状态提示 -->
@@ -540,6 +542,49 @@
                 <iframe id="bing-iframe" src="https://www.bing.com/search?q=Bing搜索" width="100%" height="500"></iframe>
             </div>
         </section>
+        <!-- 哔哩哔哩视频板块 -->
+        <section class="feature-section bilibili-section" id="bilibili-section">
+            <div class="section-header">
+                <h2><i class="fab fa-bilibili"></i> 哔哩哔哩</h2>
+                <div class="bilibili-tabs">
+                    <button class="bilibili-tab active" data-tab="search">搜索</button>
+                    <button class="bilibili-tab" data-tab="hot">热门</button>
+                    <button class="bilibili-tab" data-tab="recommend">推荐</button>
+                </div>
+            </div>
+            
+            <!-- 搜索区域 -->
+            <div class="bilibili-search-container">
+                <div class="bilibili-search-box">
+                    <input type="text" id="bilibili-search-input" placeholder="搜索视频、UP主...">
+                    <button id="bilibili-search-btn" class="bilibili-search-btn">
+                        <i class="fas fa-search"></i> 搜索
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 视频播放器区域 -->
+            <div class="bilibili-player-container" id="bilibili-player-container" style="display: none;">
+                <div class="bilibili-player-header">
+                    <h3 id="bilibili-player-title">正在播放</h3>
+                    <button class="bilibili-close-player" id="bilibili-close-player">
+                        <i class="fas fa-times"></i> 关闭
+                    </button>
+                </div>
+                <iframe id="bilibili-player" src="" width="100%" height="500" frameborder="0" allowfullscreen></iframe>
+            </div>
+            
+            <!-- 视频列表区域 -->
+            <div class="bilibili-content">
+                <div class="bilibili-loading" id="bilibili-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                </div>
+                <div class="bilibili-video-grid" id="bilibili-video-grid">
+                    <!-- 视频列表将动态加载 -->
+                </div>
+            </div>
+        </section>
+
         
         <!-- 底部状态栏 -->
         <footer class="footer">

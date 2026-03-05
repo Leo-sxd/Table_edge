@@ -63,6 +63,196 @@ class VoiceRecognitionOptimizer {
 window.voiceOptimizer = new VoiceRecognitionOptimizer();
 
 // ==================== 原脚本内容 ====================
+
+
+// ==================== 哔哩哔哩功能模块 ====================
+class BilibiliModule {
+    constructor() {
+        this.currentTab = 'search';
+        this.currentPage = 1;
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.loadHotVideos();
+    }
+    
+    bindEvents() {
+        // 标签切换
+        document.querySelectorAll('.bilibili-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.bilibili-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentTab = e.target.dataset.tab;
+                this.switchTab(this.currentTab);
+            });
+        });
+        
+        // 搜索按钮
+        const searchBtn = document.getElementById('bilibili-search-btn');
+        const searchInput = document.getElementById('bilibili-search-input');
+        
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => this.searchVideos());
+        }
+        
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.searchVideos();
+            });
+        }
+        
+        // 关闭播放器
+        const closeBtn = document.getElementById('bilibili-close-player');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closePlayer());
+        }
+    }
+    
+    switchTab(tab) {
+        this.currentTab = tab;
+        if (tab === 'search') {
+            // 保持当前搜索状态
+        } else if (tab === 'hot') {
+            this.loadHotVideos();
+        } else if (tab === 'recommend') {
+            this.loadRecommendVideos();
+        }
+    }
+    
+    // 搜索视频（使用B站搜索页面嵌入）
+    searchVideos() {
+        const keyword = document.getElementById('bilibili-search-input').value.trim();
+        if (!keyword) {
+            this.showEmpty('请输入搜索关键词');
+            return;
+        }
+        
+        this.showLoading();
+        
+        // 使用B站移动端搜索页面
+        const searchUrl = `https://m.bilibili.com/search?keyword=${encodeURIComponent(keyword)}`;
+        
+        // 显示搜索结果（使用iframe嵌入B站搜索）
+        const grid = document.getElementById('bilibili-video-grid');
+        grid.innerHTML = `
+            <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
+                <div class="bilibili-player-header">
+                    <h3>B站搜索结果：${keyword}</h3>
+                    <button class="bilibili-close-player" onclick="bilibiliModule.closeSearchResult()">
+                        <i class="fas fa-times"></i> 关闭
+                    </button>
+                </div>
+                <iframe src="${searchUrl}" width="100%" height="600" frameborder="0"></iframe>
+            </div>
+        `;
+        
+        this.hideLoading();
+    }
+    
+    // 加载热门视频
+    loadHotVideos() {
+        this.showLoading();
+        
+        // 使用B站热门页面
+        const grid = document.getElementById('bilibili-video-grid');
+        grid.innerHTML = `
+            <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
+                <div class="bilibili-player-header">
+                    <h3>B站热门视频</h3>
+                </div>
+                <iframe src="https://m.bilibili.com/ranking" width="100%" height="600" frameborder="0"></iframe>
+            </div>
+        `;
+        
+        this.hideLoading();
+    }
+    
+    // 加载推荐视频
+    loadRecommendVideos() {
+        this.showLoading();
+        
+        // 使用B站首页推荐
+        const grid = document.getElementById('bilibili-video-grid');
+        grid.innerHTML = `
+            <div class="bilibili-player-container" style="display: block; grid-column: 1 / -1;">
+                <div class="bilibili-player-header">
+                    <h3>B站推荐视频</h3>
+                </div>
+                <iframe src="https://m.bilibili.com/index.html" width="100%" height="600" frameborder="0"></iframe>
+            </div>
+        `;
+        
+        this.hideLoading();
+    }
+    
+    // 播放视频
+    playVideo(bvid, title) {
+        const playerContainer = document.getElementById('bilibili-player-container');
+        const player = document.getElementById('bilibili-player');
+        const playerTitle = document.getElementById('bilibili-player-title');
+        
+        if (playerContainer && player) {
+            player.src = `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&danmaku=1`;
+            playerTitle.textContent = title || '正在播放';
+            playerContainer.style.display = 'block';
+            
+            // 滚动到播放器
+            playerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    
+    // 关闭播放器
+    closePlayer() {
+        const playerContainer = document.getElementById('bilibili-player-container');
+        const player = document.getElementById('bilibili-player');
+        
+        if (playerContainer && player) {
+            player.src = '';
+            playerContainer.style.display = 'none';
+        }
+    }
+    
+    // 关闭搜索结果
+    closeSearchResult() {
+        const grid = document.getElementById('bilibili-video-grid');
+        if (grid) {
+            grid.innerHTML = '';
+            this.showEmpty('请输入关键词搜索视频');
+        }
+    }
+    
+    showLoading() {
+        const loading = document.getElementById('bilibili-loading');
+        if (loading) loading.style.display = 'block';
+    }
+    
+    hideLoading() {
+        const loading = document.getElementById('bilibili-loading');
+        if (loading) loading.style.display = 'none';
+    }
+    
+    showEmpty(message) {
+        const grid = document.getElementById('bilibili-video-grid');
+        if (grid) {
+            grid.innerHTML = `
+                <div class="bilibili-empty" style="grid-column: 1 / -1;">
+                    <i class="fab fa-bilibili"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// 初始化B站模块
+let bilibiliModule;
+document.addEventListener('DOMContentLoaded', () => {
+    bilibiliModule = new BilibiliModule();
+});
+
+// ==================== 原脚本内容 ====================
 // ==================== 语音输入提示音管理器 ====================
 class VoiceSoundManager {
     constructor() {
