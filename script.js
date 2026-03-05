@@ -1130,6 +1130,22 @@ class AIWebsiteController {
             }
         }
         
+        // 进入收藏网站 - 简化指令："进入收藏网站" 或 "打开收藏网站"
+        if (cmd.includes('进入收藏网站') || cmd.includes('打开收藏网站') || cmd.includes('收藏网站')) {
+            return `(() => {
+                // 找到收藏网站按钮并点击
+                const favoriteBtn = document.querySelector('a[href*="favorite_file.github.io"]');
+                if (favoriteBtn) {
+                    favoriteBtn.click();
+                    console.log('[AIControl] 已点击收藏网站按钮');
+                } else {
+                    // 备用方案：直接打开链接
+                    window.open('https://leo-sxd.github.io/favorite_file.github.io/', '_blank');
+                    console.log('[AIControl] 已打开收藏网站（备用方案）');
+                }
+            })();`;
+        }
+        
         return null;
     }
     
