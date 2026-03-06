@@ -6793,17 +6793,73 @@ class PDFScheduleImporter {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             
+            console.log('[PDF] PDF页数:', pdf.numPages);
+            
             let fullText = '';
             
-            // 提取所有页面的文本
+            // 提取所有页面的文本 - 改进提取方式
             for (let i = 1; i <= pdf.numPages; i++) {
+                console.log(`[PDF] 正在提取第${i}页...`);
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n';
+                
+                // 按文本项的y坐标排序，保持表格结构
+                const items = textContent.items;
+                items.sort((a, b) => {
+                    // 先按y坐标（从上到下）
+                    const yDiff = b.transform[5] - a.transform[5];
+                    if (Math.abs(yDiff) > 5) return yDiff;
+                    // 再按x坐标（从左到右）
+                    return a.transform[4] - b.transform[4];
+                });
+                
+                // 按行分组
+                let currentY = null;
+                let currentLine = [];
+                const lines = [];
+                
+                for (const item of items) {
+                    const y = item.transform[5];
+                    if (currentY === null || Math.abs(y - currentY) > 5) {
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine.join(' '));
+                        }
+                        currentLine = [item.str];
+                        currentY = y;
+                    } else {
+                        currentLine.push(item.str);
+                    }
+                }
+                if (currentLine.length > 0) {
+                    lines.push(currentLine.join(' '));
+                }
+                
+                const pageText = lines.join('\n');
+                fullText += pageText + '\n\n';
+                console.log(`[PDF] 第${i}页提取完成，行数:`, lines.length);
             }
             
-            console.log('[PDF] 提取的文本:', fullText.substring(0, 500));
+            console.log('[PDF] 提取的完整文本:');
+            console.log(fullText);
+            console.log('[PDF] 文本长度:', fullText.length);
+            console.log('[PDF] 总行数:', fullText.split('\n').length);
+            
+            // 如果提取的文本太少，可能是扫描件，提示用户
+            if (fullText.length < 100) {
+                console.warn('[PDF] 提取的文本太少，可能是扫描件或图片PDF');
+                if (resultDiv) {
+                    resultDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        PDF中未检测到文本，可能是扫描件。<br>
+                        <small>请使用"手动导入"功能，复制课表内容粘贴</small>
+                    `;
+                    resultDiv.style.background = 'rgba(255,193,7,0.1)';
+                    resultDiv.style.color = '#ffc107';
+                    resultDiv.style.display = 'block';
+                }
+                if (loadingDiv) loadingDiv.style.display = 'none';
+                return;
+            }
             
             // 解析课程数据
             const courses = this.parseCoursesFromText(fullText);
@@ -6814,6 +6870,8 @@ class PDFScheduleImporter {
                 
                 if (resultDiv) {
                     resultDiv.innerHTML = `<i class="fas fa-check-circle"></i> 成功提取 ${courses.length} 门课程！`;
+                    resultDiv.style.background = 'rgba(0,255,0,0.1)';
+                    resultDiv.style.color = '#00ff88';
                     resultDiv.style.display = 'block';
                 }
                 
@@ -6824,7 +6882,17 @@ class PDFScheduleImporter {
                 }, 500);
             } else {
                 if (resultDiv) {
-                    resultDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 未识别到课程数据，请尝试手动导入`;
+                    resultDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        未识别到课程数据<br>
+                        <small style="font-size: 11px; cursor: pointer; text-decoration: underline;" 
+                               onclick="document.getElementById('pdf-debug-info').style.display='block'">
+                            点击查看提取的文本
+                        </small>
+                        <div id="pdf-debug-info" style="display:none; margin-top:10px; padding:10px; background:rgba(0,0,0,0.3); border-radius:5px; font-size:10px; max-height:100px; overflow:auto; text-align:left;">
+                            ${fullText.replace(/</g, '&lt;').substring(0, 500)}...
+                        </div>
+                    `;
                     resultDiv.style.background = 'rgba(255,193,7,0.1)';
                     resultDiv.style.color = '#ffc107';
                     resultDiv.style.display = 'block';
@@ -6848,66 +6916,57 @@ class PDFScheduleImporter {
         const courses = [];
         
         console.log('[PDF] 开始解析，原始文本长度:', text.length);
-        console.log('[PDF] 原始文本前1000字符:', text.substring(0, 1000));
         
         // 正方教务系统课表PDF格式特点：
-        // 1. 课程名称单独一行，如：流体力学B★
-        // 2. 课程详情在一行，格式：(节次)周次/校区/场地/教师/.../学分/考核方式
-        // 示例：(1-2节)1-16周/校区:骊山校区/场地:2-1-402/教师:邵丰富/.../学分:2.0/考核方式:考试
+        // 课程名称如：流体力学B★
+        // 详情格式：(1-2节)1-16周/校区:骊山校区/场地:2-1-402/教师:邵丰富/.../学分:2.0/考核方式:考试
         
         // 将文本按行分割
-        const lines = text.split(/\r?\n/);
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         console.log('[PDF] 总行数:', lines.length);
+        console.log('[PDF] 所有行:', lines);
         
-        let i = 0;
-        while (i < lines.length) {
-            const line = lines[i].trim();
+        // 方法1：逐行查找课程名+详情
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             
-            // 跳过空行和页眉页脚
-            if (!line || line.length === 0) {
-                i++;
-                continue;
-            }
-            
-            // 跳过页眉信息
+            // 跳过页眉页脚
             if (line.includes('课表') || line.includes('学号') || line.includes('学年') || 
-                line.includes('时间段') || line.includes('节次') || line.includes('星期')) {
-                i++;
-                continue;
-            }
+                line.includes('时间段') || line.includes('邵旭')) continue;
             
-            // 识别课程名称：包含中文，可能带★◆标记，长度适中
-            // 课程名通常不以括号、数字、斜杠开头
-            const isCourseName = /^[\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9★◆]*$/.test(line) && 
-                                 line.length >= 2 && line.length <= 25 &&
-                                 !line.startsWith('(') && !line.startsWith('/') &&
-                                 !line.includes('校区') && !line.includes('场地');
+            // 识别课程名称行：包含中文，不以特殊字符开头
+            // 课程名通常是独立的短行
+            const hasChinese = /[\u4e00-\u9fa5]/.test(line);
+            const isShort = line.length >= 2 && line.length <= 30;
+            const noSpecialStart = !line.match(/^[(/\d]/);
+            const isCourseName = hasChinese && isShort && noSpecialStart && 
+                                !line.includes('校区') && !line.includes('场地') &&
+                                !line.includes('学分') && !line.includes('考核');
             
             if (isCourseName) {
                 const courseName = line.replace(/[★◆]/g, '').trim();
-                console.log('[PDF] 找到课程名:', courseName);
+                console.log('[PDF] 找到课程名:', courseName, '| 当前行:', i);
                 
-                // 查找下一行包含课程详情
+                // 在当前行或接下来的几行查找详情
                 let detailLine = '';
-                let j = i + 1;
-                while (j < lines.length && j < i + 5) {
-                    const nextLine = lines[j].trim();
-                    // 如果下一行包含节次信息，就是详情行
-                    if (nextLine.includes('节') && nextLine.includes('周') && nextLine.includes('场地')) {
+                for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+                    const nextLine = lines[j];
+                    // 详情行包含节次和场地
+                    if (nextLine.includes('节') && nextLine.includes('周') && 
+                        (nextLine.includes('场地') || nextLine.includes('校区'))) {
                         detailLine = nextLine;
-                        console.log('[PDF] 找到详情行:', detailLine.substring(0, 100));
+                        console.log('[PDF] 找到详情行:', detailLine.substring(0, 150));
                         break;
                     }
-                    // 如果下一行是另一个课程名，停止查找
-                    if (/^[\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9★◆]*$/.test(nextLine) && 
-                        nextLine.length >= 2 && nextLine.length <= 25) {
+                    // 如果找到另一个课程名，停止查找
+                    if (/[\u4e00-\u9fa5]/.test(nextLine) && 
+                        !nextLine.includes('节') && 
+                        nextLine.length >= 2 && nextLine.length <= 30) {
                         break;
                     }
-                    j++;
                 }
                 
                 if (detailLine) {
-                    // 解析详情行
                     const course = {
                         name: courseName,
                         time: '',
@@ -6918,56 +6977,38 @@ class PDFScheduleImporter {
                     
                     // 提取节次 (1-2节)
                     const timeMatch = detailLine.match(/\((\d+-\d+)节\)/);
-                    if (timeMatch) {
-                        course.time = timeMatch[1] + '节';
-                        console.log('[PDF] 提取节次:', course.time);
-                    }
+                    if (timeMatch) course.time = timeMatch[1] + '节';
                     
-                    // 提取场地 场地:2-1-402
+                    // 提取场地
                     const locationMatch = detailLine.match(/场地[:：]([^/\s]+)/);
-                    if (locationMatch) {
-                        course.location = locationMatch[1];
-                        console.log('[PDF] 提取场地:', course.location);
-                    }
+                    if (locationMatch) course.location = locationMatch[1];
                     
-                    // 提取学分 学分:2.0
+                    // 提取学分
                     const creditMatch = detailLine.match(/学分[:：](\d+\.?\d*)/);
-                    if (creditMatch) {
-                        course.credits = creditMatch[1];
-                        console.log('[PDF] 提取学分:', course.credits);
-                    }
+                    if (creditMatch) course.credits = creditMatch[1];
                     
-                    // 提取考核方式 考核方式:考试 或 考核方式:考查
+                    // 提取考核方式
                     const examMatch = detailLine.match(/考核方式[:：]([^/\s]+)/);
-                    if (examMatch) {
-                        course.examType = examMatch[1];
-                        console.log('[PDF] 提取考核方式:', course.examType);
-                    }
+                    if (examMatch) course.examType = examMatch[1];
                     
-                    // 只要有课程名和节次就添加
                     if (course.time) {
                         courses.push(course);
                         console.log('[PDF] 成功添加课程:', course);
                     }
-                    
-                    // 跳过已处理的详情行
-                    i = j + 1;
-                    continue;
                 }
             }
-            
-            i++;
         }
         
-        // 如果上面的方法没有识别到，尝试备用方案：直接匹配整个文本块
+        // 方法2：直接在整段文本中匹配课程块
         if (courses.length === 0) {
-            console.log('[PDF] 使用备用方案解析...');
+            console.log('[PDF] 使用方法2：正则匹配...');
             
-            // 匹配模式：课程名 + 换行 + (节次)...场地...学分...考核方式
-            const pattern = /([\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9]*)[\s\n]+\((\d+-\d+)节\)[^\n]*场地[:：]([^/\s]+)[^\n]*学分[:：](\d+\.?\d*)[^\n]*考核方式[:：]([^/\s]+)/g;
+            // 匹配课程名（中文开头，可能带字母数字）
+            // 后面跟着包含节次、场地等信息
+            const coursePattern = /([\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9]*)[\s\n]*\((\d+-\d+)节\)[^\n]*?场地[:：]([^/\s,]+)[^\n]*?学分[:：](\d+\.?\d*)[^\n]*?考核方式[:：]([^/\s,]+)/g;
             
             let match;
-            while ((match = pattern.exec(text)) !== null) {
+            while ((match = coursePattern.exec(text)) !== null) {
                 courses.push({
                     name: match[1].replace(/[★◆]/g, ''),
                     time: match[2] + '节',
@@ -6975,13 +7016,59 @@ class PDFScheduleImporter {
                     credits: match[4],
                     examType: match[5]
                 });
-                console.log('[PDF] 备用方案匹配到课程:', match[1]);
+                console.log('[PDF] 正则匹配到课程:', match[1]);
+            }
+        }
+        
+        // 方法3：更宽松的匹配（处理文本合并的情况）
+        if (courses.length === 0) {
+            console.log('[PDF] 使用方法3：宽松匹配...');
+            
+            // 查找所有包含节次信息的行
+            for (const line of lines) {
+                if (line.includes('节') && line.includes('周') && line.includes('场地')) {
+                    // 在这一行或前几行找课程名
+                    const lineIndex = lines.indexOf(line);
+                    let courseName = '';
+                    
+                    // 向前查找课程名
+                    for (let k = Math.max(0, lineIndex - 5); k < lineIndex; k++) {
+                        const prevLine = lines[k];
+                        if (/[\u4e00-\u9fa5]/.test(prevLine) && 
+                            !prevLine.includes('节') && 
+                            !prevLine.includes('场地') &&
+                            !prevLine.includes('学分') &&
+                            prevLine.length >= 2 && prevLine.length <= 30) {
+                            courseName = prevLine.replace(/[★◆]/g, '');
+                            break;
+                        }
+                    }
+                    
+                    if (courseName) {
+                        const course = { name: courseName, time: '', location: '', credits: '', examType: '' };
+                        
+                        const timeMatch = line.match(/\((\d+-\d+)节\)/);
+                        if (timeMatch) course.time = timeMatch[1] + '节';
+                        
+                        const locationMatch = line.match(/场地[:：]([^/\s,]+)/);
+                        if (locationMatch) course.location = locationMatch[1];
+                        
+                        const creditMatch = line.match(/学分[:：](\d+\.?\d*)/);
+                        if (creditMatch) course.credits = creditMatch[1];
+                        
+                        const examMatch = line.match(/考核方式[:：]([^/\s,]+)/);
+                        if (examMatch) course.examType = examMatch[1];
+                        
+                        if (course.time) {
+                            courses.push(course);
+                            console.log('[PDF] 宽松匹配到课程:', course);
+                        }
+                    }
+                }
             }
         }
         
         console.log('[PDF] 解析完成，共识别课程数:', courses.length);
-        console.log('[PDF] 课程列表:', courses);
-        
         return courses;
     }
     
