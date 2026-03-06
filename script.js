@@ -6553,3 +6553,310 @@ let scheduleModule;
 document.addEventListener('DOMContentLoaded', () => {
     scheduleModule = new ScheduleModule();
 });
+
+// ==================== 一键从正方教务系统导入课程 ====================
+
+class AutoImportManager {
+    constructor() {
+        this.jwglxtUrl = 'http://59.74.174.150/jwglxt/xtgl/login_slogin.html';
+        this.storageKey = 'jwglxt_courses_data';
+        this.init();
+    }
+    
+    init() {
+        // 绑定一键导入按钮事件
+        const autoImportBtn = document.getElementById('auto-import-btn');
+        if (autoImportBtn) {
+            autoImportBtn.addEventListener('click', () => this.startAutoImport());
+        }
+        
+        // 检查是否有从教务系统返回的数据
+        this.checkReturnedData();
+        
+        // 监听storage变化（用于跨窗口通信）
+        window.addEventListener('storage', (e) => {
+            if (e.key === this.storageKey) {
+                this.handleReturnedData();
+            }
+        });
+    }
+    
+    // 开始自动导入流程
+    startAutoImport() {
+        // 保存当前状态
+        localStorage.setItem('auto_import_active', 'true');
+        
+        // 打开教务系统（使用特定窗口名称，便于后续通信）
+        const jwglxtWindow = window.open(
+            this.jwglxtUrl,
+            'jwglxt_import_window',
+            'width=1200,height=800,menubar=yes,toolbar=yes,location=yes'
+        );
+        
+        if (!jwglxtWindow) {
+            alert('请允许弹出窗口，或手动访问：' + this.jwglxtUrl);
+            return;
+        }
+        
+        // 显示提示
+        this.showImportGuide();
+        
+        // 尝试注入脚本（如果同源）
+        this.tryInjectScript(jwglxtWindow);
+    }
+    
+    // 显示导入引导提示
+    showImportGuide() {
+        const guide = document.createElement('div');
+        guide.id = 'import-guide';
+        guide.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #8c00ff;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            z-index: 10003;
+            box-shadow: 0 0 40px rgba(140, 0, 255, 0.5);
+            text-align: center;
+        `;
+        guide.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 15px;">📚</div>
+            <h3 style="color: #fff; margin-bottom: 15px;">正在等待教务系统</h3>
+            <p style="color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                1. 在新打开的窗口中登录教务系统<br>
+                2. 进入"个人课表查询"页面<br>
+                3. 点击页面上的【导出课程】按钮
+            </p>
+            <button onclick="this.closest('#import-guide').remove()" class="schedule-btn">
+                我知道了
+            </button>
+        `;
+        document.body.appendChild(guide);
+    }
+    
+    // 尝试向教务系统窗口注入脚本
+    tryInjectScript(jwglxtWindow) {
+        // 由于跨域限制，直接注入可能失败
+        // 我们使用备用方案：书签脚本
+        
+        setTimeout(() => {
+            // 检查窗口是否还在
+            if (jwglxtWindow.closed) {
+                console.log('[AutoImport] 教务系统窗口已关闭');
+                return;
+            }
+            
+            // 尝试通信
+            try {
+                // 发送消息给教务系统窗口
+                jwglxtWindow.postMessage({
+                    type: 'REQUEST_COURSE_DATA',
+                    source: 'course_schedule_website'
+                }, '*');
+            } catch (e) {
+                console.log('[AutoImport] 跨域通信受限，使用备用方案');
+            }
+        }, 5000);
+    }
+    
+    // 检查返回的数据
+    checkReturnedData() {
+        const data = localStorage.getItem(this.storageKey);
+        if (data) {
+            this.handleReturnedData();
+        }
+    }
+    
+    // 处理返回的课程数据
+    handleReturnedData() {
+        const data = localStorage.getItem(this.storageKey);
+        if (!data) return;
+        
+        try {
+            const courses = JSON.parse(data);
+            
+            // 填充到导入文本框
+            const textarea = document.getElementById('import-textarea');
+            if (textarea) {
+                const formatted = courses.map(c => 
+                    `${c.name} ${c.day} ${c.time} ${c.location} ${c.teacher}`
+                ).join('\n');
+                textarea.value = formatted;
+                
+                // 显示成功提示
+                this.showSuccessMessage(courses.length);
+                
+                // 自动触发解析
+                setTimeout(() => {
+                    const parseBtn = document.getElementById('parse-schedule-btn');
+                    if (parseBtn) parseBtn.click();
+                }, 1000);
+            }
+            
+            // 清除数据
+            localStorage.removeItem(this.storageKey);
+            localStorage.removeItem('auto_import_active');
+            
+        } catch (e) {
+            console.error('[AutoImport] 解析数据失败:', e);
+        }
+    }
+    
+    // 显示成功消息
+    showSuccessMessage(count) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(140, 0, 255, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 14px;
+            z-index: 10004;
+            animation: fadeIn 0.3s ease;
+        `;
+        toast.innerHTML = `<i class="fas fa-check-circle"></i> 成功获取 ${count} 门课程，正在解析...`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 3000);
+    }
+}
+
+// 初始化自动导入管理器
+let autoImportManager;
+document.addEventListener('DOMContentLoaded', () => {
+    autoImportManager = new AutoImportManager();
+});
+
+// ==================== 正方教务系统提取脚本（书签用）====================
+// 用户可以将以下代码保存为书签，在教务系统页面点击执行
+
+const JwglxtExtractor = {
+    // 提取课程数据
+    extract: function() {
+        const courses = [];
+        
+        // 正方教务系统选择器（根据实际页面调整）
+        const table = document.querySelector('#kcb table, .kbcontent table, #courseTable');
+        
+        if (!table) {
+            alert('未找到课程表，请确保您在"个人课表查询"页面');
+            return null;
+        }
+        
+        const rows = table.querySelectorAll('tr');
+        const dayMap = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        
+        rows.forEach((row, rowIndex) => {
+            if (rowIndex === 0) return; // 跳过表头
+            
+            const cells = row.querySelectorAll('td');
+            let timeSlot = '';
+            
+            cells.forEach((cell, colIndex) => {
+                if (colIndex === 0) {
+                    // 获取时间段
+                    timeSlot = cell.textContent.trim();
+                    return;
+                }
+                
+                const content = cell.innerText.trim();
+                if (content && content !== '' && content !== '\xa0') {
+                    const lines = content.split('\n').map(l => l.trim()).filter(l => l);
+                    
+                    if (lines.length > 0) {
+                        // 解析课程信息
+                        const courseName = lines[0].replace(/[★◆]/g, '');
+                        const location = lines.find(l => l.includes('校园') || l.includes('教室') || l.includes('楼')) || '';
+                        const teacher = lines.find(l => {
+                            // 教师姓名通常是2-3个汉字
+                            return l.length >= 2 && l.length <= 3 && /^[\u4e00-\u9fa5]+$/.test(l);
+                        }) || '';
+                        
+                        courses.push({
+                            name: courseName,
+                            day: dayMap[colIndex],
+                            time: timeSlot,
+                            location: location,
+                            teacher: teacher
+                        });
+                    }
+                }
+            });
+        });
+        
+        return courses;
+    },
+    
+    // 导出到原网站
+    exportToWebsite: function() {
+        const courses = this.extract();
+        if (!courses || courses.length === 0) return;
+        
+        // 方法1：通过localStorage（同域名可用）
+        localStorage.setItem('jwglxt_courses_data', JSON.stringify(courses));
+        
+        // 方法2：通过postMessage
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'COURSE_DATA',
+                data: courses
+            }, '*');
+        }
+        
+        // 方法3：复制到剪贴板
+        const formatted = courses.map(c => 
+            `${c.name} ${c.day} ${c.time} ${c.location} ${c.teacher}`
+        ).join('\n');
+        
+        navigator.clipboard.writeText(formatted).then(() => {
+            alert(`✅ 成功提取 ${courses.length} 门课程！\n\n数据已：\n1. 保存到本地存储\n2. 复制到剪贴板\n\n请切换回原网站粘贴导入。`);
+            
+            // 尝试关闭窗口
+            setTimeout(() => {
+                if (confirm('是否关闭当前窗口并返回原网站？')) {
+                    window.close();
+                }
+            }, 500);
+        });
+    }
+};
+
+// 在正方教务系统页面自动显示导出按钮
+if (location.href.includes('jwglxt') || location.href.includes('59.74.174.150')) {
+    // 创建浮动导出按钮
+    const btn = document.createElement('button');
+    btn.innerHTML = '📤 导出课程到网站';
+    btn.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: linear-gradient(135deg, #8c00ff 0%, #6a00cc 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 25px;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 9999;
+        box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
+        transition: all 0.3s ease;
+    `;
+    btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
+    btn.onmouseout = () => btn.style.transform = 'scale(1)';
+    btn.onclick = () => JwglxtExtractor.exportToWebsite();
+    
+    // 页面加载完成后添加按钮
+    if (document.readyState === 'complete') {
+        document.body.appendChild(btn);
+    } else {
+        window.addEventListener('load', () => document.body.appendChild(btn));
+    }
+}

@@ -683,7 +683,7 @@
             </div>
         </section>
         
-        <!-- 导入课程弹窗 -->
+                <!-- 导入课程弹窗 -->
         <div id="import-modal" class="schedule-modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -691,6 +691,25 @@
                     <button class="modal-close" id="close-import-modal">&times;</button>
                 </div>
                 <div class="modal-body">
+                    <!-- 一键导入区域 -->
+                    <div class="auto-import-section" style="margin-bottom: 20px; padding: 15px; background: rgba(140, 0, 255, 0.1); border-radius: 10px; border: 1px solid rgba(140, 0, 255, 0.3);">
+                        <p style="color: #d6c5ff; margin-bottom: 10px; font-size: 14px;">
+                            <i class="fas fa-magic" style="color: #8c00ff;"></i> 
+                            <strong>一键自动导入</strong>（推荐）
+                        </p>
+                        <button id="auto-import-btn" class="schedule-btn" style="width: 100%; justify-content: center;">
+                            <i class="fas fa-external-link-alt"></i> 
+                            从正方教务系统自动导入
+                        </button>
+                        <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 8px;">
+                            点击后将打开教务系统，登录后自动提取课程
+                        </p>
+                    </div>
+                    
+                    <div style="text-align: center; color: rgba(255,255,255,0.3); margin: 15px 0; font-size: 12px;">
+                        ── 或手动导入 ──
+                    </div>
+                    
                     <p class="modal-hint">请从教务系统复制课程信息，粘贴到下方：</p>
                     <textarea id="import-textarea" placeholder="例如：&#10;高等数学 周一 08:00-09:40 教学楼A101&#10;大学英语 周三 10:00-11:40 教学楼B202"></textarea>
                     <div class="modal-actions">
@@ -704,7 +723,6 @@
                 </div>
             </div>
         </div>
-        
         <!-- 添加课程弹窗 -->
         <div id="add-course-modal" class="schedule-modal">
             <div class="modal-content">
