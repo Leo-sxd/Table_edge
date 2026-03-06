@@ -5806,16 +5806,11 @@ class ScheduleModule {
     constructor() {
         // 默认时间段设置 - 支持10节课（正方教务系统标准）
         this.defaultTimeSlots = [
-            { id: 1, name: '第1节', start: '08:00', end: '08:45' },
-            { id: 2, name: '第2节', start: '08:50', end: '09:35' },
-            { id: 3, name: '第3节', start: '09:55', end: '10:40' },
-            { id: 4, name: '第4节', start: '10:45', end: '11:30' },
-            { id: 5, name: '第5节', start: '14:00', end: '14:45' },
-            { id: 6, name: '第6节', start: '14:50', end: '15:35' },
-            { id: 7, name: '第7节', start: '15:55', end: '16:40' },
-            { id: 8, name: '第8节', start: '16:45', end: '17:30' },
-            { id: 9, name: '第9节', start: '19:00', end: '19:45' },
-            { id: 10, name: '第10节', start: '19:50', end: '20:35' }
+            { id: 1, name: '第1-2节', start: '08:00', end: '09:35' },
+            { id: 2, name: '第3-4节', start: '09:55', end: '11:30' },
+            { id: 3, name: '第5-6节', start: '14:00', end: '15:35' },
+            { id: 4, name: '第7-8节', start: '15:55', end: '17:30' },
+            { id: 5, name: '第9-10节', start: '19:00', end: '20:35' }
         ];
         
         // 当前周次设置
@@ -5823,7 +5818,7 @@ class ScheduleModule {
         this.totalWeeks = 20;
         
         // 星期映射
-        this.dayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六'];
+        this.dayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
         
         // 数据存储键
         this.storageKeys = {
@@ -6189,8 +6184,8 @@ class ScheduleModule {
             cell.classList.remove('current');
         });
         
-        // 如果不是周一到周六，不处理
-        if (day < 1 || day > 6) return;
+        // 如果不是周一到周日，不处理
+        if (day < 1 || day > 7) return;
         
         // 找到当前时间段
         this.timeSlots.forEach((slot, index) => {
@@ -6322,7 +6317,7 @@ class ScheduleModule {
     // 解析单行课程信息
     parseCourseLine(line) {
         // 尝试匹配：课程名 + 星期 + 时间/节次 + 地点
-        const dayMap = { '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6 };
+        const dayMap = { '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7, '星期天': 7 };
         const timeMap = { '第1节': 1, '第2节': 2, '第3节': 3, '第4节': 4, '第5节': 5 };
         
         let day = null;
@@ -6354,7 +6349,9 @@ class ScheduleModule {
         if (!time) {
             const multiTimeMatch = line.match(/(\d+)-(\d+)节/);
             if (multiTimeMatch) {
-                time = parseInt(multiTimeMatch[1]);
+                const startPeriod = parseInt(multiTimeMatch[1]);
+                // 将节次映射到时间段：1-2节->1, 3-4节->2, 5-6节->3, 7-8节->4, 9-10节->5
+                time = Math.ceil(startPeriod / 2);
                 console.log('[Parse] 匹配到多节格式:', multiTimeMatch[0], '-> 时间段:', time);
             }
         }
@@ -7371,7 +7368,7 @@ class HTMLScheduleImporter {
                     else if (text.includes('星期四') || text.includes('周四')) dayMap[index] = '周四';
                     else if (text.includes('星期五') || text.includes('周五')) dayMap[index] = '周五';
                     else if (text.includes('星期六') || text.includes('周六')) dayMap[index] = '周六';
-                    else if (text.includes('星期日') || text.includes('周日')) dayMap[index] = '周日';
+                    else if (text.includes('星期日') || text.includes('周日') || text.includes('星期天')) dayMap[index] = '周日';
                 });
                 break;
             }
