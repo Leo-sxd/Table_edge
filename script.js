@@ -6585,24 +6585,51 @@ class AutoImportManager {
     startAutoImport() {
         // 保存当前状态
         localStorage.setItem('auto_import_active', 'true');
+        localStorage.setItem('jwglxt_import_start_time', Date.now().toString());
         
-        // 打开教务系统（使用特定窗口名称，便于后续通信）
+        // 方案1：尝试在当前窗口打开（如果用户同意）
+        const useSameWindow = confirm('请选择打开方式：\n\n"确定" - 在当前窗口打开教务系统（推荐，可保持注入）\n"取消" - 在新窗口打开（可能被浏览器拦截）\n\n建议：选择"确定"，导入完成后再返回本网站');
+        
+        if (useSameWindow) {
+            // 保存当前页面URL以便返回
+            localStorage.setItem('return_to_url', window.location.href);
+            // 跳转到教务系统
+            window.location.href = this.jwglxtUrl;
+            return;
+        }
+        
+        // 方案2：在新窗口打开（可能被拦截或跳转）
         const jwglxtWindow = window.open(
             this.jwglxtUrl,
             'jwglxt_import_window',
-            'width=1200,height=800,menubar=yes,toolbar=yes,location=yes'
+            'width=1200,height=800,menubar=yes,toolbar=yes,location=yes,noopener=no'
         );
         
-        if (!jwglxtWindow) {
-            alert('请允许弹出窗口，或手动访问：' + this.jwglxtUrl);
+        if (!jwglxtWindow || jwglxtWindow.closed) {
+            // 如果被拦截，提供手动方案
+            const manualOpen = confirm('弹出窗口被拦截。是否手动打开教务系统？\n\n点击"确定"将复制网址，请手动粘贴到地址栏打开。');
+            if (manualOpen) {
+                navigator.clipboard.writeText(this.jwglxtUrl).then(() => {
+                    alert('网址已复制到剪贴板：\n' + this.jwglxtUrl + '\n\n请粘贴到浏览器地址栏打开，登录后点击"导出课程"按钮。');
+                });
+            }
             return;
         }
         
         // 显示提示
         this.showImportGuide();
         
-        // 尝试注入脚本（如果同源）
+        // 尝试注入脚本
         this.tryInjectScript(jwglxtWindow);
+        
+        // 监听窗口关闭
+        const checkWindowClosed = setInterval(() => {
+            if (jwglxtWindow.closed) {
+                clearInterval(checkWindowClosed);
+                console.log('[AutoImport] 教务系统窗口已关闭');
+                this.checkReturnedData();
+            }
+        }, 1000);
     }
     
     // 显示导入引导提示
@@ -6831,32 +6858,85 @@ const JwglxtExtractor = {
 
 // 在正方教务系统页面自动显示导出按钮
 if (location.href.includes('jwglxt') || location.href.includes('59.74.174.150')) {
-    // 创建浮动导出按钮
-    const btn = document.createElement('button');
-    btn.innerHTML = '📤 导出课程到网站';
-    btn.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        background: linear-gradient(135deg, #8c00ff 0%, #6a00cc 100%);
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 25px;
-        font-size: 14px;
-        cursor: pointer;
-        z-index: 9999;
-        box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
-        transition: all 0.3s ease;
-    `;
-    btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
-    btn.onmouseout = () => btn.style.transform = 'scale(1)';
-    btn.onclick = () => JwglxtExtractor.exportToWebsite();
+    
+    // 检查是否是从我们的网站跳转过来的
+    const returnUrl = localStorage.getItem('return_to_url');
+    const isFromOurSite = localStorage.getItem('auto_import_active') === 'true';
+    
+    // 创建按钮容器
+    const createButtonContainer = () => {
+        const container = document.createElement('div');
+        container.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        `;
+        
+        // 导出课程按钮
+        const exportBtn = document.createElement('button');
+        exportBtn.innerHTML = '📤 导出课程到网站';
+        exportBtn.style.cssText = `
+            background: linear-gradient(135deg, #8c00ff 0%, #6a00cc 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
+            transition: all 0.3s ease;
+        `;
+        exportBtn.onmouseover = () => exportBtn.style.transform = 'scale(1.05)';
+        exportBtn.onmouseout = () => exportBtn.style.transform = 'scale(1)';
+        exportBtn.onclick = () => JwglxtExtractor.exportToWebsite();
+        container.appendChild(exportBtn);
+        
+        // 如果有返回URL，显示返回按钮
+        if (returnUrl && isFromOurSite) {
+            const returnBtn = document.createElement('button');
+            returnBtn.innerHTML = '↩️ 返回课程表网站';
+            returnBtn.style.cssText = `
+                background: linear-gradient(135deg, #00a8ff 0%, #0066cc 100%);
+                color: white;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 20px;
+                font-size: 13px;
+                cursor: pointer;
+                box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3);
+                transition: all 0.3s ease;
+            `;
+            returnBtn.onmouseover = () => returnBtn.style.transform = 'scale(1.05)';
+            returnBtn.onmouseout = () => returnBtn.style.transform = 'scale(1)';
+            returnBtn.onclick = () => {
+                localStorage.removeItem('return_to_url');
+                window.location.href = returnUrl;
+            };
+            container.appendChild(returnBtn);
+        }
+        
+        document.body.appendChild(container);
+    };
     
     // 页面加载完成后添加按钮
     if (document.readyState === 'complete') {
-        document.body.appendChild(btn);
+        createButtonContainer();
     } else {
-        window.addEventListener('load', () => document.body.appendChild(btn));
+        window.addEventListener('load', createButtonContainer);
     }
+    
+    // 监听页面变化（因为正方系统使用iframe或ajax加载）
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            console.log('[JwglxtExtractor] 页面变化，重新添加按钮');
+            // 延迟添加，等待页面渲染
+            setTimeout(createButtonContainer, 1000);
+        }
+    }).observe(document, { subtree: true, childList: true });
 }
