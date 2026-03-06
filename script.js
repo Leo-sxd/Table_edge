@@ -6129,38 +6129,81 @@ class ScheduleModule {
     
     // ==================== 课程表渲染 ====================
     
-    renderSchedule() {
+        renderSchedule() {
         // 清空所有课程单元格
         document.querySelectorAll('.course-cell').forEach(cell => {
             cell.innerHTML = '';
-            cell.classList.remove('empty');
+            cell.classList.remove('has-course');
         });
         
         // 更新时间段显示
         this.updateTimeSlots();
         
-        // 渲染课程
+        // 按时间段和星期分组课程（处理同一时间段多课程的情况）
+        const courseGroups = {};
         this.courses.forEach(course => {
-            const cell = document.querySelector(`.course-cell[data-day="${course.day}"][data-time="${course.time}"]`);
+            const key = `${course.day}-${course.time}`;
+            if (!courseGroups[key]) {
+                courseGroups[key] = [];
+            }
+            courseGroups[key].push(course);
+        });
+        
+        // 渲染课程
+        Object.keys(courseGroups).forEach(key => {
+            const courses = courseGroups[key];
+            const [day, time] = key.split('-').map(Number);
+            const cell = document.querySelector(`.course-cell[data-day="${day}"][data-time="${time}"]`);
+            
             if (cell) {
-                cell.innerHTML = `
-                    <div class="course-info">
-                        <div class="course-name">${course.name}</div>
-                        <div class="course-location">${course.location || ''}</div>
-                        ${course.teacher ? `<div class="course-teacher">${course.teacher}</div>` : ''}
-                    </div>
-                `;
+                // 如果有多个课程，显示数量提示
+                if (courses.length > 1) {
+                    cell.innerHTML = courses.map((course, index) => `
+                        <div class="course-info ${index > 0 ? 'course-secondary' : ''}">
+                            <div class="course-name">${course.name}</div>
+                            <div class="course-meta">
+                                <span class="course-location">${course.location || '未排地点'}</span>
+                                <span class="course-weeks">${this.formatWeeks(course)}</span>
+                            </div>
+                        </div>
+                    `).join('<div class="course-divider"></div>');
+                } else {
+                    const course = courses[0];
+                    cell.innerHTML = `
+                        <div class="course-info">
+                            <div class="course-name">${course.name}</div>
+                            <div class="course-meta">
+                                <span class="course-location">${course.location || '未排地点'}</span>
+                                <span class="course-weeks">${this.formatWeeks(course)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
                 cell.classList.add('has-course');
             }
         });
         
-        // 标记空单元格
-        document.querySelectorAll('.course-cell:not(.has-course)').forEach(cell => {
-            cell.classList.add('empty');
-        });
-        
         // 高亮当前时间
         this.highlightCurrentTime();
+    }
+    
+    // 格式化周次显示
+    formatWeeks(course) {
+        if (!course.startWeek && !course.endWeek) return '';
+        
+        const start = course.startWeek || 1;
+        const end = course.endWeek || 20;
+        
+        let weekStr = '';
+        if (course.weekType) {
+            weekStr = `${start}-${end}周(${course.weekType})`;
+        } else if (start === 1 && end === 20) {
+            weekStr = '全学期';
+        } else {
+            weekStr = `${start}-${end}周`;
+        }
+        
+        return weekStr;
     }
     
     // 更新时间段显示
