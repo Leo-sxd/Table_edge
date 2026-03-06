@@ -409,16 +409,21 @@
                         </button>
                     </div>
                     <div class="ai-control-text-hint">
+                        <ul>
                             <li>1.将背景换为（晨露之森/沧浪之水/自然之桥/精骛八极/蓝/紫/黑）</li>
                             <li>2.开/关视觉防疲劳效果</li>
                             <li>3.开/关屏保（可设时间）</li>
                             <li>4.增大/减小网页字体</li>
-                            <li>5.xxxx年xx月xx日xx点xx分，xxxx</li>
+                            <li>5.xxxx年xx月xx日xx点xx分，xxxx（创建待办）</li>
                             <li>6.地图搜索xxxx</li>
                             <li>7.浏览器搜索xxxx</li>
-                            <li>8.查找视频xxxx（在哔哩哔哩搜索视频）</li>
+                            <li>8.查找视频xxxx（在哔哩哔哩搜索）</li>
                             <li>9.进入收藏网站</li>
-                            </ul>
+                            <li>10.查看课程表/今天有什么课/明天有什么课</li>
+                            <li>11.添加课程/新增课程</li>
+                            <li>12.查看考试/考试安排</li>
+                            <li>13.导入课程（批量导入）</li>
+                        </ul>
                     </div>
                     <!-- 状态提示 -->
                     <div class="ai-status-toast" id="ai-status-toast"></div>
@@ -584,6 +589,263 @@
                 </div>
             </div>
         </section>
+        <!-- 课程表板块 -->
+        <section class="feature-section schedule-section" id="schedule-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt"></i> 课程表</h2>
+                <div class="schedule-tabs">
+                    <button class="schedule-tab active" data-tab="current">本周</button>
+                    <button class="schedule-tab" data-tab="next">下周</button>
+                    <button class="schedule-tab" data-tab="exam">考试</button>
+                </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="schedule-actions">
+                <button id="import-schedule-btn" class="schedule-btn">
+                    <i class="fas fa-file-import"></i> 导入课程
+                </button>
+                <button id="add-course-btn" class="schedule-btn">
+                    <i class="fas fa-plus"></i> 添加课程
+                </button>
+                <button id="add-exam-btn" class="schedule-btn">
+                    <i class="fas fa-clipboard-list"></i> 添加考试
+                </button>
+                <button id="time-settings-btn" class="schedule-btn">
+                    <i class="fas fa-clock"></i> 课程设置
+                </button>
+                <button id="clear-schedule-btn" class="schedule-btn secondary">
+                    <i class="fas fa-trash"></i> 清空
+                </button>
+            </div>
+            
+            <!-- 课程表容器 -->
+            <div class="schedule-container">
+                <div class="schedule-grid" id="schedule-grid">
+                    <!-- 表头 -->
+                    <div class="schedule-header time-col">时间</div>
+                    <div class="schedule-header">周一</div>
+                    <div class="schedule-header">周二</div>
+                    <div class="schedule-header">周三</div>
+                    <div class="schedule-header">周四</div>
+                    <div class="schedule-header">周五</div>
+                    <div class="schedule-header">周六</div>
+                    
+                    <!-- 时间段 -->
+                    <div class="time-slot">08:00-09:40</div>
+                    <div class="course-cell" data-day="1" data-time="1"></div>
+                    <div class="course-cell" data-day="2" data-time="1"></div>
+                    <div class="course-cell" data-day="3" data-time="1"></div>
+                    <div class="course-cell" data-day="4" data-time="1"></div>
+                    <div class="course-cell" data-day="5" data-time="1"></div>
+                    <div class="course-cell" data-day="6" data-time="1"></div>
+                    
+                    <div class="time-slot">10:00-11:40</div>
+                    <div class="course-cell" data-day="1" data-time="2"></div>
+                    <div class="course-cell" data-day="2" data-time="2"></div>
+                    <div class="course-cell" data-day="3" data-time="2"></div>
+                    <div class="course-cell" data-day="4" data-time="2"></div>
+                    <div class="course-cell" data-day="5" data-time="2"></div>
+                    <div class="course-cell" data-day="6" data-time="2"></div>
+                    
+                    <div class="time-slot">14:00-15:40</div>
+                    <div class="course-cell" data-day="1" data-time="3"></div>
+                    <div class="course-cell" data-day="2" data-time="3"></div>
+                    <div class="course-cell" data-day="3" data-time="3"></div>
+                    <div class="course-cell" data-day="4" data-time="3"></div>
+                    <div class="course-cell" data-day="5" data-time="3"></div>
+                    <div class="course-cell" data-day="6" data-time="3"></div>
+                    
+                    <div class="time-slot">16:00-17:40</div>
+                    <div class="course-cell" data-day="1" data-time="4"></div>
+                    <div class="course-cell" data-day="2" data-time="4"></div>
+                    <div class="course-cell" data-day="3" data-time="4"></div>
+                    <div class="course-cell" data-day="4" data-time="4"></div>
+                    <div class="course-cell" data-day="5" data-time="4"></div>
+                    <div class="course-cell" data-day="6" data-time="4"></div>
+                    
+                    <div class="time-slot">19:00-20:40</div>
+                    <div class="course-cell" data-day="1" data-time="5"></div>
+                    <div class="course-cell" data-day="2" data-time="5"></div>
+                    <div class="course-cell" data-day="3" data-time="5"></div>
+                    <div class="course-cell" data-day="4" data-time="5"></div>
+                    <div class="course-cell" data-day="5" data-time="5"></div>
+                    <div class="course-cell" data-day="6" data-time="5"></div>
+                </div>
+            </div>
+            
+            <!-- 考试列表 -->
+            <div class="exam-list-container" id="exam-list-container" style="display: none;">
+                <h3>考试安排</h3>
+                <div class="exam-list" id="exam-list">
+                    <!-- 考试列表动态生成 -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- 导入课程弹窗 -->
+        <div id="import-modal" class="schedule-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-file-import"></i> 导入课程</h3>
+                    <button class="modal-close" id="close-import-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-hint">请从教务系统复制课程信息，粘贴到下方：</p>
+                    <textarea id="import-textarea" placeholder="例如：&#10;高等数学 周一 08:00-09:40 教学楼A101&#10;大学英语 周三 10:00-11:40 教学楼B202"></textarea>
+                    <div class="modal-actions">
+                        <button id="parse-schedule-btn" class="schedule-btn">
+                            <i class="fas fa-magic"></i> 自动解析
+                        </button>
+                        <button id="cancel-import-btn" class="schedule-btn secondary">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 添加课程弹窗 -->
+        <div id="add-course-modal" class="schedule-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-plus"></i> 添加课程</h3>
+                    <button class="modal-close" id="close-add-course-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>课程名称</label>
+                        <input type="text" id="course-name" placeholder="如：高等数学">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>星期</label>
+                            <select id="course-day">
+                                <option value="1">周一</option>
+                                <option value="2">周二</option>
+                                <option value="3">周三</option>
+                                <option value="4">周四</option>
+                                <option value="5">周五</option>
+                                <option value="6">周六</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>时间段</label>
+                            <select id="course-time">
+                                <option value="1">08:00-09:40</option>
+                                <option value="2">10:00-11:40</option>
+                                <option value="3">14:00-15:40</option>
+                                <option value="4">16:00-17:40</option>
+                                <option value="5">19:00-20:40</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>上课地点</label>
+                        <input type="text" id="course-location" placeholder="如：教学楼A101">
+                    </div>
+                    <div class="form-group">
+                        <label>教师（可选）</label>
+                        <input type="text" id="course-teacher" placeholder="如：张老师">
+                    </div>
+                    <div class="modal-actions">
+                        <button id="save-course-btn" class="schedule-btn">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                        <button id="cancel-add-course-btn" class="schedule-btn secondary">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+        <!-- 时间设置弹窗 -->
+        <div id="time-settings-modal" class="schedule-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-clock"></i> 课程设置</h3>
+                    <button class="modal-close" id="close-time-settings-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-hint">设置每节课的开始和结束时间：</p>
+                    <div class="time-slots-list" id="time-slots-list">
+                        <!-- 时间段列表动态生成 -->
+                    </div>
+                    <div class="modal-actions">
+                        <button id="save-time-settings-btn" class="schedule-btn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                        <button id="reset-time-settings-btn" class="schedule-btn secondary">
+                            <i class="fas fa-undo"></i> 恢复默认
+                        </button>
+                        <button id="cancel-time-settings-btn" class="schedule-btn secondary">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 添加考试弹窗 -->
+        <div id="add-exam-modal" class="schedule-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-clipboard-list"></i> 添加考试</h3>
+                    <button class="modal-close" id="close-add-exam-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>考试科目</label>
+                        <input type="text" id="exam-name" placeholder="如：高等数学期末考试">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>考试日期</label>
+                            <input type="date" id="exam-date">
+                        </div>
+                        <div class="form-group">
+                            <label>考试时间</label>
+                            <input type="time" id="exam-time">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>考试地点</label>
+                        <input type="text" id="exam-location" placeholder="如：教学楼A101">
+                    </div>
+                    <div class="form-group">
+                        <label>备注（可选）</label>
+                        <input type="text" id="exam-note" placeholder="如：带学生证、计算器">
+                    </div>
+                    <div class="modal-actions">
+                        <button id="save-exam-btn" class="schedule-btn">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                        <button id="cancel-add-exam-btn" class="schedule-btn secondary">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 课前提醒弹窗 -->
+        <div id="class-reminder-modal" class="schedule-reminder-modal">
+            <div class="reminder-content">
+                <div class="reminder-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h3>即将上课</h3>
+                <div class="reminder-info">
+                    <p class="reminder-course" id="reminder-course-name">课程名称</p>
+                    <p class="reminder-time" id="reminder-course-time">时间</p>
+                    <p class="reminder-location" id="reminder-course-location">地点</p>
+                </div>
+                <button id="close-reminder-btn" class="schedule-btn">
+                    <i class="fas fa-check"></i> 知道了
+                </button>
+            </div>
+        </div>
 
         
         <!-- 底部状态栏 -->
@@ -601,6 +863,7 @@
     </div>
     
     <!-- 整合后的JavaScript文件 -->
+        <script src=".git/schedule.js"></script>
     <script src="/Table_edge/script.js"></script>
 
 <!-- 待办事项提醒弹窗 -->
