@@ -7528,7 +7528,7 @@ class HTMLScheduleImporter {
         return courses;
     }
     
-            // 解析单个课程单元格（可能包含多个课程）
+                // 解析单个课程单元格（可能包含多个课程）
     parseCourseFromCell(content, dayOfWeek, timeSlot) {
         if (!content || content.length < 2) return [];
         
@@ -7543,39 +7543,51 @@ class HTMLScheduleImporter {
             const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             if (lines.length === 0) continue;
             
-            // 查找课程名（第一行包含中文的行）
+            console.log('[HTML] 解析课程块:', lines);
+            
+            // 查找课程名 - 课程名通常是第一行，包含★标记或纯课程名
             let courseName = '';
             let detailStartIndex = 0;
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                // 课程名包含中文，且不是周数、地点等信息
-                if (/[\u4e00-\u9fa5]/.test(line) && 
-                    !line.includes('周数') && 
-                    !line.includes('校区') &&
-                    !line.includes('地点') &&
-                    !line.includes('教师') &&
-                    line.length >= 2) {
+                
+                // 课程名特征：
+                // 1. 包含课程类型标记 ★☆〇■◆
+                // 2. 或者是第一行且包含中文
+                // 3. 不包含"周数"、"校区"、"地点"、"教师"等关键词
+                // 4. 不是纯数字或纯英文
+                
+                const hasCourseMarker = /[★☆〇■◆]/.test(line);
+                const hasChinese = /[\u4e00-\u9fa5]/.test(line);
+                const isDetailInfo = /(周数|校区|地点|教师|教学楼|教室|机房|实验室|学分|考核)/.test(line);
+                const isCampusOnly = /^(骊山校园|雁塔校园|秦汉校园)$/.test(line);
+                
+                if (hasChinese && !isDetailInfo && !isCampusOnly && line.length >= 2) {
                     // 移除课程类型标记
                     courseName = line.replace(/[★◆☆〇■]/g, '').trim();
                     detailStartIndex = i + 1;
+                    
+                    // 如果课程名就是校区名称，跳过
+                    if (/^(骊山校园|雁塔校园|秦汉校园)$/.test(courseName)) {
+                        courseName = '';
+                        continue;
+                    }
+                    
+                    console.log('[HTML] 找到课程名:', courseName);
                     break;
                 }
             }
             
-            // 如果没找到，使用第一行
-            if (!courseName && lines.length > 0) {
-                courseName = lines[0].replace(/[★◆☆〇■]/g, '').trim();
-                detailStartIndex = 1;
-            }
-            
+            // 如果没找到有效课程名，跳过这个块
             if (!courseName || courseName.length < 2) {
-                console.log('[HTML] 无效课程名，跳过');
+                console.log('[HTML] 未找到有效课程名，跳过这个块');
                 continue;
             }
             
             // 合并详情行
             const detailText = lines.slice(detailStartIndex).join(' ');
+            console.log('[HTML] 详情文本:', detailText);
             
             // 创建课程对象
             const course = {
@@ -7602,24 +7614,30 @@ class HTMLScheduleImporter {
                 course.weekType = '双周';
             }
             
-            // 提取地点（教室编号如：2-1-402，或体育馆，或2-机房，或未排地点）
-            const locationMatch = detailText.match(/(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
-            if (locationMatch) {
-                course.location = locationMatch[1];
-            }
-            
-            // 提取校区（如：骊山校园、雁塔校园、秦汉校园）
-            const campusMatch = detailText.match(/(骊山校园|雁塔校园|秦汉校园)/);
-            if (campusMatch) {
-                // 如果已经有教室代码，合并显示
-                if (course.location) {
-                    course.location = campusMatch[1] + ' ' + course.location;
-                } else {
-                    course.location = campusMatch[1];
+            // 提取地点 - 优先从"骊山校园"等校区信息中提取完整地点
+            // 格式通常是：骊山校园  2-1-402
+            const fullLocationMatch = detailText.match(/(骊山校园|雁塔校园|秦汉校园)\s+(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
+            if (fullLocationMatch) {
+                course.location = fullLocationMatch[1] + ' ' + fullLocationMatch[2];
+            } else {
+                // 单独提取教室代码
+                const roomMatch = detailText.match(/(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
+                if (roomMatch) {
+                    course.location = roomMatch[1];
+                }
+                
+                // 单独提取校区
+                const campusMatch = detailText.match(/(骊山校园|雁塔校园|秦汉校园)/);
+                if (campusMatch) {
+                    if (course.location) {
+                        course.location = campusMatch[1] + ' ' + course.location;
+                    } else {
+                        course.location = campusMatch[1];
+                    }
                 }
             }
             
-            console.log(`[HTML] 解析课程: ${course.name} | 星期${dayOfWeek} | 时间段${timeSlot} | 地点${course.location}`);
+            console.log(`[HTML] ✓ 解析课程: ${course.name} | 星期${dayOfWeek} | 时间段${timeSlot} | 地点${course.location} | 周数${course.startWeek}-${course.endWeek}周${course.weekType ? '(' + course.weekType + ')' : ''}`);
             courses.push(course);
         }
         
