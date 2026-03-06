@@ -6844,83 +6844,130 @@ class PDFScheduleImporter {
         }
     }
     
-    parseCoursesFromText(text) {
+        parseCoursesFromText(text) {
         const courses = [];
         
-        // 根据用户提供的课表PDF格式解析
-        // 格式示例：
-        // 流体力学B★
-        // (1-2节)1-16周/校区:骊山校区/场地:2-1-402/教师:邵丰富/教学班:流体力学B-0002/教学班组成:新能源科学与工程2401;新能源科学与工程2402/考核方式:考试/选课备注:/课程学时组成:理论:32/周学时:2/总学时:32/学分:2.0
+        console.log('[PDF] 开始解析，原始文本长度:', text.length);
+        console.log('[PDF] 原始文本前1000字符:', text.substring(0, 1000));
         
-        // 按行分割处理
-        const lines = text.split('\n');
-        let currentCourse = null;
+        // 正方教务系统课表PDF格式特点：
+        // 1. 课程名称单独一行，如：流体力学B★
+        // 2. 课程详情在一行，格式：(节次)周次/校区/场地/教师/.../学分/考核方式
+        // 示例：(1-2节)1-16周/校区:骊山校区/场地:2-1-402/教师:邵丰富/.../学分:2.0/考核方式:考试
         
-        for (let i = 0; i < lines.length; i++) {
+        // 将文本按行分割
+        const lines = text.split(/\r?\n/);
+        console.log('[PDF] 总行数:', lines.length);
+        
+        let i = 0;
+        while (i < lines.length) {
             const line = lines[i].trim();
             
             // 跳过空行和页眉页脚
-            if (!line || line.includes('课表') || line.includes('学号') || line.includes('学年')) continue;
-            
-            // 识别课程名称（通常包含中文，可能带★或◆标记）
-            // 课程名通常在单元格的第一行，且不是以括号、数字开头
-            if (/^[\u4e00-\u9fa5]+[a-zA-Z0-9★◆]*$/.test(line) && line.length >= 2 && line.length <= 20) {
-                // 保存之前的课程
-                if (currentCourse && currentCourse.name) {
-                    courses.push(currentCourse);
-                }
-                
-                // 开始新课程
-                currentCourse = {
-                    name: line.replace(/[★◆]/g, ''), // 移除标记符号
-                    time: '',
-                    location: '',
-                    credits: '',
-                    examType: ''
-                };
+            if (!line || line.length === 0) {
+                i++;
                 continue;
             }
             
-            // 如果正在解析课程，提取详细信息
-            if (currentCourse) {
-                // 提取节次 (1-2节)
-                const timeMatch = line.match(/\((\d+-\d+)节\)/);
-                if (timeMatch && !currentCourse.time) {
-                    currentCourse.time = timeMatch[1] + '节';
+            // 跳过页眉信息
+            if (line.includes('课表') || line.includes('学号') || line.includes('学年') || 
+                line.includes('时间段') || line.includes('节次') || line.includes('星期')) {
+                i++;
+                continue;
+            }
+            
+            // 识别课程名称：包含中文，可能带★◆标记，长度适中
+            // 课程名通常不以括号、数字、斜杠开头
+            const isCourseName = /^[\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9★◆]*$/.test(line) && 
+                                 line.length >= 2 && line.length <= 25 &&
+                                 !line.startsWith('(') && !line.startsWith('/') &&
+                                 !line.includes('校区') && !line.includes('场地');
+            
+            if (isCourseName) {
+                const courseName = line.replace(/[★◆]/g, '').trim();
+                console.log('[PDF] 找到课程名:', courseName);
+                
+                // 查找下一行包含课程详情
+                let detailLine = '';
+                let j = i + 1;
+                while (j < lines.length && j < i + 5) {
+                    const nextLine = lines[j].trim();
+                    // 如果下一行包含节次信息，就是详情行
+                    if (nextLine.includes('节') && nextLine.includes('周') && nextLine.includes('场地')) {
+                        detailLine = nextLine;
+                        console.log('[PDF] 找到详情行:', detailLine.substring(0, 100));
+                        break;
+                    }
+                    // 如果下一行是另一个课程名，停止查找
+                    if (/^[\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9★◆]*$/.test(nextLine) && 
+                        nextLine.length >= 2 && nextLine.length <= 25) {
+                        break;
+                    }
+                    j++;
                 }
                 
-                // 提取场地/教室位置 场地:2-1-402
-                const locationMatch = line.match(/[场地|教室][:：]([^/\s]+)/);
-                if (locationMatch && !currentCourse.location) {
-                    currentCourse.location = locationMatch[1];
-                }
-                
-                // 提取学分 学分:2.0
-                const creditMatch = line.match(/学分[:：](\d+\.?\d*)/);
-                if (creditMatch && !currentCourse.credits) {
-                    currentCourse.credits = creditMatch[1];
-                }
-                
-                // 提取考核方式 考核方式:考试 或 考核方式:考查
-                const examMatch = line.match(/考核方式[:：]([^/\s]+)/);
-                if (examMatch && !currentCourse.examType) {
-                    currentCourse.examType = examMatch[1];
+                if (detailLine) {
+                    // 解析详情行
+                    const course = {
+                        name: courseName,
+                        time: '',
+                        location: '',
+                        credits: '',
+                        examType: ''
+                    };
+                    
+                    // 提取节次 (1-2节)
+                    const timeMatch = detailLine.match(/\((\d+-\d+)节\)/);
+                    if (timeMatch) {
+                        course.time = timeMatch[1] + '节';
+                        console.log('[PDF] 提取节次:', course.time);
+                    }
+                    
+                    // 提取场地 场地:2-1-402
+                    const locationMatch = detailLine.match(/场地[:：]([^/\s]+)/);
+                    if (locationMatch) {
+                        course.location = locationMatch[1];
+                        console.log('[PDF] 提取场地:', course.location);
+                    }
+                    
+                    // 提取学分 学分:2.0
+                    const creditMatch = detailLine.match(/学分[:：](\d+\.?\d*)/);
+                    if (creditMatch) {
+                        course.credits = creditMatch[1];
+                        console.log('[PDF] 提取学分:', course.credits);
+                    }
+                    
+                    // 提取考核方式 考核方式:考试 或 考核方式:考查
+                    const examMatch = detailLine.match(/考核方式[:：]([^/\s]+)/);
+                    if (examMatch) {
+                        course.examType = examMatch[1];
+                        console.log('[PDF] 提取考核方式:', course.examType);
+                    }
+                    
+                    // 只要有课程名和节次就添加
+                    if (course.time) {
+                        courses.push(course);
+                        console.log('[PDF] 成功添加课程:', course);
+                    }
+                    
+                    // 跳过已处理的详情行
+                    i = j + 1;
+                    continue;
                 }
             }
+            
+            i++;
         }
         
-        // 保存最后一个课程
-        if (currentCourse && currentCourse.name) {
-            courses.push(currentCourse);
-        }
-        
-        // 如果没有匹配到，尝试更宽松的匹配（处理PDF文本合并的情况）
+        // 如果上面的方法没有识别到，尝试备用方案：直接匹配整个文本块
         if (courses.length === 0) {
-            // 尝试匹配整个课程块
-            const coursePattern = /([\u4e00-\u9fa5]+[a-zA-Z0-9]*)[\s\n]*\((\d+-\d+)节\)[^场地]*场地[:：]([^/\s]+)[^学分]*学分[:：](\d+\.?\d*)[^考核]*考核方式[:：]([^/\s]+)/g;
+            console.log('[PDF] 使用备用方案解析...');
+            
+            // 匹配模式：课程名 + 换行 + (节次)...场地...学分...考核方式
+            const pattern = /([\u4e00-\u9fa5][\u4e00-\u9fa5a-zA-Z0-9]*)[\s\n]+\((\d+-\d+)节\)[^\n]*场地[:：]([^/\s]+)[^\n]*学分[:：](\d+\.?\d*)[^\n]*考核方式[:：]([^/\s]+)/g;
             
             let match;
-            while ((match = coursePattern.exec(text)) !== null) {
+            while ((match = pattern.exec(text)) !== null) {
                 courses.push({
                     name: match[1].replace(/[★◆]/g, ''),
                     time: match[2] + '节',
@@ -6928,22 +6975,14 @@ class PDFScheduleImporter {
                     credits: match[4],
                     examType: match[5]
                 });
+                console.log('[PDF] 备用方案匹配到课程:', match[1]);
             }
         }
         
-        // 去重
-        const uniqueCourses = [];
-        const seen = new Set();
-        for (const course of courses) {
-            const key = `${course.name}-${course.time}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueCourses.push(course);
-            }
-        }
+        console.log('[PDF] 解析完成，共识别课程数:', courses.length);
+        console.log('[PDF] 课程列表:', courses);
         
-        console.log('[PDF] 解析到的课程:', uniqueCourses);
-        return uniqueCourses;
+        return courses;
     }
     
     fillCoursesToTextarea(courses) {
