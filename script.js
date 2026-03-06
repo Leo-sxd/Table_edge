@@ -6856,87 +6856,157 @@ const JwglxtExtractor = {
     }
 };
 
-// 在正方教务系统页面自动显示导出按钮
-if (location.href.includes('jwglxt') || location.href.includes('59.74.174.150')) {
+// ==================== 正方教务系统导出按钮注入器 ====================
+// 使用更可靠的方式检测和注入
+
+(function initJwglxtButton() {
+    console.log('[JwglxtButton] 初始化检测...');
+    
+    // 检测是否在教务系统页面
+    const isJwglxtPage = location.href.includes('jwglxt') || 
+                         location.href.includes('59.74.174.150') ||
+                         document.title.includes('教务') ||
+                         document.querySelector('#kcb, .kbcontent, [class*="course"]');
+    
+    if (!isJwglxtPage) {
+        console.log('[JwglxtButton] 不是教务系统页面，跳过');
+        return;
+    }
+    
+    console.log('[JwglxtButton] 检测到教务系统页面');
     
     // 检查是否是从我们的网站跳转过来的
     const returnUrl = localStorage.getItem('return_to_url');
     const isFromOurSite = localStorage.getItem('auto_import_active') === 'true';
     
-    // 创建按钮容器
-    const createButtonContainer = () => {
+    // 创建按钮的函数
+    function createExportButton() {
+        // 避免重复创建
+        if (document.getElementById('jwglxt-export-btn')) {
+            console.log('[JwglxtButton] 按钮已存在，跳过');
+            return;
+        }
+        
+        console.log('[JwglxtButton] 创建导出按钮...');
+        
+        // 创建容器
         const container = document.createElement('div');
+        container.id = 'jwglxt-export-container';
         container.style.cssText = `
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 9999;
+            position: fixed !important;
+            top: 80px !important;
+            right: 20px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            z-index: 999999 !important;
         `;
         
         // 导出课程按钮
         const exportBtn = document.createElement('button');
+        exportBtn.id = 'jwglxt-export-btn';
         exportBtn.innerHTML = '📤 导出课程到网站';
         exportBtn.style.cssText = `
-            background: linear-gradient(135deg, #8c00ff 0%, #6a00cc 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-size: 14px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4);
-            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #8c00ff 0%, #6a00cc 100%) !important;
+            color: white !important;
+            border: none !important;
+            padding: 12px 20px !important;
+            border-radius: 25px !important;
+            font-size: 14px !important;
+            cursor: pointer !important;
+            box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4) !important;
+            transition: all 0.3s ease !important;
+            font-family: inherit !important;
+            font-weight: bold !important;
         `;
-        exportBtn.onmouseover = () => exportBtn.style.transform = 'scale(1.05)';
-        exportBtn.onmouseout = () => exportBtn.style.transform = 'scale(1)';
-        exportBtn.onclick = () => JwglxtExtractor.exportToWebsite();
+        exportBtn.onmouseover = function() { this.style.transform = 'scale(1.05)'; };
+        exportBtn.onmouseout = function() { this.style.transform = 'scale(1)'; };
+        exportBtn.onclick = function() {
+            console.log('[JwglxtButton] 点击导出按钮');
+            if (typeof JwglxtExtractor !== 'undefined') {
+                JwglxtExtractor.exportToWebsite();
+            } else {
+                alert('导出功能未加载，请刷新页面重试');
+            }
+        };
         container.appendChild(exportBtn);
         
         // 如果有返回URL，显示返回按钮
         if (returnUrl && isFromOurSite) {
             const returnBtn = document.createElement('button');
+            returnBtn.id = 'jwglxt-return-btn';
             returnBtn.innerHTML = '↩️ 返回课程表网站';
             returnBtn.style.cssText = `
-                background: linear-gradient(135deg, #00a8ff 0%, #0066cc 100%);
-                color: white;
-                border: none;
-                padding: 10px 16px;
-                border-radius: 20px;
-                font-size: 13px;
-                cursor: pointer;
-                box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3);
-                transition: all 0.3s ease;
+                background: linear-gradient(135deg, #00a8ff 0%, #0066cc 100%) !important;
+                color: white !important;
+                border: none !important;
+                padding: 10px 16px !important;
+                border-radius: 20px !important;
+                font-size: 13px !important;
+                cursor: pointer !important;
+                box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3) !important;
+                transition: all 0.3s ease !important;
+                font-family: inherit !important;
+                font-weight: bold !important;
             `;
-            returnBtn.onmouseover = () => returnBtn.style.transform = 'scale(1.05)';
-            returnBtn.onmouseout = () => returnBtn.style.transform = 'scale(1)';
-            returnBtn.onclick = () => {
+            returnBtn.onmouseover = function() { this.style.transform = 'scale(1.05)'; };
+            returnBtn.onmouseout = function() { this.style.transform = 'scale(1)'; };
+            returnBtn.onclick = function() {
                 localStorage.removeItem('return_to_url');
                 window.location.href = returnUrl;
             };
             container.appendChild(returnBtn);
         }
         
-        document.body.appendChild(container);
-    };
-    
-    // 页面加载完成后添加按钮
-    if (document.readyState === 'complete') {
-        createButtonContainer();
-    } else {
-        window.addEventListener('load', createButtonContainer);
+        // 添加到body
+        if (document.body) {
+            document.body.appendChild(container);
+            console.log('[JwglxtButton] 按钮已添加到页面');
+        } else {
+            console.log('[JwglxtButton] body未加载，延迟添加');
+            setTimeout(createExportButton, 500);
+        }
     }
     
-    // 监听页面变化（因为正方系统使用iframe或ajax加载）
+    // 尝试立即创建
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', createExportButton);
+    } else {
+        createExportButton();
+    }
+    
+    // 也监听load事件（备用）
+    window.addEventListener('load', createExportButton);
+    
+    // 监听页面变化（正方系统使用ajax加载）
     let lastUrl = location.href;
-    new MutationObserver(() => {
+    const observer = new MutationObserver(function() {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
-            console.log('[JwglxtExtractor] 页面变化，重新添加按钮');
-            // 延迟添加，等待页面渲染
-            setTimeout(createButtonContainer, 1000);
+            console.log('[JwglxtButton] 页面URL变化:', lastUrl);
+            setTimeout(createExportButton, 1000);
         }
-    }).observe(document, { subtree: true, childList: true });
-}
+        
+        // 如果按钮不存在，尝试重新创建（页面可能重新渲染）
+        if (!document.getElementById('jwglxt-export-btn')) {
+            setTimeout(createExportButton, 500);
+        }
+    });
+    
+    if (document.body) {
+        observer.observe(document.body, { subtree: true, childList: true });
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            observer.observe(document.body, { subtree: true, childList: true });
+        });
+    }
+    
+    // 定时检查按钮是否存在（每2秒）
+    setInterval(function() {
+        if (!document.getElementById('jwglxt-export-btn') && document.body) {
+            console.log('[JwglxtButton] 按钮丢失，重新创建');
+            createExportButton();
+        }
+    }, 2000);
+    
+})();
