@@ -4025,9 +4025,9 @@ body.modal-open {
 
 .schedule-grid {
     display: grid;
-    grid-template-columns: 100px repeat(6, 1fr);
+    grid-template-columns: 100px repeat(7, 1fr);
     gap: 8px;
-    min-width: 700px;
+    min-width: 800px;
 }
 
 /* 表头 */
@@ -4462,9 +4462,9 @@ body.modal-open {
 /* 响应式 */
 @media (max-width: 768px) {
     .schedule-grid {
-        grid-template-columns: 80px repeat(6, 1fr);
+        grid-template-columns: 80px repeat(7, 1fr);
         gap: 4px;
-        min-width: 600px;
+        min-width: 700px;
     }
     
     .schedule-header {
