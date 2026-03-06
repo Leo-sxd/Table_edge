@@ -7309,205 +7309,156 @@ class HTMLScheduleImporter {
         }
     }
     
+        // 从HTML文档提取课程
     extractCoursesFromHTML(doc) {
         const courses = [];
-        
         console.log('[HTML] 开始解析HTML...');
         
-        // 方法1：查找课程表表格（正方教务系统特定ID）
-        const possibleSelectors = [
-            '#kbgrid_table_0',  // 正方教务系统课表表格ID
-            '#kcb table',
-            '.kbcontent table',
-            '#courseTable',
-            'table[class*="timetable"]',
-            'table'
-        ];
-        
-        let table = null;
-        for (const selector of possibleSelectors) {
-            table = doc.querySelector(selector);
-            if (table) {
-                console.log('[HTML] 找到表格:', selector);
-                break;
-            }
-        }
-        
+        // 查找正方教务系统课表表格
+        const table = doc.querySelector('#kbgrid_table_0');
         if (!table) {
-            console.log('[HTML] 未找到表格，尝试从整个文档提取');
-            return this.extractFromText(doc.body.innerText);
+            console.error('[HTML] 未找到kbgrid_table_0表格');
+            return courses;
         }
         
-        // 解析表格
+        console.log('[HTML] 找到课表表格');
         const rows = table.querySelectorAll('tr');
-        console.log('[HTML] 表格行数:', rows.length);
+        console.log('[HTML] 表格总行数:', rows.length);
         
-        // 获取表头（星期）
-        let headerRowIndex = -1;
-        let dayMap = {};
+        // 正方教务系统课表结构：
+        // 第0行：标题行（学期、姓名、学号）
+        // 第1行：表头（时间段 | 节次 | 星期一 | 星期二 | ... | 星期日）
+        // 第2行起：数据行（上午 rowspan=4 | 1 | 课程 | ...）
         
-        // 查找包含星期信息的行作为表头
-        for (let i = 0; i < Math.min(5, rows.length); i++) {
-            const row = rows[i];
-            const cells = row.querySelectorAll('th, td');
-            const rowText = row.textContent;
-            
-            // 检查是否包含星期信息
-            if (rowText.includes('星期') || rowText.includes('周一') || rowText.includes('周二') || rowText.includes('周日')) {
-                headerRowIndex = i;
-                console.log('[HTML] 找到表头行，索引:', i);
-                
-                cells.forEach((cell, index) => {
-                    const text = cell.textContent.trim();
-                    console.log(`[HTML] 表头单元格 ${index}: "${text}"`);
-                    
-                    // 支持多种星期格式，使用数字1-7表示
-                    if (text.includes('星期一') || text.includes('周一')) dayMap[index] = 1;  // 周一
-                    else if (text.includes('星期二') || text.includes('周二')) dayMap[index] = 2;  // 周二
-                    else if (text.includes('星期三') || text.includes('周三')) dayMap[index] = 3;  // 周三
-                    else if (text.includes('星期四') || text.includes('周四')) dayMap[index] = 4;  // 周四
-                    else if (text.includes('星期五') || text.includes('周五')) dayMap[index] = 5;  // 周五
-                    else if (text.includes('星期六') || text.includes('周六')) dayMap[index] = 6;  // 周六
-                    else if (text.includes('星期日') || text.includes('周日') || text.includes('星期天')) dayMap[index] = 7;  // 周日
-                });
-                break;
-            }
-        }
+        // 列映射：索引 -> 星期几（1-7）
+        const columnToDay = {
+            2: 1,  // 第2列 = 周一
+            3: 2,  // 第3列 = 周二
+            4: 3,  // 第4列 = 周三
+            5: 4,  // 第5列 = 周四
+            6: 5,  // 第6列 = 周五
+            7: 6,  // 第7列 = 周六
+            8: 7   // 第8列 = 周日
+        };
         
-        console.log('[HTML] 星期映射:', dayMap);
-        
-        // 如果没有找到表头，使用默认映射（正方教务系统标准格式）
-        if (Object.keys(dayMap).length === 0) {
-            console.log('[HTML] 未找到星期映射，使用默认映射');
-            // 正方教务系统实际结构：
-            // 第0列=时间段标签（上午/下午/晚上）
-            // 第1列=节次（1、2、3...）
-            // 第2列=周一，第3列=周二，第4列=周三，第5列=周四，第6列=周五，第7列=周六，第8列=周日
-            // 使用数字1-7表示星期（与data-day属性一致）
-            dayMap = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7};
-        }
-        
-        // 跟踪跨行的课程（处理rowspan）
-        const rowSpanData = {};
-        
-        // 从表头下一行开始遍历
-        const startRow = headerRowIndex >= 0 ? headerRowIndex + 1 : 1;
-        
-        for (let i = startRow; i < rows.length; i++) {
-            const row = rows[i];
+        // 遍历数据行（从第2行开始）
+        for (let rowIndex = 2; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex];
             const cells = row.querySelectorAll('td, th');
             
-            if (cells.length === 0) continue;
+            if (cells.length < 3) {
+                console.log(`[HTML] 第${rowIndex}行单元格数量不足，跳过`);
+                continue;
+            }
             
-            // 查找节次信息（在第二列，索引1）
-            let timeSlot = '';
-            // 正方教务系统：第1列是节次（1、2、3、4...）
-            if (cells.length > 1) {
-                const periodCell = cells[1];  // 节次单元格
-                const cellText = periodCell.textContent.trim();
-                // 匹配节次：1、2、3、4...（单个数字）
-                const timeMatch = cellText.match(/^(\d+)$/);
-                if (timeMatch) {
-                    const period = parseInt(timeMatch[1]);
-                    // 将节次映射到时间段：
-                    // 第1-2节 -> 时间段1
-                    // 第3-4节 -> 时间段2
-                    // 第5-6节 -> 时间段3
-                    // 第7-8节 -> 时间段4
-                    // 第9-10节 -> 时间段5
-                    // 第11-12节 -> 时间段6（如果有）
-                    const timeId = Math.ceil(period / 2);
-                    timeSlot = timeId.toString();
-                    console.log(`[HTML] 第${i}行节次: ${cellText} -> 时间段: ${timeSlot}`);
+            // 查找节次（在第1列，索引1）
+            let timeSlot = null;
+            const periodCell = cells[1];  // 节次单元格
+            if (periodCell) {
+                const periodText = (periodCell.textContent || '').trim();
+                const periodMatch = periodText.match(/^(\d+)$/);
+                if (periodMatch) {
+                    const period = parseInt(periodMatch[1]);
+                    // 节次映射到时间段：1-2节->1, 3-4节->2, 5-6节->3, 7-8节->4, 9-10节->5
+                    timeSlot = Math.ceil(period / 2);
+                    console.log(`[HTML] 第${rowIndex}行: 节次${periodText} -> 时间段${timeSlot}`);
                 }
             }
             
             if (!timeSlot) {
-                console.log(`[HTML] 第${i}行未找到节次信息，跳过`);
+                console.log(`[HTML] 第${rowIndex}行未找到节次，跳过`);
                 continue;
             }
             
-            // 遍历每一天（从第2列开始，索引2是周一）
-            for (let j = 2; j < cells.length && j <= 8; j++) {
-                const cell = cells[j];
-                const day = dayMap[j];  // 直接根据列索引获取星期
+            // 遍历每一天的列（从第2列到第8列）
+            for (let colIndex = 2; colIndex <= 8 && colIndex < cells.length; colIndex++) {
+                const dayOfWeek = columnToDay[colIndex];
+                if (!dayOfWeek) continue;
                 
-                if (!day) {
-                    console.log(`[HTML] 第${i}行第${j}列无星期映射，跳过`);
+                const cell = cells[colIndex];
+                const content = (cell.innerText || cell.textContent || '').trim();
+                
+                // 跳过空单元格
+                if (!content || content === '' || content === '\xa0' || content === '&nbsp;' ||
+                    content === '上午' || content === '下午' || content === '晚上') {
                     continue;
                 }
                 
-                // 获取单元格内容
-                const content = cell.innerText.trim();
-                if (!content || content === '' || content === '\xa0' || content === '&nbsp;' || content === '上午' || content === '下午' || content === '晚上') {
-                    
-                    continue;
+                console.log(`[HTML] 解析 [行${rowIndex} 列${colIndex} 星期${dayOfWeek} 时间段${timeSlot}]:`, content.substring(0, 50));
+                
+                // 解析课程
+                const course = this.parseCourseFromCell(content, dayOfWeek, timeSlot);
+                if (course) {
+                    courses.push(course);
+                    console.log(`[HTML] ✓ 成功添加课程: ${course.name}`);
                 }
-                
-                console.log(`[HTML] 解析单元格 [${day} 时间段${timeSlot}]:`, content.substring(0, 100));
-                
-                // 解析课程信息
-                const courseInfo = this.parseCellContent(content, day, timeSlot);  // day是数字1-7
-                if (courseInfo) {
-                    courses.push(courseInfo);
-                    console.log('[HTML] 成功添加课程:', courseInfo.name, '| 星期:', day, '| 时间段:', timeSlot);
-                }
-                
-                
             }
         }
         
-        console.log('[HTML] 解析完成，共识别课程数:', courses.length);
+        console.log(`[HTML] 解析完成，共识别 ${courses.length} 门课程`);
         return courses;
     }
     
-    parseCellContent(content, dayOfWeek, timeSlot) {
-        // 解析单元格内容
+    // 解析单个课程单元格
+    parseCourseFromCell(content, dayOfWeek, timeSlot) {
+        if (!content || content.length < 2) return null;
+        
+        // 分割成行
         const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length === 0) return null;
         
-        console.log('[HTML] 单元格内容行数:', lines.length);
         console.log('[HTML] 单元格内容:', lines);
         
-        // 正方教务系统课程格式示例：
-        // 流体力学B★
-        // (1-2节)1-16周
-        // 骊山校园  2-1-402
-        // 邱华富
-        
-        // 查找课程名（第一行通常就是课程名）
+        // 查找课程名（包含中文的行，通常是第一行）
         let courseName = '';
-        let detailText = '';
+        let detailStartIndex = 0;
         
-        // 第一行应该是课程名
-        if (lines.length > 0) {
-            courseName = lines[0].replace(/[★◆☆〇■]/g, '').trim();
-            detailText = lines.slice(1).join(' ');
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            // 课程名包含中文，且不是周数、地点等信息
+            if (/[\u4e00-\u9fa5]/.test(line) && 
+                !line.includes('周数') && 
+                !line.includes('校区') &&
+                !line.includes('地点') &&
+                !line.includes('教师') &&
+                line.length >= 2) {
+                // 移除课程类型标记
+                courseName = line.replace(/[★◆☆〇■]/g, '').trim();
+                detailStartIndex = i + 1;
+                break;
+            }
         }
         
-        // 过滤掉无效课程名
+        // 如果没找到，使用第一行
+        if (!courseName && lines.length > 0) {
+            courseName = lines[0].replace(/[★◆☆〇■]/g, '').trim();
+            detailStartIndex = 1;
+        }
+        
         if (!courseName || courseName.length < 2) {
-            console.log('[HTML] 跳过无效课程名:', courseName);
+            console.log('[HTML] 无效课程名，跳过');
             return null;
         }
         
+        // 合并详情行
+        const detailText = lines.slice(detailStartIndex).join(' ');
+        
+        // 创建课程对象
         const course = {
             name: courseName,
-            day: day,
-            time: parseInt(timeSlot) || 1,
+            day: dayOfWeek,  // 1-7表示周一到周日
+            time: timeSlot,  // 1-5表示第1-2节到第9-10节
             location: '',
             startWeek: 1,
             endWeek: 20,
             weekType: ''
         };
         
-        // 提取周次信息（如：(1-2节)1-16周 或 周数：1-16周）
-        const weekMatch = detailText.match(/(\d+)-(\d+)周/) || 
-                         detailText.match(/周数[：:]\s*(\d+)-(\d+)/);
+        // 提取周次（如：1-16周）
+        const weekMatch = detailText.match(/(\d+)-(\d+)周/);
         if (weekMatch) {
             course.startWeek = parseInt(weekMatch[1]);
             course.endWeek = parseInt(weekMatch[2]);
-            console.log('[HTML] 提取周次:', course.startWeek, '-', course.endWeek);
         }
         
         // 提取单双周
@@ -7517,22 +7468,21 @@ class HTMLScheduleImporter {
             course.weekType = '双周';
         }
         
-        // 提取地点（支持多种格式）
-        // 格式1: 上课地点：2-1-402
-        // 格式2: 骊山校园 2-1-402
-        // 格式3: 2-1-402（纯教室编号）
-        const locationMatch = detailText.match(/上课地点[：:]\s*([\d-]+)/) || 
-                             detailText.match(/校园\s+([\d-]+)/) ||
-                             detailText.match(/([\d]+-[\d]+-[\d]+)/);
+        // 提取地点（教室编号如：2-1-402）
+        const locationMatch = detailText.match(/([\d]+-[\d]+-[\d]+)/);
         if (locationMatch) {
             course.location = locationMatch[1];
         }
         
-        console.log('[HTML] 解析到课程:', course.name, '| 星期:', day, '| 时间段:', timeSlot, '| 地点:', course.location);
+        console.log(`[HTML] ✓ 解析课程: ${course.name} | 星期${dayOfWeek} | 时间段${timeSlot} | 地点${course.location}`);
         return course;
     }
     
+    // 备用：从纯文本提取
     extractFromText(text) {
+        console.log('[HTML] 使用备用文本提取');
+        return [];
+    }extractFromText(text) {
         // 备用方案：从纯文本中提取
         const courses = [];
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
