@@ -6254,7 +6254,6 @@ class ScheduleModule {
         if (!time) {
             const multiTimeMatch = line.match(/(\d+)-(\d+)节/);
             if (multiTimeMatch) {
-                // 使用第一节作为时间段ID
                 time = parseInt(multiTimeMatch[1]);
                 console.log('[Parse] 匹配到多节格式:', multiTimeMatch[0], '-> 时间段:', time);
             }
@@ -6274,13 +6273,12 @@ class ScheduleModule {
             const timeMatch = line.match(/(\d{2}):(\d{2})-(\d{2}):(\d{2})/);
             if (timeMatch) {
                 const startTime = `${timeMatch[1]}:${timeMatch[2]}`;
-                // 找到匹配的时间段
                 const slot = this.timeSlots.find(s => s.start === startTime);
                 if (slot) time = slot.id;
             }
         }
         
-        // 提取课程名
+        // 提取课程名和地点
         const parts = line.split(/\s+/);
         if (parts.length > 0) {
             // 假设课程名是第一个不包含"第X节"、"周X"、时间格式、节次的部分
@@ -6290,8 +6288,7 @@ class ScheduleModule {
                     !part.match(/\d+节/) &&
                     !part.match(/周[一二三四五六日]/) &&
                     !part.match(/\d{2}:\d{2}/) &&
-                    !part.match(/教学楼|教室|机房|实验室|校区|学分|考核/) &&
-                    !part.match(/^学分:/)) {
+                    !part.match(/教学楼|教室|机房|实验室|校区|学分|考核/)) {
                     name = part;
                     break;
                 }
@@ -6299,9 +6296,6 @@ class ScheduleModule {
             
             // 如果没找到，用第一部分
             if (!name) name = parts[0];
-        }
-        
-        console.log('[Parse] 解析结果:', { name, day, time, location });
             
             // 查找地点（包含教学楼、教室等关键词）
             for (const part of parts) {
@@ -6311,6 +6305,8 @@ class ScheduleModule {
                 }
             }
         }
+        
+        console.log('[Parse] 解析结果:', { name, day, time, location });
         
         if (name && day && time) {
             return { name, day, time, location, teacher };
