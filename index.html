@@ -683,33 +683,63 @@
             </div>
         </section>
         
-                        <!-- 导入课程弹窗 -->
+                                <!-- 导入课程弹窗 -->
         <div id="import-modal" class="schedule-modal">
-            <div class="modal-content">
+            <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
                     <h3><i class="fas fa-file-import"></i> 导入课程</h3>
                     <button class="modal-close" id="close-import-modal">&times;</button>
                 </div>
                 <div class="modal-body">
+                    <!-- HTML文件导入（wakeup课程表方式） -->
+                    <div class="html-import-section" style="margin-bottom: 20px; padding: 20px; background: rgba(0, 200, 255, 0.1); border-radius: 10px; border: 2px solid rgba(0, 200, 255, 0.5);">
+                        <p style="color: #a0e5ff; margin-bottom: 15px; font-size: 14px; text-align: center;">
+                            <i class="fas fa-file-code" style="color: #00c8ff; font-size: 28px;"></i><br><br>
+                            <strong>从HTML文件导入（推荐）</strong><br>
+                            <span style="font-size: 12px; color: rgba(255,255,255,0.7);">参考wakeup课程表方案</span>
+                        </p>
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+                            <strong>操作步骤：</strong><br>
+                            1. 在浏览器登录教务系统<br>
+                            2. 进入"个人课表查询"页面<br>
+                            3. 按 <kbd>Ctrl+S</kbd> 保存网页<br>
+                            4. 选择"网页，完整"格式<br>
+                            5. 上传保存的HTML文件
+                        </div>
+                        <input type="file" id="html-file-input" accept=".html,.htm" style="display: none;">
+                        <button id="upload-html-btn" class="schedule-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #00c8ff 0%, #0099cc 100%);">
+                            <i class="fas fa-upload"></i> 
+                            选择HTML文件
+                        </button>
+                        <div id="html-loading" style="display: none; text-align: center; margin-top: 10px; color: #00c8ff;">
+                            <i class="fas fa-spinner fa-spin"></i> 正在解析HTML...
+                        </div>
+                        <div id="html-result" style="display: none; margin-top: 10px; padding: 10px; border-radius: 5px; font-size: 13px; text-align: center;">
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; color: rgba(255,255,255,0.3); margin: 15px 0; font-size: 12px;">
+                        ── 其他导入方式 ──
+                    </div>
+                    
                     <!-- PDF导入区域 -->
-                    <div class="pdf-import-section" style="margin-bottom: 20px; padding: 20px; background: rgba(140, 0, 255, 0.1); border-radius: 10px; border: 2px dashed rgba(140, 0, 255, 0.5);">
-                        <p style="color: #d6c5ff; margin-bottom: 15px; font-size: 14px; text-align: center;">
-                            <i class="fas fa-file-pdf" style="color: #ff6b6b; font-size: 24px;"></i><br><br>
-                            <strong>从PDF文件导入（推荐）</strong><br>
-                            <span style="font-size: 12px; color: rgba(255,255,255,0.6);">支持正方教务系统导出的课表PDF</span>
+                    <div class="pdf-import-section" style="margin-bottom: 20px; padding: 15px; background: rgba(140, 0, 255, 0.1); border-radius: 10px; border: 1px dashed rgba(140, 0, 255, 0.3);">
+                        <p style="color: #d6c5ff; margin-bottom: 10px; font-size: 13px; text-align: center;">
+                            <i class="fas fa-file-pdf" style="color: #ff6b6b;"></i>
+                            <strong>从PDF文件导入</strong>
                         </p>
                         <input type="file" id="pdf-file-input" accept=".pdf" style="display: none;">
-                        <button id="upload-pdf-btn" class="schedule-btn" style="width: 100%; justify-content: center; margin-bottom: 10px;">
+                        <button id="upload-pdf-btn" class="schedule-btn" style="width: 100%; justify-content: center; margin-bottom: 10px; font-size: 13px; padding: 8px;">
                             <i class="fas fa-upload"></i> 
                             选择PDF文件
                         </button>
-                        <div id="pdf-drop-zone" style="padding: 15px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 8px; text-align: center; color: rgba(255,255,255,0.5); font-size: 12px;">
+                        <div id="pdf-drop-zone" style="padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 8px; text-align: center; color: rgba(255,255,255,0.5); font-size: 11px;">
                             或将PDF文件拖放到此处
                         </div>
                         <div id="pdf-loading" style="display: none; text-align: center; margin-top: 10px; color: #8c00ff;">
                             <i class="fas fa-spinner fa-spin"></i> 正在解析PDF...
                         </div>
-                        <div id="pdf-result" style="display: none; margin-top: 10px; padding: 10px; background: rgba(0,255,0,0.1); border-radius: 5px; color: #00ff88; font-size: 13px; text-align: center;">
+                        <div id="pdf-result" style="display: none; margin-top: 10px; padding: 10px; border-radius: 5px; font-size: 12px; text-align: center;">
                         </div>
                     </div>
                     
@@ -718,7 +748,7 @@
                     </div>
                     
                     <p class="modal-hint">请从教务系统复制课程信息，粘贴到下方：</p>
-                    <textarea id="import-textarea" placeholder="例如：&#10;高等数学 周一 08:00-09:40 教学楼A101&#10;大学英语 周三 10:00-11:40 教学楼B202"></textarea>
+                    <textarea id="import-textarea" placeholder="例如：&#10;高等数学 周一 08:00-09:40 教学楼A101&#10;大学英语 周三 10:00-11:40 教学楼B202" style="min-height: 100px;"></textarea>
                     <div class="modal-actions">
                         <button id="parse-schedule-btn" class="schedule-btn">
                             <i class="fas fa-magic"></i> 自动解析
