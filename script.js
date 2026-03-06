@@ -6357,9 +6357,9 @@ class ScheduleModule {
         }
     }
     
-    // 解析单行课程信息
+        // 解析单行课程信息
     parseCourseLine(line) {
-        // 尝试匹配：课程名 + 星期 + 时间/节次 + 地点
+        // 尝试匹配：课程名 + 星期 + 时间/节次 + 地点 + 周数
         const dayMap = { '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7, '星期天': 7 };
         const timeMap = { '第1节': 1, '第2节': 2, '第3节': 3, '第4节': 4, '第5节': 5 };
         
@@ -6368,6 +6368,9 @@ class ScheduleModule {
         let name = '';
         let location = '';
         let teacher = '';
+        let startWeek = 1;
+        let endWeek = 20;
+        let weekType = '';
         
         console.log('[Parse] 解析行:', line);
         
@@ -6418,17 +6421,37 @@ class ScheduleModule {
             }
         }
         
+        // 提取周数信息 (如: 1-16周, 5-15周(单周))
+        const weekMatch = line.match(/(\d+)-(\d+)周/);
+        if (weekMatch) {
+            startWeek = parseInt(weekMatch[1]);
+            endWeek = parseInt(weekMatch[2]);
+            console.log('[Parse] 匹配到周数:', startWeek, '-', endWeek);
+        }
+        
+        // 提取单双周
+        if (line.includes('单周')) {
+            weekType = '单周';
+            console.log('[Parse] 匹配到单周');
+        } else if (line.includes('双周')) {
+            weekType = '双周';
+            console.log('[Parse] 匹配到双周');
+        }
+        
         // 提取课程名和地点
         const parts = line.split(/\s+/);
         if (parts.length > 0) {
-            // 假设课程名是第一个不包含"第X节"、"周X"、时间格式、节次的部分
+            // 假设课程名是第一个不包含"第X节"、"周X"、时间格式、节次、周数的部分
             for (const part of parts) {
                 if (!part.match(/第[\d一二三四五]节/) && 
                     !part.match(/\d+-\d+节/) &&
                     !part.match(/\d+节/) &&
                     !part.match(/周[一二三四五六日]/) &&
                     !part.match(/\d{2}:\d{2}/) &&
-                    !part.match(/教学楼|教室|机房|实验室|校区|学分|考核/)) {
+                    !part.match(/教学楼|教室|机房|实验室|校区|学分|考核/) &&
+                    !part.match(/\d+-\d+周/) &&
+                    !part.includes('单周') &&
+                    !part.includes('双周')) {
                     name = part;
                     break;
                 }
@@ -6439,17 +6462,17 @@ class ScheduleModule {
             
             // 查找地点（包含教学楼、教室等关键词）
             for (const part of parts) {
-                if (part.match(/教学楼|教室|机房|实验室/)) {
+                if (part.match(/教学楼|教室|机房|实验室|\d+-\d+-\d+|体育馆|未排地点/)) {
                     location = part;
                     break;
                 }
             }
         }
         
-        console.log('[Parse] 解析结果:', { name, day, time, location });
+        console.log('[Parse] 解析结果:', { name, day, time, location, startWeek, endWeek, weekType });
         
         if (name && day && time) {
-            return { name, day, time, location, teacher };
+            return { name, day, time, location, teacher, startWeek, endWeek, weekType };
         }
         
         return null;
@@ -7236,7 +7259,7 @@ class PDFScheduleImporter {
         return courses;
     }
     
-    fillCoursesToTextarea(courses) {
+        fillCoursesToTextarea(courses) {
         const textarea = document.getElementById('import-textarea');
         if (!textarea) return;
         
@@ -7266,9 +7289,21 @@ class PDFScheduleImporter {
                 line += ` ${periodName}`;
             }
             
+            // 添加地点
             if (c.location) line += ` ${c.location}`;
-            if (c.credits) line += ` 学分:${c.credits}`;
-            if (c.examType) line += ` 考核:${c.examType}`;
+            
+            // 添加周数信息
+            if (c.startWeek && c.endWeek) {
+                if (c.startWeek === 1 && c.endWeek === 20) {
+                    // 全学期课程，可以不显示周数
+                } else {
+                    line += ` ${c.startWeek}-${c.endWeek}周`;
+                    if (c.weekType) {
+                        line += `(${c.weekType})`;
+                    }
+                }
+            }
+            
             return line.trim();
         }).join('\n');
         
