@@ -6581,55 +6581,12 @@ class AutoImportManager {
         });
     }
     
-    // 开始自动导入流程
+    // 开始自动导入流程（已改为仅PDF导入）
     startAutoImport() {
-        // 保存当前状态
-        localStorage.setItem('auto_import_active', 'true');
-        localStorage.setItem('jwglxt_import_start_time', Date.now().toString());
-        
-        // 方案1：尝试在当前窗口打开（如果用户同意）
-        const useSameWindow = confirm('请选择打开方式：\n\n"确定" - 在当前窗口打开教务系统（推荐，可保持注入）\n"取消" - 在新窗口打开（可能被浏览器拦截）\n\n建议：选择"确定"，导入完成后再返回本网站');
-        
-        if (useSameWindow) {
-            // 保存当前页面URL以便返回
-            localStorage.setItem('return_to_url', window.location.href);
-            // 跳转到教务系统
-            window.location.href = this.jwglxtUrl;
-            return;
-        }
-        
-        // 方案2：在新窗口打开（可能被拦截或跳转）
-        const jwglxtWindow = window.open(
-            this.jwglxtUrl,
-            'jwglxt_import_window',
-            'width=1200,height=800,menubar=yes,toolbar=yes,location=yes,noopener=no'
-        );
-        
-        if (!jwglxtWindow || jwglxtWindow.closed) {
-            // 如果被拦截，提供手动方案
-            const manualOpen = confirm('弹出窗口被拦截。是否手动打开教务系统？\n\n点击"确定"将复制网址，请手动粘贴到地址栏打开。');
-            if (manualOpen) {
-                navigator.clipboard.writeText(this.jwglxtUrl).then(() => {
-                    alert('网址已复制到剪贴板：\n' + this.jwglxtUrl + '\n\n请粘贴到浏览器地址栏打开，登录后点击"导出课程"按钮。');
-                });
-            }
-            return;
-        }
-        
-        // 显示提示
-        this.showImportGuide();
-        
-        // 尝试注入脚本
-        this.tryInjectScript(jwglxtWindow);
-        
-        // 监听窗口关闭
-        const checkWindowClosed = setInterval(() => {
-            if (jwglxtWindow.closed) {
-                clearInterval(checkWindowClosed);
-                console.log('[AutoImport] 教务系统窗口已关闭');
-                this.checkReturnedData();
-            }
-        }, 1000);
+        // PDF导入功能已集成到PDFScheduleImporter
+        // 此方法保留用于兼容性
+        console.log('[AutoImport] 请使用PDF导入功能');
+        alert('请使用"从PDF文件导入"功能，上传教务系统导出的课表PDF文件');
     }
     
     // 显示导入引导提示
@@ -6762,254 +6719,9 @@ document.addEventListener('DOMContentLoaded', () => {
     autoImportManager = new AutoImportManager();
 });
 
-// ==================== 正方教务系统提取脚本（书签用）====================
-// 用户可以将以下代码保存为书签，在教务系统页面点击执行
 
-const JwglxtExtractor = {
-    // 提取课程数据
-    extract: function() {
-        const courses = [];
-        
-        // 正方教务系统选择器（根据实际页面调整）
-        const table = document.querySelector('#kcb table, .kbcontent table, #courseTable');
-        
-        if (!table) {
-            alert('未找到课程表，请确保您在"个人课表查询"页面');
-            return null;
-        }
-        
-        const rows = table.querySelectorAll('tr');
-        const dayMap = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-        
-        rows.forEach((row, rowIndex) => {
-            if (rowIndex === 0) return; // 跳过表头
-            
-            const cells = row.querySelectorAll('td');
-            let timeSlot = '';
-            
-            cells.forEach((cell, colIndex) => {
-                if (colIndex === 0) {
-                    // 获取时间段
-                    timeSlot = cell.textContent.trim();
-                    return;
-                }
-                
-                const content = cell.innerText.trim();
-                if (content && content !== '' && content !== '\xa0') {
-                    const lines = content.split('\n').map(l => l.trim()).filter(l => l);
-                    
-                    if (lines.length > 0) {
-                        // 解析课程信息
-                        const courseName = lines[0].replace(/[★◆]/g, '');
-                        const location = lines.find(l => l.includes('校园') || l.includes('教室') || l.includes('楼')) || '';
-                        const teacher = lines.find(l => {
-                            // 教师姓名通常是2-3个汉字
-                            return l.length >= 2 && l.length <= 3 && /^[\u4e00-\u9fa5]+$/.test(l);
-                        }) || '';
-                        
-                        courses.push({
-                            name: courseName,
-                            day: dayMap[colIndex],
-                            time: timeSlot,
-                            location: location,
-                            teacher: teacher
-                        });
-                    }
-                }
-            });
-        });
-        
-        return courses;
-    },
-    
-    // 导出到原网站
-    exportToWebsite: function() {
-        const courses = this.extract();
-        if (!courses || courses.length === 0) return;
-        
-        // 方法1：通过localStorage（同域名可用）
-        localStorage.setItem('jwglxt_courses_data', JSON.stringify(courses));
-        
-        // 方法2：通过postMessage
-        if (window.opener) {
-            window.opener.postMessage({
-                type: 'COURSE_DATA',
-                data: courses
-            }, '*');
-        }
-        
-        // 方法3：复制到剪贴板
-        const formatted = courses.map(c => 
-            `${c.name} ${c.day} ${c.time} ${c.location} ${c.teacher}`
-        ).join('\n');
-        
-        navigator.clipboard.writeText(formatted).then(() => {
-            alert(`✅ 成功提取 ${courses.length} 门课程！\n\n数据已：\n1. 保存到本地存储\n2. 复制到剪贴板\n\n请切换回原网站粘贴导入。`);
-            
-            // 尝试关闭窗口
-            setTimeout(() => {
-                if (confirm('是否关闭当前窗口并返回原网站？')) {
-                    window.close();
-                }
-            }, 500);
-        });
-    }
-};
 
-// ==================== 正方教务系统导出按钮注入器 ====================
-// 使用更可靠的方式检测和注入
 
-(function initJwglxtButton() {
-    console.log('[JwglxtButton] 初始化检测...');
-    
-    // 检测是否在教务系统页面
-    const isJwglxtPage = location.href.includes('jwglxt') || 
-                         location.href.includes('59.74.174.150') ||
-                         document.title.includes('教务') ||
-                         document.querySelector('#kcb, .kbcontent, [class*="course"]');
-    
-    if (!isJwglxtPage) {
-        console.log('[JwglxtButton] 不是教务系统页面，跳过');
-        return;
-    }
-    
-    console.log('[JwglxtButton] 检测到教务系统页面');
-    
-    // 检查是否是从我们的网站跳转过来的
-    const returnUrl = localStorage.getItem('return_to_url');
-    const isFromOurSite = localStorage.getItem('auto_import_active') === 'true';
-    
-    // 创建按钮的函数
-    function createExportButton() {
-        // 避免重复创建
-        if (document.getElementById('jwglxt-export-btn')) {
-            console.log('[JwglxtButton] 按钮已存在，跳过');
-            return;
-        }
-        
-        console.log('[JwglxtButton] 创建导出按钮...');
-        
-        // 创建容器
-        const container = document.createElement('div');
-        container.id = 'jwglxt-export-container';
-        container.style.cssText = `
-            position: fixed !important;
-            top: 80px !important;
-            right: 20px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 10px !important;
-            z-index: 999999 !important;
-        `;
-        
-        // 导出课程按钮
-        const exportBtn = document.createElement('button');
-        exportBtn.id = 'jwglxt-export-btn';
-        exportBtn.innerHTML = '📤 导出课程到网站';
-        exportBtn.style.cssText = `
-            background: linear-gradient(135deg, #8c00ff 0%, #6a00cc 100%) !important;
-            color: white !important;
-            border: none !important;
-            padding: 12px 20px !important;
-            border-radius: 25px !important;
-            font-size: 14px !important;
-            cursor: pointer !important;
-            box-shadow: 0 4px 15px rgba(140, 0, 255, 0.4) !important;
-            transition: all 0.3s ease !important;
-            font-family: inherit !important;
-            font-weight: bold !important;
-        `;
-        exportBtn.onmouseover = function() { this.style.transform = 'scale(1.05)'; };
-        exportBtn.onmouseout = function() { this.style.transform = 'scale(1)'; };
-        exportBtn.onclick = function() {
-            console.log('[JwglxtButton] 点击导出按钮');
-            if (typeof JwglxtExtractor !== 'undefined') {
-                JwglxtExtractor.exportToWebsite();
-            } else {
-                alert('导出功能未加载，请刷新页面重试');
-            }
-        };
-        container.appendChild(exportBtn);
-        
-        // 如果有返回URL，显示返回按钮
-        if (returnUrl && isFromOurSite) {
-            const returnBtn = document.createElement('button');
-            returnBtn.id = 'jwglxt-return-btn';
-            returnBtn.innerHTML = '↩️ 返回课程表网站';
-            returnBtn.style.cssText = `
-                background: linear-gradient(135deg, #00a8ff 0%, #0066cc 100%) !important;
-                color: white !important;
-                border: none !important;
-                padding: 10px 16px !important;
-                border-radius: 20px !important;
-                font-size: 13px !important;
-                cursor: pointer !important;
-                box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3) !important;
-                transition: all 0.3s ease !important;
-                font-family: inherit !important;
-                font-weight: bold !important;
-            `;
-            returnBtn.onmouseover = function() { this.style.transform = 'scale(1.05)'; };
-            returnBtn.onmouseout = function() { this.style.transform = 'scale(1)'; };
-            returnBtn.onclick = function() {
-                localStorage.removeItem('return_to_url');
-                window.location.href = returnUrl;
-            };
-            container.appendChild(returnBtn);
-        }
-        
-        // 添加到body
-        if (document.body) {
-            document.body.appendChild(container);
-            console.log('[JwglxtButton] 按钮已添加到页面');
-        } else {
-            console.log('[JwglxtButton] body未加载，延迟添加');
-            setTimeout(createExportButton, 500);
-        }
-    }
-    
-    // 尝试立即创建
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', createExportButton);
-    } else {
-        createExportButton();
-    }
-    
-    // 也监听load事件（备用）
-    window.addEventListener('load', createExportButton);
-    
-    // 监听页面变化（正方系统使用ajax加载）
-    let lastUrl = location.href;
-    const observer = new MutationObserver(function() {
-        if (location.href !== lastUrl) {
-            lastUrl = location.href;
-            console.log('[JwglxtButton] 页面URL变化:', lastUrl);
-            setTimeout(createExportButton, 1000);
-        }
-        
-        // 如果按钮不存在，尝试重新创建（页面可能重新渲染）
-        if (!document.getElementById('jwglxt-export-btn')) {
-            setTimeout(createExportButton, 500);
-        }
-    });
-    
-    if (document.body) {
-        observer.observe(document.body, { subtree: true, childList: true });
-    } else {
-        document.addEventListener('DOMContentLoaded', function() {
-            observer.observe(document.body, { subtree: true, childList: true });
-        });
-    }
-    
-    // 定时检查按钮是否存在（每2秒）
-    setInterval(function() {
-        if (!document.getElementById('jwglxt-export-btn') && document.body) {
-            console.log('[JwglxtButton] 按钮丢失，重新创建');
-            createExportButton();
-        }
-    }, 2000);
-    
-})();
 
 // ==================== PDF课程表导入功能 ====================
 
@@ -7135,78 +6847,87 @@ class PDFScheduleImporter {
     parseCoursesFromText(text) {
         const courses = [];
         
-        // 正方教务系统PDF常见格式解析
-        // 格式示例：课程名 教师 周次 星期 节次 地点
+        // 根据用户提供的课表PDF格式解析
+        // 格式示例：
+        // 流体力学B★
+        // (1-2节)1-16周/校区:骊山校区/场地:2-1-402/教师:邵丰富/教学班:流体力学B-0002/教学班组成:新能源科学与工程2401;新能源科学与工程2402/考核方式:考试/选课备注:/课程学时组成:理论:32/周学时:2/总学时:32/学分:2.0
         
-        // 清理文本
-        const cleanText = text.replace(/\s+/g, ' ').trim();
+        // 按行分割处理
+        const lines = text.split('\n');
+        let currentCourse = null;
         
-        // 尝试多种解析模式
-        
-        // 模式1：表格格式（课程名 + 教师 + 时间 + 地点）
-        // 匹配类似：高等数学 张三 周一 1-2节 教学楼A101
-        const pattern1 = /([\u4e00-\u9fa5a-zA-Z0-9]+)[\s]+([\u4e00-\u9fa5]{2,3})[\s]+(周一|周二|周三|周四|周五|周六|周日)[\s]+([0-9]+-[0-9]+节?)[\s]+([\u4e00-\u9fa5]*[0-9a-zA-Z-]*)/g;
-        
-        let match;
-        while ((match = pattern1.exec(cleanText)) !== null) {
-            courses.push({
-                name: match[1],
-                teacher: match[2],
-                day: match[3],
-                time: match[4],
-                location: match[5]
-            });
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // 跳过空行和页眉页脚
+            if (!line || line.includes('课表') || line.includes('学号') || line.includes('学年')) continue;
+            
+            // 识别课程名称（通常包含中文，可能带★或◆标记）
+            // 课程名通常在单元格的第一行，且不是以括号、数字开头
+            if (/^[\u4e00-\u9fa5]+[a-zA-Z0-9★◆]*$/.test(line) && line.length >= 2 && line.length <= 20) {
+                // 保存之前的课程
+                if (currentCourse && currentCourse.name) {
+                    courses.push(currentCourse);
+                }
+                
+                // 开始新课程
+                currentCourse = {
+                    name: line.replace(/[★◆]/g, ''), // 移除标记符号
+                    time: '',
+                    location: '',
+                    credits: '',
+                    examType: ''
+                };
+                continue;
+            }
+            
+            // 如果正在解析课程，提取详细信息
+            if (currentCourse) {
+                // 提取节次 (1-2节)
+                const timeMatch = line.match(/\((\d+-\d+)节\)/);
+                if (timeMatch && !currentCourse.time) {
+                    currentCourse.time = timeMatch[1] + '节';
+                }
+                
+                // 提取场地/教室位置 场地:2-1-402
+                const locationMatch = line.match(/[场地|教室][:：]([^/\s]+)/);
+                if (locationMatch && !currentCourse.location) {
+                    currentCourse.location = locationMatch[1];
+                }
+                
+                // 提取学分 学分:2.0
+                const creditMatch = line.match(/学分[:：](\d+\.?\d*)/);
+                if (creditMatch && !currentCourse.credits) {
+                    currentCourse.credits = creditMatch[1];
+                }
+                
+                // 提取考核方式 考核方式:考试 或 考核方式:考查
+                const examMatch = line.match(/考核方式[:：]([^/\s]+)/);
+                if (examMatch && !currentCourse.examType) {
+                    currentCourse.examType = examMatch[1];
+                }
+            }
         }
         
-        // 模式2：如果模式1没有匹配到，尝试更宽松的匹配
+        // 保存最后一个课程
+        if (currentCourse && currentCourse.name) {
+            courses.push(currentCourse);
+        }
+        
+        // 如果没有匹配到，尝试更宽松的匹配（处理PDF文本合并的情况）
         if (courses.length === 0) {
-            // 按行分割，逐行解析
-            const lines = text.split('\n');
-            const dayMap = {
-                '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7,
-                '星期一': 1, '星期二': 2, '星期三': 3, '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 7
-            };
+            // 尝试匹配整个课程块
+            const coursePattern = /([\u4e00-\u9fa5]+[a-zA-Z0-9]*)[\s\n]*\((\d+-\d+)节\)[^场地]*场地[:：]([^/\s]+)[^学分]*学分[:：](\d+\.?\d*)[^考核]*考核方式[:：]([^/\s]+)/g;
             
-            for (const line of lines) {
-                const cleanLine = line.trim();
-                if (cleanLine.length < 5) continue;
-                
-                // 查找星期
-                let foundDay = null;
-                let foundDayName = null;
-                for (const [dayName, dayNum] of Object.entries(dayMap)) {
-                    if (cleanLine.includes(dayName)) {
-                        foundDay = dayNum;
-                        foundDayName = dayName;
-                        break;
-                    }
-                }
-                
-                if (foundDay) {
-                    // 查找节次（如：1-2节、第3节）
-                    const timeMatch = cleanLine.match(/([0-9]+-[0-9]+节?)|第([0-9]+)节/);
-                    const time = timeMatch ? timeMatch[0] : '';
-                    
-                    // 查找地点（通常包含"楼"、"教室"、数字）
-                    const locationMatch = cleanLine.match(/([\u4e00-\u9fa5]*(?:楼|教室|馆)[\u4e00-\u9fa50-9a-zA-Z-]*)/);
-                    const location = locationMatch ? locationMatch[1] : '';
-                    
-                    // 提取课程名（通常是行首或特定位置）
-                    let name = cleanLine.split(/[\s周一二三四五六日第]/)[0].trim();
-                    if (name.length < 2) continue;
-                    
-                    // 查找教师（2-3个汉字）
-                    const teacherMatch = cleanLine.match(/([\u4e00-\u9fa5]{2,3})(?:教师|老师)?/);
-                    const teacher = teacherMatch ? teacherMatch[1] : '';
-                    
-                    courses.push({
-                        name: name,
-                        teacher: teacher,
-                        day: foundDayName,
-                        time: time,
-                        location: location
-                    });
-                }
+            let match;
+            while ((match = coursePattern.exec(text)) !== null) {
+                courses.push({
+                    name: match[1].replace(/[★◆]/g, ''),
+                    time: match[2] + '节',
+                    location: match[3],
+                    credits: match[4],
+                    examType: match[5]
+                });
             }
         }
         
@@ -7214,13 +6935,14 @@ class PDFScheduleImporter {
         const uniqueCourses = [];
         const seen = new Set();
         for (const course of courses) {
-            const key = `${course.name}-${course.day}-${course.time}`;
+            const key = `${course.name}-${course.time}`;
             if (!seen.has(key)) {
                 seen.add(key);
                 uniqueCourses.push(course);
             }
         }
         
+        console.log('[PDF] 解析到的课程:', uniqueCourses);
         return uniqueCourses;
     }
     
@@ -7229,14 +6951,13 @@ class PDFScheduleImporter {
         if (!textarea) return;
         
         const formatted = courses.map(c => {
-            // 转换星期为数字
-            const dayMap = {
-                '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7,
-                '星期一': 1, '星期二': 2, '星期三': 3, '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 7
-            };
-            const dayNum = dayMap[c.day] || c.day;
-            
-            return `${c.name} 周${dayNum} ${c.time} ${c.location} ${c.teacher}`.trim();
+            // 构建课程信息字符串
+            let line = c.name;
+            if (c.time) line += ` ${c.time}`;
+            if (c.location) line += ` ${c.location}`;
+            if (c.credits) line += ` 学分:${c.credits}`;
+            if (c.examType) line += ` 考核:${c.examType}`;
+            return line.trim();
         }).join('\n');
         
         textarea.value = formatted;
