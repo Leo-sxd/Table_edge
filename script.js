@@ -5804,14 +5804,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 class ScheduleModule {
     constructor() {
-        // 默认时间段设置
+        // 默认时间段设置 - 支持10节课（正方教务系统标准）
         this.defaultTimeSlots = [
-            { id: 1, name: '第1节', start: '08:00', end: '09:40' },
-            { id: 2, name: '第2节', start: '10:00', end: '11:40' },
-            { id: 3, name: '第3节', start: '14:00', end: '15:40' },
-            { id: 4, name: '第4节', start: '16:00', end: '17:40' },
-            { id: 5, name: '第5节', start: '19:00', end: '20:40' }
+            { id: 1, name: '第1节', start: '08:00', end: '08:45' },
+            { id: 2, name: '第2节', start: '08:50', end: '09:35' },
+            { id: 3, name: '第3节', start: '09:55', end: '10:40' },
+            { id: 4, name: '第4节', start: '10:45', end: '11:30' },
+            { id: 5, name: '第5节', start: '14:00', end: '14:45' },
+            { id: 6, name: '第6节', start: '14:50', end: '15:35' },
+            { id: 7, name: '第7节', start: '15:55', end: '16:40' },
+            { id: 8, name: '第8节', start: '16:45', end: '17:30' },
+            { id: 9, name: '第9节', start: '19:00', end: '19:45' },
+            { id: 10, name: '第10节', start: '19:50', end: '20:35' }
         ];
+        
+        // 当前周次设置
+        this.currentWeek = 1;
+        this.totalWeeks = 20;
         
         // 星期映射
         this.dayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -5821,7 +5830,8 @@ class ScheduleModule {
             courses: 'schedule_courses',
             exams: 'schedule_exams',
             timeSlots: 'schedule_time_slots',
-            remindedClasses: 'schedule_reminded_classes'
+            remindedClasses: 'schedule_reminded_classes',
+            currentWeek: 'schedule_current_week'
         };
         
         // 初始化
@@ -5831,6 +5841,7 @@ class ScheduleModule {
     // 初始化
     init() {
         this.loadTimeSlots();
+        this.loadCurrentWeek();
         this.loadCourses();
         this.loadExams();
         this.bindEvents();
@@ -5846,6 +5857,57 @@ class ScheduleModule {
         const saved = localStorage.getItem(this.storageKeys.timeSlots);
         this.timeSlots = saved ? JSON.parse(saved) : [...this.defaultTimeSlots];
     }
+
+    // ==================== 周次管理 ====================
+    
+    // 判断课程是否应该在当前周次显示
+    shouldShowCourse(course) {
+        // 如果没有周次信息，默认显示
+        if (!course.weekType && !course.startWeek && !course.endWeek) {
+            return true;
+        }
+        
+        const currentWeek = this.currentWeek;
+        
+        // 处理周次范围（如：1-16周）
+        if (course.startWeek && course.endWeek) {
+            if (currentWeek < course.startWeek || currentWeek > course.endWeek) {
+                return false;
+            }
+        }
+        
+        // 处理单双周
+        if (course.weekType) {
+            const isOddWeek = currentWeek % 2 === 1;
+            if (course.weekType === '单周' && !isOddWeek) return false;
+            if (course.weekType === '双周' && isOddWeek) return false;
+        }
+        
+        return true;
+    }
+    
+    // 更新周次显示
+    updateWeekDisplay() {
+        const weekDisplay = document.getElementById('current-week-display');
+        if (weekDisplay) {
+            weekDisplay.textContent = `第${this.currentWeek}周`;
+        }
+    }
+    
+    // 设置当前周次
+    setCurrentWeek(week) {
+        this.currentWeek = week;
+        localStorage.setItem(this.storageKeys.currentWeek, week);
+        this.updateWeekDisplay();
+        this.renderSchedule();
+    }
+    
+    // 加载当前周次
+    loadCurrentWeek() {
+        const saved = localStorage.getItem(this.storageKeys.currentWeek);
+        this.currentWeek = saved ? parseInt(saved) : 1;
+    }
+
     
     // 保存时间段设置
     saveTimeSlots() {
@@ -5945,6 +6007,44 @@ class ScheduleModule {
             });
         }
         
+
+        // 周次选择器事件
+        const prevWeekBtn = document.getElementById('prev-week-btn');
+        const nextWeekBtn = document.getElementById('next-week-btn');
+        const weekSelect = document.getElementById('week-select');
+        
+        if (prevWeekBtn) {
+            prevWeekBtn.addEventListener('click', () => {
+                if (this.currentWeek > 1) {
+                    this.setCurrentWeek(this.currentWeek - 1);
+                }
+            });
+        }
+        
+        if (nextWeekBtn) {
+            nextWeekBtn.addEventListener('click', () => {
+                if (this.currentWeek < this.totalWeeks) {
+                    this.setCurrentWeek(this.currentWeek + 1);
+                }
+            });
+        }
+        
+        if (weekSelect) {
+            // 初始化周次选项
+            for (let i = 1; i <= this.totalWeeks; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `第${i}周`;
+                weekSelect.appendChild(option);
+            }
+            
+            weekSelect.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    this.setCurrentWeek(parseInt(e.target.value));
+                }
+            });
+        }
+
         // 解析导入按钮
         const parseScheduleBtn = document.getElementById('parse-schedule-btn');
         if (parseScheduleBtn) {

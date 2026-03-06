@@ -600,6 +600,23 @@
                 </div>
             </div>
             
+            <!-- 周次选择器 -->
+            <div class="week-selector" style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; padding: 15px; background: rgba(140, 0, 255, 0.1); border-radius: 10px;">
+                <button id="prev-week-btn" class="schedule-btn secondary" style="padding: 8px 15px;">
+                    <i class="fas fa-chevron-left"></i> 上周
+                </button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: rgba(255,255,255,0.7);">当前周次</span>
+                    <span id="current-week-display" style="color: #d6c5ff; font-weight: bold; font-size: 18px; min-width: 60px; text-align: center;">第1周</span>
+                    <select id="week-select" style="background: rgba(140, 0, 255, 0.2); border: 1px solid rgba(140, 0, 255, 0.5); color: #d6c5ff; padding: 8px 15px; border-radius: 5px; font-size: 14px;">
+                        <option value="">选择周次</option>
+                    </select>
+                </div>
+                <button id="next-week-btn" class="schedule-btn secondary" style="padding: 8px 15px;">
+                    下周 <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
             <!-- 操作按钮 -->
             <div class="schedule-actions">
                 <button id="import-schedule-btn" class="schedule-btn">
@@ -631,8 +648,8 @@
                     <div class="schedule-header">周五</div>
                     <div class="schedule-header">周六</div>
                     
-                    <!-- 时间段 -->
-                    <div class="time-slot">08:00-09:40</div>
+                    <!-- 第1-2节（上午） -->
+                    <div class="time-slot">08:00-09:35<br><small>第1-2节</small></div>
                     <div class="course-cell" data-day="1" data-time="1"></div>
                     <div class="course-cell" data-day="2" data-time="1"></div>
                     <div class="course-cell" data-day="3" data-time="1"></div>
@@ -640,7 +657,8 @@
                     <div class="course-cell" data-day="5" data-time="1"></div>
                     <div class="course-cell" data-day="6" data-time="1"></div>
                     
-                    <div class="time-slot">10:00-11:40</div>
+                    <!-- 第3-4节（上午） -->
+                    <div class="time-slot">09:55-11:30<br><small>第3-4节</small></div>
                     <div class="course-cell" data-day="1" data-time="2"></div>
                     <div class="course-cell" data-day="2" data-time="2"></div>
                     <div class="course-cell" data-day="3" data-time="2"></div>
@@ -648,7 +666,8 @@
                     <div class="course-cell" data-day="5" data-time="2"></div>
                     <div class="course-cell" data-day="6" data-time="2"></div>
                     
-                    <div class="time-slot">14:00-15:40</div>
+                    <!-- 第5-6节（下午） -->
+                    <div class="time-slot">14:00-15:35<br><small>第5-6节</small></div>
                     <div class="course-cell" data-day="1" data-time="3"></div>
                     <div class="course-cell" data-day="2" data-time="3"></div>
                     <div class="course-cell" data-day="3" data-time="3"></div>
@@ -656,15 +675,17 @@
                     <div class="course-cell" data-day="5" data-time="3"></div>
                     <div class="course-cell" data-day="6" data-time="3"></div>
                     
-                    <div class="time-slot">16:00-17:40</div>
+                    <!-- 第7-8节（下午） -->
+                    <div class="time-slot">15:55-17:30<br><small>第7-8节</small></div>
                     <div class="course-cell" data-day="1" data-time="4"></div>
                     <div class="course-cell" data-day="2" data-time="4"></div>
                     <div class="course-cell" data-day="3" data-time="4"></div>
                     <div class="course-cell" data-day="4" data-time="4"></div>
-                    <div class="course-cell" data-day="5" data-time="4"></div>
+                    <div class="course-cell" data-day="5" datatime="4"></div>
                     <div class="course-cell" data-day="6" data-time="4"></div>
                     
-                    <div class="time-slot">19:00-20:40</div>
+                    <!-- 第9-10节（晚上） -->
+                    <div class="time-slot">19:00-20:35<br><small>第9-10节</small></div>
                     <div class="course-cell" data-day="1" data-time="5"></div>
                     <div class="course-cell" data-day="2" data-time="5"></div>
                     <div class="course-cell" data-day="3" data-time="5"></div>
