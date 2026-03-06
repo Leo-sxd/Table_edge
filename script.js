@@ -7566,10 +7566,32 @@ class HTMLScheduleImporter {
         const textarea = document.getElementById('import-textarea');
         if (!textarea) return;
         
+        // 星期数字到中文的映射
+        const dayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        
         const formatted = courses.map(c => {
+            // 构建课程信息字符串，必须包含星期和时间
             let line = c.name;
-            if (c.day) line += ` ${c.day}`;
-            if (c.time) line += ` ${c.time}`;
+            
+            // 添加星期（数字转中文）
+            if (c.day) {
+                const dayName = dayNames[c.day] || `周${c.day}`;
+                line += ` ${dayName}`;
+            }
+            
+            // 添加时间段（1-5表示第1-2节到第9-10节）
+            if (c.time) {
+                const periodMap = {
+                    1: '第1-2节',
+                    2: '第3-4节',
+                    3: '第5-6节',
+                    4: '第7-8节',
+                    5: '第9-10节'
+                };
+                const periodName = periodMap[c.time] || `第${c.time}节`;
+                line += ` ${periodName}`;
+            }
+            
             if (c.location) line += ` ${c.location}`;
             return line.trim();
         }).join('\n');
