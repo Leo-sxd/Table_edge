@@ -7010,3 +7010,241 @@ const JwglxtExtractor = {
     }, 2000);
     
 })();
+
+// ==================== PDF课程表导入功能 ====================
+
+class PDFScheduleImporter {
+    constructor() {
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+    }
+    
+    bindEvents() {
+        // 文件选择按钮
+        const uploadBtn = document.getElementById('upload-pdf-btn');
+        const fileInput = document.getElementById('pdf-file-input');
+        const dropZone = document.getElementById('pdf-drop-zone');
+        
+        if (uploadBtn && fileInput) {
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+        
+        // 拖放功能
+        if (dropZone) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#8c00ff';
+                dropZone.style.background = 'rgba(140, 0, 255, 0.1)';
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = 'rgba(255,255,255,0.3)';
+                dropZone.style.background = 'transparent';
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'rgba(255,255,255,0.3)';
+                dropZone.style.background = 'transparent';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'application/pdf') {
+                    this.processPDF(files[0]);
+                } else {
+                    alert('请上传PDF文件');
+                }
+            });
+        }
+    }
+    
+    handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file && file.type === 'application/pdf') {
+            this.processPDF(file);
+        } else {
+            alert('请上传PDF文件');
+        }
+    }
+    
+    async processPDF(file) {
+        const loadingDiv = document.getElementById('pdf-loading');
+        const resultDiv = document.getElementById('pdf-result');
+        
+        if (loadingDiv) loadingDiv.style.display = 'block';
+        if (resultDiv) resultDiv.style.display = 'none';
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            
+            let fullText = '';
+            
+            // 提取所有页面的文本
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+            
+            console.log('[PDF] 提取的文本:', fullText.substring(0, 500));
+            
+            // 解析课程数据
+            const courses = this.parseCoursesFromText(fullText);
+            
+            if (courses.length > 0) {
+                // 填充到文本框
+                this.fillCoursesToTextarea(courses);
+                
+                if (resultDiv) {
+                    resultDiv.innerHTML = `<i class="fas fa-check-circle"></i> 成功提取 ${courses.length} 门课程！`;
+                    resultDiv.style.display = 'block';
+                }
+                
+                // 自动触发解析
+                setTimeout(() => {
+                    const parseBtn = document.getElementById('parse-schedule-btn');
+                    if (parseBtn) parseBtn.click();
+                }, 500);
+            } else {
+                if (resultDiv) {
+                    resultDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 未识别到课程数据，请尝试手动导入`;
+                    resultDiv.style.background = 'rgba(255,193,7,0.1)';
+                    resultDiv.style.color = '#ffc107';
+                    resultDiv.style.display = 'block';
+                }
+            }
+            
+        } catch (error) {
+            console.error('[PDF] 解析失败:', error);
+            if (resultDiv) {
+                resultDiv.innerHTML = `<i class="fas fa-times-circle"></i> PDF解析失败: ${error.message}`;
+                resultDiv.style.background = 'rgba(255,0,0,0.1)';
+                resultDiv.style.color = '#ff6b6b';
+                resultDiv.style.display = 'block';
+            }
+        } finally {
+            if (loadingDiv) loadingDiv.style.display = 'none';
+        }
+    }
+    
+    parseCoursesFromText(text) {
+        const courses = [];
+        
+        // 正方教务系统PDF常见格式解析
+        // 格式示例：课程名 教师 周次 星期 节次 地点
+        
+        // 清理文本
+        const cleanText = text.replace(/\s+/g, ' ').trim();
+        
+        // 尝试多种解析模式
+        
+        // 模式1：表格格式（课程名 + 教师 + 时间 + 地点）
+        // 匹配类似：高等数学 张三 周一 1-2节 教学楼A101
+        const pattern1 = /([\u4e00-\u9fa5a-zA-Z0-9]+)[\s]+([\u4e00-\u9fa5]{2,3})[\s]+(周一|周二|周三|周四|周五|周六|周日)[\s]+([0-9]+-[0-9]+节?)[\s]+([\u4e00-\u9fa5]*[0-9a-zA-Z-]*)/g;
+        
+        let match;
+        while ((match = pattern1.exec(cleanText)) !== null) {
+            courses.push({
+                name: match[1],
+                teacher: match[2],
+                day: match[3],
+                time: match[4],
+                location: match[5]
+            });
+        }
+        
+        // 模式2：如果模式1没有匹配到，尝试更宽松的匹配
+        if (courses.length === 0) {
+            // 按行分割，逐行解析
+            const lines = text.split('\n');
+            const dayMap = {
+                '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7,
+                '星期一': 1, '星期二': 2, '星期三': 3, '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 7
+            };
+            
+            for (const line of lines) {
+                const cleanLine = line.trim();
+                if (cleanLine.length < 5) continue;
+                
+                // 查找星期
+                let foundDay = null;
+                let foundDayName = null;
+                for (const [dayName, dayNum] of Object.entries(dayMap)) {
+                    if (cleanLine.includes(dayName)) {
+                        foundDay = dayNum;
+                        foundDayName = dayName;
+                        break;
+                    }
+                }
+                
+                if (foundDay) {
+                    // 查找节次（如：1-2节、第3节）
+                    const timeMatch = cleanLine.match(/([0-9]+-[0-9]+节?)|第([0-9]+)节/);
+                    const time = timeMatch ? timeMatch[0] : '';
+                    
+                    // 查找地点（通常包含"楼"、"教室"、数字）
+                    const locationMatch = cleanLine.match(/([\u4e00-\u9fa5]*(?:楼|教室|馆)[\u4e00-\u9fa50-9a-zA-Z-]*)/);
+                    const location = locationMatch ? locationMatch[1] : '';
+                    
+                    // 提取课程名（通常是行首或特定位置）
+                    let name = cleanLine.split(/[\s周一二三四五六日第]/)[0].trim();
+                    if (name.length < 2) continue;
+                    
+                    // 查找教师（2-3个汉字）
+                    const teacherMatch = cleanLine.match(/([\u4e00-\u9fa5]{2,3})(?:教师|老师)?/);
+                    const teacher = teacherMatch ? teacherMatch[1] : '';
+                    
+                    courses.push({
+                        name: name,
+                        teacher: teacher,
+                        day: foundDayName,
+                        time: time,
+                        location: location
+                    });
+                }
+            }
+        }
+        
+        // 去重
+        const uniqueCourses = [];
+        const seen = new Set();
+        for (const course of courses) {
+            const key = `${course.name}-${course.day}-${course.time}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueCourses.push(course);
+            }
+        }
+        
+        return uniqueCourses;
+    }
+    
+    fillCoursesToTextarea(courses) {
+        const textarea = document.getElementById('import-textarea');
+        if (!textarea) return;
+        
+        const formatted = courses.map(c => {
+            // 转换星期为数字
+            const dayMap = {
+                '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7,
+                '星期一': 1, '星期二': 2, '星期三': 3, '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 7
+            };
+            const dayNum = dayMap[c.day] || c.day;
+            
+            return `${c.name} 周${dayNum} ${c.time} ${c.location} ${c.teacher}`.trim();
+        }).join('\n');
+        
+        textarea.value = formatted;
+    }
+}
+
+// 初始化PDF导入器
+let pdfImporter;
+document.addEventListener('DOMContentLoaded', () => {
+    pdfImporter = new PDFScheduleImporter();
+});
