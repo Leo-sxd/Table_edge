@@ -7608,6 +7608,17 @@ class HTMLScheduleImporter {
                 course.location = locationMatch[1];
             }
             
+            // 提取校区（如：骊山校园、雁塔校园、秦汉校园）
+            const campusMatch = detailText.match(/(骊山校园|雁塔校园|秦汉校园)/);
+            if (campusMatch) {
+                // 如果已经有教室代码，合并显示
+                if (course.location) {
+                    course.location = campusMatch[1] + ' ' + course.location;
+                } else {
+                    course.location = campusMatch[1];
+                }
+            }
+            
             console.log(`[HTML] 解析课程: ${course.name} | 星期${dayOfWeek} | 时间段${timeSlot} | 地点${course.location}`);
             courses.push(course);
         }
