@@ -7361,14 +7361,14 @@ class HTMLScheduleImporter {
                     const text = cell.textContent.trim();
                     console.log(`[HTML] 表头单元格 ${index}: "${text}"`);
                     
-                    // 支持多种星期格式
-                    if (text.includes('星期一') || text.includes('周一')) dayMap[index] = '周一';
-                    else if (text.includes('星期二') || text.includes('周二')) dayMap[index] = '周二';
-                    else if (text.includes('星期三') || text.includes('周三')) dayMap[index] = '周三';
-                    else if (text.includes('星期四') || text.includes('周四')) dayMap[index] = '周四';
-                    else if (text.includes('星期五') || text.includes('周五')) dayMap[index] = '周五';
-                    else if (text.includes('星期六') || text.includes('周六')) dayMap[index] = '周六';
-                    else if (text.includes('星期日') || text.includes('周日') || text.includes('星期天')) dayMap[index] = '周日';
+                    // 支持多种星期格式，使用数字1-7表示
+                    if (text.includes('星期一') || text.includes('周一')) dayMap[index] = 1;  // 周一
+                    else if (text.includes('星期二') || text.includes('周二')) dayMap[index] = 2;  // 周二
+                    else if (text.includes('星期三') || text.includes('周三')) dayMap[index] = 3;  // 周三
+                    else if (text.includes('星期四') || text.includes('周四')) dayMap[index] = 4;  // 周四
+                    else if (text.includes('星期五') || text.includes('周五')) dayMap[index] = 5;  // 周五
+                    else if (text.includes('星期六') || text.includes('周六')) dayMap[index] = 6;  // 周六
+                    else if (text.includes('星期日') || text.includes('周日') || text.includes('星期天')) dayMap[index] = 7;  // 周日
                 });
                 break;
             }
@@ -7383,7 +7383,8 @@ class HTMLScheduleImporter {
             // 第0列=时间段标签（上午/下午/晚上）
             // 第1列=节次（1、2、3...）
             // 第2列=周一，第3列=周二，第4列=周三，第5列=周四，第6列=周五，第7列=周六，第8列=周日
-            dayMap = {2: '周一', 3: '周二', 4: '周三', 5: '周四', 6: '周五', 7: '周六', 8: '周日'};
+            // 使用数字1-7表示星期（与data-day属性一致）
+            dayMap = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7};
         }
         
         // 跟踪跨行的课程（处理rowspan）
@@ -7439,20 +7440,20 @@ class HTMLScheduleImporter {
                 // 获取单元格内容
                 const content = cell.innerText.trim();
                 if (!content || content === '' || content === '\xa0' || content === '&nbsp;' || content === '上午' || content === '下午' || content === '晚上') {
-                    cellIndex++;
+                    
                     continue;
                 }
                 
                 console.log(`[HTML] 解析单元格 [${day} 时间段${timeSlot}]:`, content.substring(0, 100));
                 
                 // 解析课程信息
-                const courseInfo = this.parseCellContent(content, day, timeSlot);
+                const courseInfo = this.parseCellContent(content, day, timeSlot);  // day是数字1-7
                 if (courseInfo) {
                     courses.push(courseInfo);
                     console.log('[HTML] 成功添加课程:', courseInfo.name, '| 星期:', day, '| 时间段:', timeSlot);
                 }
                 
-                cellIndex++;
+                
             }
         }
         
@@ -7460,7 +7461,7 @@ class HTMLScheduleImporter {
         return courses;
     }
     
-    parseCellContent(content, day, timeSlot) {
+    parseCellContent(content, dayOfWeek, timeSlot) {
         // 解析单元格内容
         const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length === 0) return null;
