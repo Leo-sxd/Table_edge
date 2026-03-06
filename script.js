@@ -1163,163 +1163,9 @@ class AIWebsiteController {
                     window.open('https://leo-sxd.github.io/favorite_file.github.io/', '_blank');
                     console.log('[AIControl] 已打开收藏网站（备用方案）');
                 }
-
-        // 查看课程表 - 多种匹配方式
-        const schedulePatterns = [
-            /查看课程/,
-            /打开课程/,
-            /显示课程/,
-            /课程表/,
-            /我的课程/,
-            /今天.*课/,
-            /明天.*课/,
-            /有什么课/,
-            /上什么课/,
-            /课表/
-        ];
-        
-        const isScheduleCommand = schedulePatterns.some(pattern => pattern.test(cmd));
-        
-        if (isScheduleCommand) {
-            // 判断是今天还是明天
-            const isTomorrow = cmd.includes('明天') || cmd.includes('明日');
-            const dayOffset = isTomorrow ? 1 : 0;
-            
-            return `(() => {
-                console.log('[AIControl] 识别到查看课程表指令，正在执行...');
-                
-                // 滚动到课程表板块
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    console.log('[AIControl] 已滚动到课程表板块');
-                    
-                    // 切换到本周标签
-                    const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
-                    if (currentTab) {
-                        currentTab.click();
-                        console.log('[AIControl] 已切换到本周课程');
-                    }
-                    
-                    // 如果有scheduleModule，高亮显示指定日期的课程
-                    if (window.scheduleModule) {
-                        const today = new Date();
-                        today.setDate(today.getDate() + ${dayOffset});
-                        const dayOfWeek = today.getDay();
-                        if (dayOfWeek >= 1 && dayOfWeek <= 6) {
-                            // 高亮当天的课程单元格
-                            setTimeout(() => {
-                                document.querySelectorAll('.course-cell').forEach(cell => {
-                                    if (parseInt(cell.dataset.day) === dayOfWeek) {
-                                        cell.style.boxShadow = '0 0 15px rgba(140, 0, 255, 0.5)';
-                                        setTimeout(() => {
-                                            cell.style.boxShadow = '';
-                                        }, 3000);
-                                    }
-                                });
-                            }, 500);
-                        }
-                    }
-                }
             })();`;
         }
         
-        // 添加课程 - 简化指令："添加课程" 或 "新增课程"
-        const addCoursePatterns = [
-            /添加课程/,
-            /新增课程/,
-            /加课程/,
-            /添加.*课/,
-            /新增.*课/
-        ];
-        
-        const isAddCourseCommand = addCoursePatterns.some(pattern => pattern.test(cmd));
-        
-        if (isAddCourseCommand) {
-            return `(() => {
-                console.log('[AIControl] 识别到添加课程指令，正在执行...');
-                
-                // 滚动到课程表板块
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // 打开添加课程弹窗
-                    setTimeout(() => {
-                        const addBtn = document.getElementById('add-course-btn');
-                        if (addBtn) {
-                            addBtn.click();
-                            console.log('[AIControl] 已打开添加课程弹窗');
-                        }
-                    }, 500);
-                }
-            })();`;
-        }
-        
-        // 查看考试 - 简化指令："查看考试" 或 "考试安排"
-        const examPatterns = [
-            /查看考试/,
-            /考试安排/,
-            /我的考试/,
-            /有什么考试/,
-            /考试表/,
-            /考试列表/
-        ];
-        
-        const isExamCommand = examPatterns.some(pattern => pattern.test(cmd));
-        
-        if (isExamCommand) {
-            return `(() => {
-                console.log('[AIControl] 识别到查看考试指令，正在执行...');
-                
-                // 滚动到课程表板块
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // 切换到考试标签
-                    setTimeout(() => {
-                        const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
-                        if (examTab) {
-                            examTab.click();
-                            console.log('[AIControl] 已切换到考试列表');
-                        }
-                    }, 500);
-                }
-            })();`;
-        }
-        
-        // 导入课程 - 简化指令："导入课程"
-        const importPatterns = [
-            /导入课程/,
-            /导入课表/,
-            /批量导入/,
-            /复制导入/
-        ];
-        
-        const isImportCommand = importPatterns.some(pattern => pattern.test(cmd));
-        
-        if (isImportCommand) {
-            return `(() => {
-                console.log('[AIControl] 识别到导入课程指令，正在执行...');
-                
-                // 滚动到课程表板块
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // 打开导入弹窗
-                    setTimeout(() => {
-                        const importBtn = document.getElementById('import-schedule-btn');
-                        if (importBtn) {
-                            importBtn.click();
-                            console.log('[AIControl] 已打开导入课程弹窗');
-                        }
-                    }, 500);
-                }
-            })();`;
-        }
-
         return null;
     }
     
@@ -5819,3 +5665,132 @@ class DoubaoVoiceSettings {
 document.addEventListener('DOMContentLoaded', () => {
     window.doubaoVoiceSettings = new DoubaoVoiceSettings();
 });
+
+// ==================== 课程表AI语音控制指令 ====================
+// 这段代码在AI控制面板的generateCommandCode方法中被调用
+// 通过修改AIControlManager.prototype来添加课程表相关指令
+
+(function() {
+    // 等待AIControlManager加载完成
+    const checkAndAddScheduleCommands = () => {
+        if (typeof AIControlManager === 'undefined') {
+            setTimeout(checkAndAddScheduleCommands, 100);
+            return;
+        }
+        
+        // 保存原始的generateCommandCode方法
+        const originalGenerateCommandCode = AIControlManager.prototype.generateCommandCode;
+        
+        // 重写generateCommandCode方法，添加课程表指令
+        AIControlManager.prototype.generateCommandCode = function(cmd) {
+            // 先调用原始方法检查其他指令
+            const originalResult = originalGenerateCommandCode.call(this, cmd);
+            if (originalResult) {
+                return originalResult;
+            }
+            
+            // 课程表相关指令
+            
+            // 1. 查看课程表
+            const schedulePatterns = [
+                /查看课程/, /打开课程/, /显示课程/, /课程表/,
+                /我的课程/, /今天.*课/, /明天.*课/, /有什么课/,
+                /上什么课/, /课表/
+            ];
+            
+            const isScheduleCommand = schedulePatterns.some(pattern => pattern.test(cmd));
+            
+            if (isScheduleCommand) {
+                const isTomorrow = cmd.includes('明天') || cmd.includes('明日');
+                const dayOffset = isTomorrow ? 1 : 0;
+                
+                return `(() => {
+                    console.log('[AIControl] 识别到查看课程表指令');
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                        if (currentTab) currentTab.click();
+                        
+                        if (window.scheduleModule) {
+                            const today = new Date();
+                            today.setDate(today.getDate() + ${dayOffset});
+                            const dayOfWeek = today.getDay();
+                            if (dayOfWeek >= 1 && dayOfWeek <= 6) {
+                                setTimeout(() => {
+                                    document.querySelectorAll('.course-cell').forEach(cell => {
+                                        if (parseInt(cell.dataset.day) === dayOfWeek) {
+                                            cell.style.boxShadow = '0 0 15px rgba(140, 0, 255, 0.5)';
+                                            setTimeout(() => { cell.style.boxShadow = ''; }, 3000);
+                                        }
+                                    });
+                                }, 500);
+                            }
+                        }
+                    }
+                })();`;
+            }
+            
+            // 2. 添加课程
+            const addCoursePatterns = [/添加课程/, /新增课程/, /加课程/, /添加.*课/, /新增.*课/];
+            const isAddCourseCommand = addCoursePatterns.some(pattern => pattern.test(cmd));
+            
+            if (isAddCourseCommand) {
+                return `(() => {
+                    console.log('[AIControl] 识别到添加课程指令');
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            const addBtn = document.getElementById('add-course-btn');
+                            if (addBtn) addBtn.click();
+                        }, 500);
+                    }
+                })();`;
+            }
+            
+            // 3. 查看考试
+            const examPatterns = [/查看考试/, /考试安排/, /我的考试/, /有什么考试/, /考试表/, /考试列表/];
+            const isExamCommand = examPatterns.some(pattern => pattern.test(cmd));
+            
+            if (isExamCommand) {
+                return `(() => {
+                    console.log('[AIControl] 识别到查看考试指令');
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
+                            if (examTab) examTab.click();
+                        }, 500);
+                    }
+                })();`;
+            }
+            
+            // 4. 导入课程
+            const importPatterns = [/导入课程/, /导入课表/, /批量导入/, /复制导入/];
+            const isImportCommand = importPatterns.some(pattern => pattern.test(cmd));
+            
+            if (isImportCommand) {
+                return `(() => {
+                    console.log('[AIControl] 识别到导入课程指令');
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            const importBtn = document.getElementById('import-schedule-btn');
+                            if (importBtn) importBtn.click();
+                        }, 500);
+                    }
+                })();`;
+            }
+            
+            return null;
+        };
+        
+        console.log('[Schedule] 课程表AI语音指令已加载');
+    };
+    
+    // 启动检查
+    checkAndAddScheduleCommands();
+})();
