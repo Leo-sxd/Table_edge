@@ -7332,12 +7332,11 @@ class HTMLScheduleImporter {
         }
     }
     
-        // 从HTML文档提取课程
+            // 从HTML文档提取课程
     extractCoursesFromHTML(doc) {
         const courses = [];
         console.log('[HTML] 开始解析HTML...');
         
-        // 查找正方教务系统课表表格
         const table = doc.querySelector('#kbgrid_table_0');
         if (!table) {
             console.error('[HTML] 未找到kbgrid_table_0表格');
@@ -7348,72 +7347,85 @@ class HTMLScheduleImporter {
         const rows = table.querySelectorAll('tr');
         console.log('[HTML] 表格总行数:', rows.length);
         
-        // 正方教务系统课表结构：
-        // 第0行：标题行（学期、姓名、学号）
-        // 第1行：表头（时间段 | 节次 | 星期一 | 星期二 | ... | 星期日）
-        // 第2行起：数据行（上午 rowspan=4 | 1 | 课程 | ...）
-        
-        // 列映射：索引 -> 星期几（1-7）
         const columnToDay = {
-            2: 1,  // 第2列 = 周一
-            3: 2,  // 第3列 = 周二
-            4: 3,  // 第4列 = 周三
-            5: 4,  // 第5列 = 周四
-            6: 5,  // 第6列 = 周五
-            7: 6,  // 第7列 = 周六
-            8: 7   // 第8列 = 周日
+            2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7
         };
         
-        // 遍历数据行（从第2行开始）
+        // 跟踪rowspan状态
+        const rowspanTracker = {};
+        
         for (let rowIndex = 2; rowIndex < rows.length; rowIndex++) {
             const row = rows[rowIndex];
-            const cells = row.querySelectorAll('td, th');
+            let cells = Array.from(row.querySelectorAll('td, th'));
             
-            if (cells.length < 3) {
-                console.log(`[HTML] 第${rowIndex}行单元格数量不足，跳过`);
-                continue;
-            }
+            if (cells.length < 3) continue;
             
-            // 查找节次（在第1列，索引1）
-            let timeSlot = null;
-            const periodCell = cells[1];  // 节次单元格
-            if (periodCell) {
-                const periodText = (periodCell.textContent || '').trim();
-                const periodMatch = periodText.match(/^(\d+)$/);
-                if (periodMatch) {
-                    const period = parseInt(periodMatch[1]);
-                    // 节次映射到时间段：1-2节->1, 3-4节->2, 5-6节->3, 7-8节->4, 9-10节->5
-                    timeSlot = Math.ceil(period / 2);
-                    console.log(`[HTML] 第${rowIndex}行: 节次${periodText} -> 时间段${timeSlot}`);
+            // 处理rowspan延续
+            const processedCells = [];
+            let cellIdx = 0;
+            for (let colIdx = 0; colIdx < 9; colIdx++) {
+                if (rowspanTracker[colIdx] && rowspanTracker[colIdx].remaining > 0) {
+                    processedCells.push({
+                        isContinuation: true,
+                        courseData: rowspanTracker[colIdx].courseData
+                    });
+                    rowspanTracker[colIdx].remaining--;
+                    if (rowspanTracker[colIdx].remaining <= 0) {
+                        delete rowspanTracker[colIdx];
+                    }
+                } else if (cellIdx < cells.length) {
+                    processedCells.push({
+                        element: cells[cellIdx],
+                        isContinuation: false
+                    });
+                    cellIdx++;
                 }
             }
             
-            if (!timeSlot) {
-                console.log(`[HTML] 第${rowIndex}行未找到节次，跳过`);
-                continue;
+            // 查找节次
+            let timeSlot = null;
+            if (processedCells[1] && processedCells[1].element) {
+                const periodText = (processedCells[1].element.textContent || '').trim();
+                const periodMatch = periodText.match(/^(\d+)$/);
+                if (periodMatch) {
+                    const period = parseInt(periodMatch[1]);
+                    timeSlot = Math.ceil(period / 2);
+                }
             }
             
-            // 遍历每一天的列（从第2列到第8列）
-            for (let colIndex = 2; colIndex <= 8 && colIndex < cells.length; colIndex++) {
+            if (!timeSlot) continue;
+            
+            // 遍历每一天的列
+            for (let colIndex = 2; colIndex <= 8 && colIndex < processedCells.length; colIndex++) {
                 const dayOfWeek = columnToDay[colIndex];
                 if (!dayOfWeek) continue;
                 
-                const cell = cells[colIndex];
-                const content = (cell.innerText || cell.textContent || '').trim();
+                const cellData = processedCells[colIndex];
+                if (!cellData || cellData.isContinuation) continue;
                 
-                // 跳过空单元格
-                if (!content || content === '' || content === '\xa0' || content === '&nbsp;' ||
+                const cell = cellData.element;
+                if (!cell) continue;
+                
+                const content = (cell.innerText || cell.textContent || '').trim();
+                if (!content || content === '' || content === '\xa0' || 
                     content === '上午' || content === '下午' || content === '晚上') {
                     continue;
                 }
                 
-                console.log(`[HTML] 解析 [行${rowIndex} 列${colIndex} 星期${dayOfWeek} 时间段${timeSlot}]:`, content.substring(0, 50));
+                const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
                 
                 // 解析课程
                 const course = this.parseCourseFromCell(content, dayOfWeek, timeSlot);
                 if (course) {
                     courses.push(course);
-                    console.log(`[HTML] ✓ 成功添加课程: ${course.name}`);
+                    console.log(`[HTML] 添加课程: ${course.name} 星期${dayOfWeek} 时间段${timeSlot}`);
+                    
+                    if (rowspan > 1) {
+                        rowspanTracker[colIndex] = {
+                            remaining: rowspan - 1,
+                            courseData: course
+                        };
+                    }
                 }
             }
         }
