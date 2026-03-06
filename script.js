@@ -6231,6 +6231,8 @@ class ScheduleModule {
         let location = '';
         let teacher = '';
         
+        console.log('[Parse] 解析行:', line);
+        
         // 查找星期
         for (const [dayName, dayNum] of Object.entries(dayMap)) {
             if (line.includes(dayName)) {
@@ -6239,11 +6241,31 @@ class ScheduleModule {
             }
         }
         
-        // 查找节次
+        // 查找节次 - 支持多种格式
+        // 格式1: 第1节, 第2节...
         for (const [timeName, timeNum] of Object.entries(timeMap)) {
             if (line.includes(timeName)) {
                 time = timeNum;
                 break;
+            }
+        }
+        
+        // 格式2: 1-2节, 3-4节... (HTML导入格式)
+        if (!time) {
+            const multiTimeMatch = line.match(/(\d+)-(\d+)节/);
+            if (multiTimeMatch) {
+                // 使用第一节作为时间段ID
+                time = parseInt(multiTimeMatch[1]);
+                console.log('[Parse] 匹配到多节格式:', multiTimeMatch[0], '-> 时间段:', time);
+            }
+        }
+        
+        // 格式3: 单个数字节次
+        if (!time) {
+            const singleTimeMatch = line.match(/(\d+)节/);
+            if (singleTimeMatch) {
+                time = parseInt(singleTimeMatch[1]);
+                console.log('[Parse] 匹配到单节格式:', singleTimeMatch[0], '-> 时间段:', time);
             }
         }
         
@@ -6258,15 +6280,18 @@ class ScheduleModule {
             }
         }
         
-        // 提取课程名（简单处理：取第一个空格前的内容，或整行如果找不到其他信息）
+        // 提取课程名
         const parts = line.split(/\s+/);
         if (parts.length > 0) {
-            // 假设课程名是第一个不包含"第X节"、"周X"、时间格式的部分
+            // 假设课程名是第一个不包含"第X节"、"周X"、时间格式、节次的部分
             for (const part of parts) {
                 if (!part.match(/第[\d一二三四五]节/) && 
+                    !part.match(/\d+-\d+节/) &&
+                    !part.match(/\d+节/) &&
                     !part.match(/周[一二三四五六日]/) &&
                     !part.match(/\d{2}:\d{2}/) &&
-                    !part.match(/教学楼|教室|机房|实验室/)) {
+                    !part.match(/教学楼|教室|机房|实验室|校区|学分|考核/) &&
+                    !part.match(/^学分:/)) {
                     name = part;
                     break;
                 }
@@ -6274,6 +6299,9 @@ class ScheduleModule {
             
             // 如果没找到，用第一部分
             if (!name) name = parts[0];
+        }
+        
+        console.log('[Parse] 解析结果:', { name, day, time, location });
             
             // 查找地点（包含教学楼、教室等关键词）
             for (const part of parts) {
@@ -7444,11 +7472,10 @@ class HTMLScheduleImporter {
             if (c.day) line += ` ${c.day}`;
             if (c.time) line += ` ${c.time}`;
             if (c.location) line += ` ${c.location}`;
-            if (c.credits) line += ` 学分:${c.credits}`;
-            if (c.examType) line += ` 考核:${c.examType}`;
             return line.trim();
         }).join('\n');
         
+        console.log('[HTML] 填充到文本框的内容:', formatted);
         textarea.value = formatted;
     }
 }
