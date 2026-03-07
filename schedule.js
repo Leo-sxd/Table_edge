@@ -18,14 +18,13 @@ class ScheduleManager {
         this.maxWeek = 20;
         
         // 时间段配置
-        // 默认单节课时间配置（默认8节课，可从localStorage加载用户自定义配置）
-        this.periods = this.loadPeriodsConfig() || this.generateDefaultPeriods(8);
-        
-        // 每天最大节数（可配置，默认8节，范围1-24）
-        this.maxPeriodsPerDay = this.loadMaxPeriodsConfig() || 8;
-        
-        // 每节课的高度（像素）
-        this.periodHeight = 60;
+        this.timeSlots = [
+            { id: 1, name: '第1-2节', time: '08:00-09:35' },
+            { id: 2, name: '第3-4节', time: '09:55-11:30' },
+            { id: 3, name: '第5-6节', time: '14:00-15:35' },
+            { id: 4, name: '第7-8节', time: '15:55-17:30' },
+            { id: 5, name: '第9-10节', time: '19:00-20:35' }
+        ];
         
         // 星期配置
         this.days = [
@@ -46,110 +45,6 @@ class ScheduleManager {
         this.bindEvents();
         this.render();
         console.log('[ScheduleManager] 初始化完成');
-    }
-    
-    // 加载节次时间配置
-    loadPeriodsConfig() {
-        const config = localStorage.getItem('schedule_periods_config');
-        return config ? JSON.parse(config) : null;
-    }
-    
-    // 保存节次时间配置
-    savePeriodsConfig(periods) {
-        this.periods = periods;
-        localStorage.setItem('schedule_periods_config', JSON.stringify(periods));
-    }
-    
-    // 加载每天最大节数配置
-    loadMaxPeriodsConfig() {
-        const config = localStorage.getItem('schedule_max_periods_config');
-        return config ? parseInt(config) : null;
-    }
-    
-    // 保存每天最大节数配置
-    saveMaxPeriodsConfig(maxPeriods) {
-        this.maxPeriodsPerDay = maxPeriods;
-        localStorage.setItem('schedule_max_periods_config', maxPeriods.toString());
-    }
-    
-    // 生成默认时间段配置
-    generateDefaultPeriods(count) {
-        const periods = [];
-        // 默认时间安排：上午4节，下午4节，晚上可选
-        const defaultTimes = [
-            { start: '08:00', end: '08:50' },   // 第1节
-            { start: '08:55', end: '09:45' },   // 第2节
-            { start: '10:00', end: '10:50' },   // 第3节
-            { start: '10:55', end: '11:45' },   // 第4节
-            { start: '14:00', end: '14:50' },   // 第5节
-            { start: '14:55', end: '15:45' },   // 第6节
-            { start: '16:00', end: '16:50' },   // 第7节
-            { start: '16:55', end: '17:45' },   // 第8节
-            { start: '19:00', end: '19:50' },   // 第9节
-            { start: '19:55', end: '20:45' },   // 第10节
-            { start: '20:50', end: '21:40' },   // 第11节
-            { start: '21:45', end: '22:35' },   // 第12节
-        ];
-        
-        for (let i = 1; i <= count; i++) {
-            const time = defaultTimes[i - 1] || { start: '09:00', end: '09:50' };
-            periods.push({
-                id: i,
-                name: `第${i}节`,
-                startTime: time.start,
-                endTime: time.end
-            });
-        }
-        return periods;
-    }
-    
-    // 验证时间格式 HH:MM
-    validateTimeFormat(timeStr) {
-        const regex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
-        return regex.test(timeStr);
-    }
-    
-    // 将时间字符串转换为分钟数
-    timeToMinutes(timeStr) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
-    }
-    
-    // 验证时间段是否有冲突
-    validateTimeConflicts(periods) {
-        const errors = [];
-        
-        for (let i = 0; i < periods.length; i++) {
-            const current = periods[i];
-            
-            // 验证时间格式
-            if (!this.validateTimeFormat(current.startTime)) {
-                errors.push(`第${current.id}节开始时间格式错误`);
-            }
-            if (!this.validateTimeFormat(current.endTime)) {
-                errors.push(`第${current.id}节结束时间格式错误`);
-            }
-            
-            // 验证结束时间是否晚于开始时间
-            const startMins = this.timeToMinutes(current.startTime);
-            const endMins = this.timeToMinutes(current.endTime);
-            
-            if (startMins >= endMins) {
-                errors.push(`第${current.id}节结束时间必须晚于开始时间`);
-            }
-            
-            // 验证与相邻课程的时间冲突
-            if (i > 0) {
-                const prev = periods[i - 1];
-                const prevEndMins = this.timeToMinutes(prev.endTime);
-                
-                if (startMins < prevEndMins) {
-                    errors.push(`第${current.id}节与第${prev.id}节时间重叠`);
-                }
-            }
-        }
-        
-        return errors;
     }
     
     // 从localStorage加载数据
@@ -266,74 +161,14 @@ class ScheduleManager {
             saveExamBtn.addEventListener('click', () => this.saveExam());
         }
         
-        // 时间设置相关按钮
-        const saveTimeSettingsBtn = document.getElementById('save-time-settings-btn');
-        if (saveTimeSettingsBtn) {
-            saveTimeSettingsBtn.addEventListener('click', () => this.saveTimeSettings());
-        }
-        
-        const previewSettingsBtn = document.getElementById('preview-settings-btn');
-        if (previewSettingsBtn) {
-            previewSettingsBtn.addEventListener('click', () => this.previewSettings());
-        }
-        
-        const resetTimeSettingsBtn = document.getElementById('reset-time-settings-btn');
-        if (resetTimeSettingsBtn) {
-            resetTimeSettingsBtn.addEventListener('click', () => this.resetTimeSettings());
-        }
-        
-        const cancelTimeSettingsBtn = document.getElementById('cancel-time-settings-btn');
-        if (cancelTimeSettingsBtn) {
-            cancelTimeSettingsBtn.addEventListener('click', () => {
-                const modal = document.getElementById('time-settings-modal');
-                if (modal) modal.style.display = 'none';
-            });
-        }
-        
         console.log('[ScheduleManager] 事件绑定完成');
     }
     
     // 渲染课程表
     render() {
         this.renderWeekInfo();
-        this.renderTimeColumn();
         this.renderCourses();
         this.renderExams();
-    }
-    
-    // 渲染时间列
-    renderTimeColumn() {
-        const container = document.getElementById('time-slots-container');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        // 根据maxPeriodsPerDay生成时间段
-        for (let i = 1; i <= this.maxPeriodsPerDay; i++) {
-            const period = this.periods.find(p => p.id === i);
-            const timeSlot = document.createElement('div');
-            timeSlot.className = 'time-slot-item';
-            
-            if (period) {
-                timeSlot.innerHTML = `
-                    <span class="period-num">${i}</span>
-                    <span class="period-time">${period.startTime}-${period.endTime}</span>
-                `;
-            } else {
-                timeSlot.innerHTML = `
-                    <span class="period-num">${i}</span>
-                    <span class="period-time">--:--</span>
-                `;
-            }
-            
-            container.appendChild(timeSlot);
-        }
-        
-        // 设置时间列和天列的高度
-        const totalHeight = this.maxPeriodsPerDay * this.periodHeight;
-        document.querySelectorAll('.time-slots-container, .day-content').forEach(el => {
-            el.style.height = `${totalHeight}px`;
-        });
     }
     
     // 渲染周次信息
@@ -342,34 +177,14 @@ class ScheduleManager {
         if (weekDisplay) {
             weekDisplay.textContent = `第${this.currentWeek}周`;
         }
-        
-        // 填充周次选择下拉菜单
-        const weekSelect = document.getElementById('week-select');
-        if (weekSelect) {
-            // 保存当前选中的值
-            const currentValue = weekSelect.value;
-            
-            // 清空并重新生成选项
-            weekSelect.innerHTML = '<option value="">选择周次</option>';
-            
-            for (let i = 1; i <= this.maxWeek; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = `第${i}周`;
-                if (i === this.currentWeek) {
-                    option.selected = true;
-                }
-                weekSelect.appendChild(option);
-            }
-        }
     }
     
     // 渲染课程
     renderCourses() {
-        // 清空所有day-content中的课程块
-        document.querySelectorAll('.day-content').forEach(content => {
-            const courses = content.querySelectorAll('.course-block');
-            courses.forEach(c => c.remove());
+        // 清空所有课程格子
+        document.querySelectorAll('.course-cell').forEach(cell => {
+            cell.innerHTML = '';
+            cell.classList.remove('has-course');
         });
         
         // 过滤当前周的课程
@@ -381,72 +196,30 @@ class ScheduleManager {
                     (course.weekType === '双周' && this.currentWeek % 2 === 0));
         });
         
-        console.log('[Render] 准备渲染课程:', currentWeekCourses.length);
-        console.log('[Render] 课程数据:', currentWeekCourses.map(c => `${c.name}(第${c.startPeriod}节,持续${c.duration}节)`));
-        
         // 渲染每门课程
         currentWeekCourses.forEach(course => {
-            // 找到对应的星期列
-            const dayColumn = document.querySelector(`.day-column[data-day="${course.day}"]`);
-            if (!dayColumn) {
-                console.warn(`[Render] 找不到星期${course.day}的列，课程: ${course.name}`);
-                return;
+            const cell = document.querySelector(
+                `.course-cell[data-day="${course.day}"][data-time="${course.time}"]`
+            );
+            if (cell) {
+                const courseEl = document.createElement('div');
+                courseEl.className = 'course-item';
+                courseEl.innerHTML = `
+                    <div class="course-name">${course.name}</div>
+                    ${course.location ? `<div class="course-location">${course.location}</div>` : ''}
+                    ${course.startWeek !== 1 || course.endWeek !== 20 ? 
+                        `<div class="course-weeks">${course.startWeek}-${course.endWeek}周</div>` : ''}
+                `;
+                courseEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.editCourse(course);
+                });
+                cell.appendChild(courseEl);
+                cell.classList.add('has-course');
             }
-            
-            // 找到day-content容器
-            const dayContent = dayColumn.querySelector('.day-content');
-            if (!dayContent) {
-                console.warn(`[Render] 找不到day-content，课程: ${course.name}`);
-                return;
-            }
-            
-            // 创建课程块
-            const courseEl = document.createElement('div');
-            courseEl.className = 'course-block';
-            
-            // 计算位置和高度
-            const startPeriod = parseInt(course.startPeriod) || 1;
-            const duration = parseInt(course.duration) || 2;
-            const endPeriod = startPeriod + duration - 1;
-            
-            // 根据开始节次计算top位置
-            const top = (startPeriod - 1) * this.periodHeight;
-            // 根据持续节数计算高度
-            const height = duration * this.periodHeight - 5; // 减去间距
-            
-            courseEl.style.top = `${top}px`;
-            courseEl.style.height = `${height}px`;
-            
-            // 获取时间显示
-            const startTime = this.getPeriodTime(startPeriod);
-            const endTime = this.getPeriodTime(endPeriod, true);
-            const timeText = startTime && endTime ? `${startTime}-${endTime}` : `${startPeriod}-${endPeriod}节`;
-            
-            courseEl.innerHTML = `
-                <div class="course-name">${course.name}</div>
-                <div class="course-time">${timeText}</div>
-                ${course.location ? `<div class="course-location">${course.location}</div>` : ''}
-                ${course.startWeek !== 1 || course.endWeek !== 20 ? 
-                    `<div class="course-weeks">${course.startWeek}-${course.endWeek}周</div>` : ''}
-            `;
-            
-            courseEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.editCourse(course);
-            });
-            
-            dayContent.appendChild(courseEl);
-            console.log(`[Render] 已渲染: ${course.name} 星期${course.day} 第${startPeriod}节 高${height}px`);
         });
         
         console.log('[ScheduleManager] 课程渲染完成:', currentWeekCourses.length);
-    }
-    
-    // 获取节次对应的时间
-    getPeriodTime(period, isEnd = false) {
-        const periodConfig = this.periods.find(p => p.id === period);
-        if (!periodConfig) return null;
-        return isEnd ? periodConfig.endTime : periodConfig.startTime;
     }
     
     // 渲染考试
@@ -520,7 +293,7 @@ class ScheduleManager {
     
     // 打开设置弹窗
     openSettingsModal() {
-        this.openTimeSettingsModal();
+        alert('课程设置功能开发中...');
     }
     
     // 关闭所有弹窗
@@ -944,17 +717,6 @@ class ZhengfangScheduleParser {
         if (!/[\u4e00-\u9fa5]/.test(name)) return null;
         if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
         
-        // 提取课程节次信息（关键：提取startPeriod和duration）
-        let startPeriod = 1;
-        let duration = 2;
-        const periodMatch = clean.match(/(\d+)-(\d+)节/);
-        if (periodMatch) {
-            startPeriod = parseInt(periodMatch[1]);
-            const endPeriod = parseInt(periodMatch[2]);
-            duration = endPeriod - startPeriod + 1;
-            console.log(`[Parser] ${name}: 第${startPeriod}-${endPeriod}节, 持续${duration}节`);
-        }
-        
         let startWeek = 1, endWeek = 20, weekType = '';
         const weekMatch = clean.match(/(\d+)-(\d+)周(?:\((单|双)\))?/);
         if (weekMatch) {
@@ -975,8 +737,7 @@ class ZhengfangScheduleParser {
             }
         }
         
-        // 关键：返回startPeriod和duration，不再使用timeSlot
-        return { name, day, startPeriod, duration, location, startWeek, endWeek, weekType };
+        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType };
     }
 }
 
