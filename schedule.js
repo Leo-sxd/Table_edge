@@ -558,13 +558,22 @@ class ScheduleManager {
         // 打开弹窗
         const modal = document.getElementById('add-exam-modal');
         if (modal) {
-            modal.style.display = 'block';
+            // 标记为编辑模式
+            modal.dataset.editIndex = index.toString();
+            
             // 修改保存按钮为更新模式
             const saveBtn = document.getElementById('save-exam-btn');
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="fas fa-save"></i> 更新';
-                saveBtn.onclick = () => this.updateExam(index);
+                // 使用一次性事件监听器
+                saveBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.updateExam(index);
+                };
             }
+            
+            modal.style.display = 'block';
         }
     }
     
@@ -588,32 +597,37 @@ class ScheduleManager {
         const reminderMinutes = parseInt(reminderTime);
         const reminderDateTime = new Date(examDateTime.getTime() - reminderMinutes * 60 * 1000);
         
-        // 更新考试数据
-        this.exams[index] = { 
-            name, 
-            date, 
-            time, 
-            location,
-            note,
-            reminderTime: reminderMinutes,
-            reminderType,
-            reminderDateTime: reminderDateTime.toISOString(),
-            notified: false
-        };
+        // 更新考试数据（直接修改原对象，不创建新对象）
+        this.exams[index].name = name;
+        this.exams[index].date = date;
+        this.exams[index].time = time;
+        this.exams[index].location = location;
+        this.exams[index].note = note;
+        this.exams[index].reminderTime = reminderMinutes;
+        this.exams[index].reminderType = reminderType;
+        this.exams[index].reminderDateTime = reminderDateTime.toISOString();
+        this.exams[index].notified = false;
         
         this.saveData();
         this.render();
+        
+        // 先恢复按钮状态，再关闭弹窗
+        const saveBtn = document.getElementById('save-exam-btn');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+            saveBtn.onclick = null;
+        }
+        
+        // 清除编辑标记
+        const modal = document.getElementById('add-exam-modal');
+        if (modal) {
+            delete modal.dataset.editIndex;
+        }
+        
         this.closeAllModals();
         
         // 重新设置提醒
         this.scheduleExamReminder(this.exams[index]);
-        
-        // 恢复保存按钮
-        const saveBtn = document.getElementById('save-exam-btn');
-        if (saveBtn) {
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
-            saveBtn.onclick = () => this.saveExam();
-        }
         
         alert(`考试"${name}"已更新！`);
     }
@@ -666,6 +680,25 @@ class ScheduleManager {
     openAddExamModal() {
         const modal = document.getElementById('add-exam-modal');
         if (modal) {
+            // 重置表单
+            document.getElementById('exam-name').value = '';
+            document.getElementById('exam-date').value = '';
+            document.getElementById('exam-time').value = '';
+            document.getElementById('exam-location').value = '';
+            document.getElementById('exam-note').value = '';
+            
+            // 重置保存按钮为添加模式
+            const saveBtn = document.getElementById('save-exam-btn');
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+                // 移除旧的onclick并添加新的
+                saveBtn.onclick = null;
+                saveBtn.addEventListener('click', () => this.saveExam(), { once: true });
+            }
+            
+            // 清除编辑标记
+            delete modal.dataset.editIndex;
+            
             modal.style.display = 'block';
         }
     }
@@ -861,6 +894,19 @@ class ScheduleManager {
         document.querySelectorAll('.schedule-modal').forEach(modal => {
             modal.style.display = 'none';
         });
+        
+        // 重置考试弹窗状态
+        const examModal = document.getElementById('add-exam-modal');
+        if (examModal) {
+            delete examModal.dataset.editIndex;
+        }
+        
+        // 重置保存按钮
+        const saveBtn = document.getElementById('save-exam-btn');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+            saveBtn.onclick = null;
+        }
     }
     
     // 处理文件上传
@@ -1025,6 +1071,15 @@ class ScheduleManager {
     
     // 保存考试
     saveExam() {
+        // 检查是否在编辑模式
+        const modal = document.getElementById('add-exam-modal');
+        if (modal && modal.dataset.editIndex !== undefined) {
+            // 在编辑模式，调用更新方法
+            const index = parseInt(modal.dataset.editIndex);
+            this.updateExam(index);
+            return;
+        }
+        
         const name = document.getElementById('exam-name')?.value.trim();
         const date = document.getElementById('exam-date')?.value;
         const time = document.getElementById('exam-time')?.value;
