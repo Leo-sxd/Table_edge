@@ -42,6 +42,7 @@ class ScheduleManager {
         this.migrateData();  // 数据迁移
         this.bindEvents();
         this.render();
+        this.initExamReminders();  // 初始化考试提醒
         console.log('[ScheduleManager] 初始化完成');
     }
     
@@ -870,16 +871,113 @@ class ScheduleManager {
         const date = document.getElementById('exam-date')?.value;
         const time = document.getElementById('exam-time')?.value;
         const location = document.getElementById('exam-location')?.value.trim();
+        const note = document.getElementById('exam-note')?.value.trim();
+        const reminderTime = document.getElementById('exam-reminder-time')?.value || '15';
+        const reminderType = document.getElementById('exam-reminder-type')?.value || 'popup';
         
         if (!name || !date || !time) {
             alert('请填写完整的考试信息');
             return;
         }
         
-        this.exams.push({ name, date, time, location });
+        // 计算提醒时间
+        const examDateTime = new Date(`${date}T${time}`);
+        const reminderMinutes = parseInt(reminderTime);
+        const reminderDateTime = new Date(examDateTime.getTime() - reminderMinutes * 60 * 1000);
+        
+        const exam = { 
+            name, 
+            date, 
+            time, 
+            location,
+            note,
+            reminderTime: reminderMinutes,
+            reminderType,
+            reminderDateTime: reminderDateTime.toISOString(),
+            notified: false
+        };
+        
+        this.exams.push(exam);
         this.saveData();
         this.render();
         this.closeAllModals();
+        
+        // 设置提醒
+        this.scheduleExamReminder(exam);
+        
+        alert(`考试"${name}"已保存，将在${reminderMinutes > 0 ? reminderMinutes + '分钟前' : '开始时'}提醒您！`);
+    }
+    
+    // 设置考试提醒
+    scheduleExamReminder(exam) {
+        const now = new Date();
+        const reminderTime = new Date(exam.reminderDateTime);
+        const timeUntilReminder = reminderTime.getTime() - now.getTime();
+        
+        if (timeUntilReminder > 0 && !exam.notified) {
+            setTimeout(() => {
+                this.showExamReminder(exam);
+            }, timeUntilReminder);
+            console.log(`[Exam Reminder] 已设置提醒："${exam.name}" 将在 ${reminderTime.toLocaleString()} 提醒`);
+        }
+    }
+    
+    // 显示考试提醒
+    showExamReminder(exam) {
+        const examDateTime = new Date(`${exam.date}T${exam.time}`);
+        const timeString = examDateTime.toLocaleString('zh-CN', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const reminderMessage = `考试提醒：${exam.name}\n时间：${timeString}\n地点：${exam.location || '未指定'}${exam.note ? '\n备注：' + exam.note : ''}`;
+        
+        if (exam.reminderType === 'popup' || exam.reminderType === 'both') {
+            alert(reminderMessage);
+        }
+        
+        if (exam.reminderType === 'notification' || exam.reminderType === 'both') {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('考试提醒', {
+                    body: `${exam.name} - ${timeString}\n地点：${exam.location || '未指定'}`,
+                    icon: '/favicon.ico'
+                });
+            } else {
+                // 如果系统通知不可用，使用弹窗
+                alert(reminderMessage);
+            }
+        }
+        
+        // 标记为已通知
+        exam.notified = true;
+        this.saveData();
+    }
+    
+    // 初始化考试提醒（页面加载时调用）
+    initExamReminders() {
+        // 请求通知权限
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        
+        // 为所有未通知的考试设置提醒
+        const now = new Date();
+        this.exams.forEach(exam => {
+            if (!exam.notified) {
+                const reminderTime = new Date(exam.reminderDateTime);
+                if (reminderTime > now) {
+                    this.scheduleExamReminder(exam);
+                } else {
+                    // 如果提醒时间已过但考试还没开始，立即提醒
+                    const examTime = new Date(`${exam.date}T${exam.time}`);
+                    if (examTime > now) {
+                        this.showExamReminder(exam);
+                    }
+                }
+            }
+        });
     }
     
     // 切换周次
