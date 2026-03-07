@@ -346,44 +346,6 @@ class ScheduleManager {
             return [];
         }
     }
-        
-        const rows = table.querySelectorAll('tr');
-        const colToDay = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
-        
-        for (let rowIdx = 2; rowIdx < rows.length; rowIdx++) {
-            const row = rows[rowIdx];
-            const cells = row.querySelectorAll('td, th');
-            if (cells.length < 3) continue;
-            
-            // 提取节次
-            const periodText = cells[1] ? cells[1].textContent.trim() : '';
-            const periodMatch = periodText.match(/^(\d+)$/);
-            if (!periodMatch) continue;
-            
-            const timeSlot = Math.ceil(parseInt(periodMatch[1]) / 2);
-            
-            // 遍历每一天
-            for (let colIdx = 2; colIdx <= 8 && colIdx < cells.length; colIdx++) {
-                const dayOfWeek = colToDay[colIdx];
-                if (!dayOfWeek) continue;
-                
-                const cell = cells[colIdx];
-                const content = cell.textContent.trim();
-                if (!content || content === '\xa0') continue;
-                
-                // 解析课程块
-                const blocks = content.split(/(?=[★☆〇■◆])/).filter(b => b.trim());
-                
-                for (const block of blocks) {
-                    const course = this.parseCourseBlock(block, dayOfWeek, timeSlot);
-                    if (course) courses.push(course);
-                }
-            }
-        }
-        
-        return courses;
-    }
-    
     
     // 解析手动输入
     parseManualInput() {
@@ -405,7 +367,9 @@ class ScheduleManager {
             
             // 解析格式：课程名 周几 第几节 地点 周数
             const parts = line.split(/\s+/);
-            if (parts.length < 3) return;
+            if (parts.length < 3) {
+                return;
+            }
             
             const name = parts[0];
             const dayMap = { '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7 };
