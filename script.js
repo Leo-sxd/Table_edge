@@ -1190,29 +1190,30 @@ class AIWebsiteController {
     executeLocalCommand(command) {
         const cmd = command.toLowerCase();
         
-        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        // 10. 查看课程表/今天有什么课/明天有什么课
         if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
-            // 计算当前日期对应的周次
-            const now = new Date();
-            const currentDay = now.getDay(); // 0=周日, 1=周一, ...
-            const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
-            const currentMonday = new Date(now);
-            currentMonday.setDate(now.getDate() + diffToMonday);
+            // 获取缓存中用户最后一次打开的周数
+            let targetWeek = 1;
             
-            // 学期开始日期
-            let semesterStart;
-            if (window.scheduleManager && window.scheduleManager.getSemesterStartDate) {
-                semesterStart = window.scheduleManager.getSemesterStartDate();
+            // 优先从 scheduleManager 获取当前周次
+            if (window.scheduleManager && window.scheduleManager.currentWeek) {
+                targetWeek = window.scheduleManager.currentWeek;
+                console.log('[AIControl] 指令10 - 从 scheduleManager 获取周次:', targetWeek);
             } else {
-                semesterStart = new Date('2025-03-02');
+                // 从 localStorage 获取保存的周次
+                const savedWeek = localStorage.getItem('schedule_current_week');
+                if (savedWeek) {
+                    targetWeek = parseInt(savedWeek, 10);
+                    console.log('[AIControl] 指令10 - 从 localStorage 获取周次:', targetWeek);
+                } else {
+                    // 如果没有缓存，默认显示第1周
+                    targetWeek = 1;
+                    console.log('[AIControl] 指令10 - 无缓存，默认显示第1周');
+                }
             }
             
-            const diffTime = currentMonday.getTime() - semesterStart.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const currentWeek = Math.floor(diffDays / 7) + 1;
-            const validWeek = Math.max(1, Math.min(20, currentWeek));
-            
-            console.log('[AIControl] 指令10 - 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
+            // 确保周次在有效范围内
+            targetWeek = Math.max(1, Math.min(20, targetWeek));
             
             // 切换到课程表视图
             const examContainer = document.getElementById('exam-list-container');
@@ -1225,18 +1226,18 @@ class AIWebsiteController {
             const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
             if (currentTab) currentTab.classList.add('active');
             
-            // 设置周次为当前日期对应的周
+            // 设置周次为缓存中的周次
             if (window.scheduleManager) {
-                window.scheduleManager.setCurrentWeek(validWeek);
+                window.scheduleManager.setCurrentWeek(targetWeek);
             }
             
             // 更新下拉框
             const weekSelect = document.getElementById('week-select');
-            if (weekSelect) weekSelect.value = validWeek;
+            if (weekSelect) weekSelect.value = targetWeek;
             
             // 更新周次显示
             const weekDisplay = document.getElementById('current-week-display');
-            if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
+            if (weekDisplay) weekDisplay.textContent = '第' + targetWeek + '周';
             
             // 滚动到课程表
             const scheduleSection = document.getElementById('schedule-section');
@@ -1244,7 +1245,7 @@ class AIWebsiteController {
                 scheduleSection.scrollIntoView({ behavior: 'smooth' });
             }
             
-            console.log('[AIControl] 指令10 - 查看课程表，自动切换到第' + validWeek + '周');
+            console.log('[AIControl] 指令10 - 查看课程表，显示缓存的第' + targetWeek + '周');
             return true;
         }
         
@@ -4871,29 +4872,30 @@ class DoubaoAI {
     executeLocalCommand(command) {
         const cmd = command.toLowerCase();
         
-        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        // 10. 查看课程表/今天有什么课/明天有什么课
         if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
-            // 计算当前日期对应的周次
-            const now = new Date();
-            const currentDay = now.getDay(); // 0=周日, 1=周一, ...
-            const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
-            const currentMonday = new Date(now);
-            currentMonday.setDate(now.getDate() + diffToMonday);
+            // 获取缓存中用户最后一次打开的周数
+            let targetWeek = 1;
             
-            // 学期开始日期
-            let semesterStart;
-            if (window.scheduleManager && window.scheduleManager.getSemesterStartDate) {
-                semesterStart = window.scheduleManager.getSemesterStartDate();
+            // 优先从 scheduleManager 获取当前周次
+            if (window.scheduleManager && window.scheduleManager.currentWeek) {
+                targetWeek = window.scheduleManager.currentWeek;
+                console.log('[AIControl] 指令10 - 从 scheduleManager 获取周次:', targetWeek);
             } else {
-                semesterStart = new Date('2025-03-02');
+                // 从 localStorage 获取保存的周次
+                const savedWeek = localStorage.getItem('schedule_current_week');
+                if (savedWeek) {
+                    targetWeek = parseInt(savedWeek, 10);
+                    console.log('[AIControl] 指令10 - 从 localStorage 获取周次:', targetWeek);
+                } else {
+                    // 如果没有缓存，默认显示第1周
+                    targetWeek = 1;
+                    console.log('[AIControl] 指令10 - 无缓存，默认显示第1周');
+                }
             }
             
-            const diffTime = currentMonday.getTime() - semesterStart.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const currentWeek = Math.floor(diffDays / 7) + 1;
-            const validWeek = Math.max(1, Math.min(20, currentWeek));
-            
-            console.log('[AIControl] 指令10 - 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
+            // 确保周次在有效范围内
+            targetWeek = Math.max(1, Math.min(20, targetWeek));
             
             // 切换到课程表视图
             const examContainer = document.getElementById('exam-list-container');
@@ -4906,18 +4908,18 @@ class DoubaoAI {
             const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
             if (currentTab) currentTab.classList.add('active');
             
-            // 设置周次为当前日期对应的周
+            // 设置周次为缓存中的周次
             if (window.scheduleManager) {
-                window.scheduleManager.setCurrentWeek(validWeek);
+                window.scheduleManager.setCurrentWeek(targetWeek);
             }
             
             // 更新下拉框
             const weekSelect = document.getElementById('week-select');
-            if (weekSelect) weekSelect.value = validWeek;
+            if (weekSelect) weekSelect.value = targetWeek;
             
             // 更新周次显示
             const weekDisplay = document.getElementById('current-week-display');
-            if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
+            if (weekDisplay) weekDisplay.textContent = '第' + targetWeek + '周';
             
             // 滚动到课程表
             const scheduleSection = document.getElementById('schedule-section');
@@ -4925,7 +4927,7 @@ class DoubaoAI {
                 scheduleSection.scrollIntoView({ behavior: 'smooth' });
             }
             
-            console.log('[AIControl] 指令10 - 查看课程表，自动切换到第' + validWeek + '周');
+            console.log('[AIControl] 指令10 - 查看课程表，显示缓存的第' + targetWeek + '周');
             return true;
         }
         
@@ -6189,29 +6191,30 @@ class ScheduleImporter {
     executeLocalCommand(command) {
         const cmd = command.toLowerCase();
         
-        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        // 10. 查看课程表/今天有什么课/明天有什么课
         if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
-            // 计算当前日期对应的周次
-            const now = new Date();
-            const currentDay = now.getDay(); // 0=周日, 1=周一, ...
-            const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
-            const currentMonday = new Date(now);
-            currentMonday.setDate(now.getDate() + diffToMonday);
+            // 获取缓存中用户最后一次打开的周数
+            let targetWeek = 1;
             
-            // 学期开始日期
-            let semesterStart;
-            if (window.scheduleManager && window.scheduleManager.getSemesterStartDate) {
-                semesterStart = window.scheduleManager.getSemesterStartDate();
+            // 优先从 scheduleManager 获取当前周次
+            if (window.scheduleManager && window.scheduleManager.currentWeek) {
+                targetWeek = window.scheduleManager.currentWeek;
+                console.log('[AIControl] 指令10 - 从 scheduleManager 获取周次:', targetWeek);
             } else {
-                semesterStart = new Date('2025-03-02');
+                // 从 localStorage 获取保存的周次
+                const savedWeek = localStorage.getItem('schedule_current_week');
+                if (savedWeek) {
+                    targetWeek = parseInt(savedWeek, 10);
+                    console.log('[AIControl] 指令10 - 从 localStorage 获取周次:', targetWeek);
+                } else {
+                    // 如果没有缓存，默认显示第1周
+                    targetWeek = 1;
+                    console.log('[AIControl] 指令10 - 无缓存，默认显示第1周');
+                }
             }
             
-            const diffTime = currentMonday.getTime() - semesterStart.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const currentWeek = Math.floor(diffDays / 7) + 1;
-            const validWeek = Math.max(1, Math.min(20, currentWeek));
-            
-            console.log('[AIControl] 指令10 - 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
+            // 确保周次在有效范围内
+            targetWeek = Math.max(1, Math.min(20, targetWeek));
             
             // 切换到课程表视图
             const examContainer = document.getElementById('exam-list-container');
@@ -6224,18 +6227,18 @@ class ScheduleImporter {
             const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
             if (currentTab) currentTab.classList.add('active');
             
-            // 设置周次为当前日期对应的周
+            // 设置周次为缓存中的周次
             if (window.scheduleManager) {
-                window.scheduleManager.setCurrentWeek(validWeek);
+                window.scheduleManager.setCurrentWeek(targetWeek);
             }
             
             // 更新下拉框
             const weekSelect = document.getElementById('week-select');
-            if (weekSelect) weekSelect.value = validWeek;
+            if (weekSelect) weekSelect.value = targetWeek;
             
             // 更新周次显示
             const weekDisplay = document.getElementById('current-week-display');
-            if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
+            if (weekDisplay) weekDisplay.textContent = '第' + targetWeek + '周';
             
             // 滚动到课程表
             const scheduleSection = document.getElementById('schedule-section');
@@ -6243,7 +6246,7 @@ class ScheduleImporter {
                 scheduleSection.scrollIntoView({ behavior: 'smooth' });
             }
             
-            console.log('[AIControl] 指令10 - 查看课程表，自动切换到第' + validWeek + '周');
+            console.log('[AIControl] 指令10 - 查看课程表，显示缓存的第' + targetWeek + '周');
             return true;
         }
         
