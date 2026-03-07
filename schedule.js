@@ -17,14 +17,11 @@ class ScheduleManager {
         this.currentWeek = 1;
         this.maxWeek = 20;
         
-        // 时间段配置
-        this.timeSlots = [
-            { id: 1, name: '第1-2节', time: '08:00-09:35' },
-            { id: 2, name: '第3-4节', time: '09:55-11:30' },
-            { id: 3, name: '第5-6节', time: '14:00-15:35' },
-            { id: 4, name: '第7-8节', time: '15:55-17:30' },
-            { id: 5, name: '第9-10节', time: '19:00-20:35' }
-        ];
+        // 一天课程节数配置（1-60节，默认5节，可从localStorage加载）
+        this.periodsPerDay = this.loadPeriodsPerDayConfig() || 5;
+        
+        // 时间段配置（根据periodsPerDay动态生成）
+        this.timeSlots = this.generateTimeSlots(this.periodsPerDay);
         
         // 星期配置
         this.days = [
@@ -78,6 +75,60 @@ class ScheduleManager {
         } catch (e) {
             console.error('[ScheduleManager] 数据保存失败:', e);
         }
+    }
+    
+    // 加载一天课程节数配置
+    loadPeriodsPerDayConfig() {
+        const config = localStorage.getItem('schedule_periods_per_day');
+        const value = config ? parseInt(config) : null;
+        // 验证范围1-60
+        if (value && value >= 1 && value <= 60) {
+            return value;
+        }
+        return null;
+    }
+    
+    // 保存一天课程节数配置
+    savePeriodsPerDayConfig(count) {
+        if (count >= 1 && count <= 60) {
+            localStorage.setItem('schedule_periods_per_day', count.toString());
+            this.periodsPerDay = count;
+        }
+    }
+    
+    // 根据节数生成时间段配置
+    generateTimeSlots(count) {
+        const slots = [];
+        // 默认时间模板（每节课45分钟，课间休息根据时段调整）
+        const defaultTimes = [
+            { start: '08:00', end: '08:45' },   // 第1节
+            { start: '08:50', end: '09:35' },   // 第2节
+            { start: '09:55', end: '10:40' },   // 第3节
+            { start: '10:45', end: '11:30' },   // 第4节
+            { start: '11:35', end: '12:20' },   // 第5节
+            { start: '14:00', end: '14:45' },   // 第6节
+            { start: '14:50', end: '15:35' },   // 第7节
+            { start: '15:55', end: '16:40' },   // 第8节
+            { start: '16:45', end: '17:30' },   // 第9节
+            { start: '17:35', end: '18:20' },   // 第10节
+            { start: '19:00', end: '19:45' },   // 第11节
+            { start: '19:50', end: '20:35' },   // 第12节
+            { start: '20:40', end: '21:25' },   // 第13节
+            { start: '21:30', end: '22:15' },   // 第14节
+        ];
+        
+        for (let i = 1; i <= count; i++) {
+            const time = defaultTimes[i - 1] || { 
+                start: `${8 + Math.floor((i-1)/2)}:${(i%2===1)?'00':'30'}`, 
+                end: `${8 + Math.floor((i-1)/2)}:${(i%2===1)?'45':'15'}` 
+            };
+            slots.push({
+                id: i,
+                name: `第${i}节`,
+                time: `${time.start}-${time.end}`
+            });
+        }
+        return slots;
     }
     
     // 绑定事件
@@ -167,8 +218,35 @@ class ScheduleManager {
     // 渲染课程表
     render() {
         this.renderWeekInfo();
+        this.renderGrid();
         this.renderCourses();
         this.renderExams();
+    }
+    
+    // 动态生成课程表格子
+    renderGrid() {
+        const grid = document.getElementById('schedule-grid');
+        if (!grid) return;
+        
+        // 清空现有内容
+        grid.innerHTML = '';
+        
+        // 生成表头
+        grid.innerHTML += '<div class="schedule-header time-col">时间</div>';
+        this.days.forEach(day => {
+            grid.innerHTML += `<div class="schedule-header">${day.name}</div>`;
+        });
+        
+        // 生成时间段和课程格子
+        this.timeSlots.forEach(slot => {
+            // 时间标签
+            grid.innerHTML += `<div class="time-slot">${slot.time}<br><small>${slot.name}</small></div>`;
+            
+            // 7天的课程格子
+            for (let day = 1; day <= 7; day++) {
+                grid.innerHTML += `<div class="course-cell" data-day="${day}" data-time="${slot.id}"></div>`;
+            }
+        });
     }
     
     // 渲染周次信息
@@ -293,7 +371,29 @@ class ScheduleManager {
     
     // 打开设置弹窗
     openSettingsModal() {
-        alert('课程设置功能开发中...');
+        const count = prompt(`当前一天课程节数：${this.periodsPerDay}节\n请输入新的一天课程节数（1-60）：`, this.periodsPerDay);
+        
+        if (count === null) return; // 用户取消
+        
+        const newCount = parseInt(count);
+        if (isNaN(newCount) || newCount < 1 || newCount > 60) {
+            alert('请输入1-60之间的有效数字！');
+            return;
+        }
+        
+        if (newCount === this.periodsPerDay) {
+            alert('课程节数未发生变化');
+            return;
+        }
+        
+        // 保存新配置
+        this.savePeriodsPerDayConfig(newCount);
+        this.timeSlots = this.generateTimeSlots(newCount);
+        
+        // 重新渲染课程表
+        this.render();
+        
+        alert(`设置成功！一天课程节数已改为${newCount}节`);
     }
     
     // 关闭所有弹窗
