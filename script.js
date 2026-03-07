@@ -6438,36 +6438,88 @@ class ScheduleModule {
             console.log('[Parse] 匹配到双周');
         }
         
-        // 提取课程名和地点
-        const parts = line.split(/\s+/);
-        if (parts.length > 0) {
-            // 假设课程名是第一个不包含"第X节"、"周X"、时间格式、节次、周数的部分
-            for (const part of parts) {
-                if (!part.match(/第[\d一二三四五]节/) && 
-                    !part.match(/\d+-\d+节/) &&
-                    !part.match(/\d+节/) &&
-                    !part.match(/周[一二三四五六日]/) &&
-                    !part.match(/\d{2}:\d{2}/) &&
-                    !part.match(/教学楼|教室|机房|实验室|校区|学分|考核/) &&
-                    !part.match(/\d+-\d+周/) &&
-                    !part.includes('单周') &&
-                    !part.includes('双周')) {
-                    name = part;
-                    break;
+            // 提取课程名 - 基于正方教务系统HTML结构
+    extractCourseName(lines, config) {
+        console.log('[HTML] 尝试提取课程名，输入行:', lines);
+        
+        // 策略1: 查找包含★标记的行（课程名通常在★标记附近）
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.includes('★') || line.includes('☆') || line.includes('◆')) {
+                // 课程名可能在★标记的同一行
+                let name = line.replace(/[★☆〇■◆]/g, '').trim();
+                
+                // 检查是否为有效课程名
+                if (this.isValidCourseName(name, config)) {
+                    console.log('[HTML] 策略1找到课程名:', name);
+                    return name;
                 }
-            }
-            
-            // 如果没找到，用第一部分
-            if (!name) name = parts[0];
-            
-            // 查找地点（包含教学楼、教室等关键词）
-            for (const part of parts) {
-                if (part.match(/教学楼|教室|机房|实验室|\d+-\d+-\d+|体育馆|未排地点/)) {
-                    location = part;
-                    break;
+                
+                // 或者课程名在★标记的下一行
+                if (i + 1 < lines.length) {
+                    const nextLine = lines[i + 1].trim();
+                    if (this.isValidCourseName(nextLine, config)) {
+                        console.log('[HTML] 策略1(下一行)找到课程名:', nextLine);
+                        return nextLine;
+                    }
+                }
+                
+                // 或者课程名在★标记的上一行
+                if (i > 0) {
+                    const prevLine = lines[i - 1].trim();
+                    if (this.isValidCourseName(prevLine, config)) {
+                        console.log('[HTML] 策略1(上一行)找到课程名:', prevLine);
+                        return prevLine;
+                    }
                 }
             }
         }
+        
+        // 策略2: 查找第一行包含中文且不是详情信息的行
+        for (const line of lines) {
+            if (this.isValidCourseName(line, config)) {
+                console.log('[HTML] 策略2找到课程名:', line);
+                return line;
+            }
+        }
+        
+        // 策略3: 尝试合并多行
+        if (lines.length >= 2) {
+            const combined = lines[0] + lines[1];
+            if (this.isValidCourseName(combined, config)) {
+                console.log('[HTML] 策略3找到课程名:', combined);
+                return combined;
+            }
+        }
+        
+        console.log('[HTML] 未能找到有效课程名');
+        return null;
+    }
+    
+    // 验证是否为有效课程名
+    isValidCourseName(name, config) {
+        if (!name || name.length < 2) return false;
+        
+        // 必须包含中文
+        const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+        if (!hasChinese) return false;
+        
+        // 排除纯校区名称
+        const campusNames = ['骊山校园', '雁塔校园', '秦汉校园'];
+        if (campusNames.some(c => name.trim() === c)) return false;
+        
+        // 排除详情信息行
+        const detailKeywords = ['周数', '校区', '地点', '教师', '学分', '考核', '节/周', '节', '周', '上午', '下午', '晚上'];
+        if (detailKeywords.some(k => name.includes(k))) return false;
+        
+        // 排除纯数字
+        if (/^\d+$/.test(name)) return false;
+        
+        // 排除教室代码
+        if (/^\d+-\d+-\d+$/.test(name)) return false;
+        
+        return true;
+    }
         
         console.log('[Parse] 解析结果:', { name, day, time, location, startWeek, endWeek, weekType });
         
@@ -7680,29 +7732,14 @@ class HTMLScheduleImporter {
         return null;
     }
     
-    // 提取上课地点
+        // 提取上课地点 - 只读取教室代码，第一个数字表示校区
     extractLocation(detailText, config) {
-        // 优先匹配完整格式：校区 + 教室
-        const fullPattern = new RegExp(
-            `(${config.campusNames.join('|')})\s*${config.roomPattern.source}`, 'g'
-        );
-        const fullMatch = detailText.match(fullPattern);
-        if (fullMatch) return fullMatch[0].replace(/\s+/g, ' ');
-        
-        // 单独提取教室代码
-        const roomMatch = detailText.match(config.roomPattern);
+        // 只提取教室代码（如：2-1-402）
+        // 第一个数字2表示骊山校园，3表示雁塔校园，等等
+        const roomMatch = detailText.match(/(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
         if (roomMatch) {
-            // 查找校区
-            const campusMatch = config.campusNames.find(c => detailText.includes(c));
-            if (campusMatch) {
-                return `${campusMatch} ${roomMatch[0]}`;
-            }
-            return roomMatch[0];
+            return roomMatch[1];
         }
-        
-        // 只有校区
-        const campusMatch = config.campusNames.find(c => detailText.includes(c));
-        if (campusMatch) return campusMatch;
         
         return '';
     }
