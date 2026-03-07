@@ -824,7 +824,9 @@ class AIWebsiteController {
             }
             
             result += temp;
-            return result > 0 ? result : null;
+            // 修复：当结果为0时（如输入"零"），应该返回0而不是null
+            // 只有当结果确实为假值（undefined, null, NaN）时才返回null
+            return (result === 0 || result > 0) ? result : null;
         };
         
         // 背景图片设置
