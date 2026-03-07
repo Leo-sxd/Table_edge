@@ -266,6 +266,30 @@ class ScheduleManager {
             saveExamBtn.addEventListener('click', () => this.saveExam());
         }
         
+        // 时间设置相关按钮
+        const saveTimeSettingsBtn = document.getElementById('save-time-settings-btn');
+        if (saveTimeSettingsBtn) {
+            saveTimeSettingsBtn.addEventListener('click', () => this.saveTimeSettings());
+        }
+        
+        const previewSettingsBtn = document.getElementById('preview-settings-btn');
+        if (previewSettingsBtn) {
+            previewSettingsBtn.addEventListener('click', () => this.previewSettings());
+        }
+        
+        const resetTimeSettingsBtn = document.getElementById('reset-time-settings-btn');
+        if (resetTimeSettingsBtn) {
+            resetTimeSettingsBtn.addEventListener('click', () => this.resetTimeSettings());
+        }
+        
+        const cancelTimeSettingsBtn = document.getElementById('cancel-time-settings-btn');
+        if (cancelTimeSettingsBtn) {
+            cancelTimeSettingsBtn.addEventListener('click', () => {
+                const modal = document.getElementById('time-settings-modal');
+                if (modal) modal.style.display = 'none';
+            });
+        }
+        
         console.log('[ScheduleManager] 事件绑定完成');
     }
     
