@@ -341,6 +341,18 @@ class ScheduleManager {
             saveCourseBtn.addEventListener('click', () => this.saveCourse());
         }
         
+        // 周次选择下拉框事件
+        const weekSelect = document.getElementById('week-select');
+        if (weekSelect) {
+            weekSelect.addEventListener('change', (e) => {
+                const selectedWeek = parseInt(e.target.value);
+                if (selectedWeek && selectedWeek >= 1 && selectedWeek <= 20) {
+                    console.log(`[WeekSelector] 用户选择第${selectedWeek}周`);
+                    this.setCurrentWeek(selectedWeek);
+                }
+            });
+        }
+        
         // 保存考试按钮的事件绑定移到 openAddExamModal 和 editExam 中
         // 避免重复绑定导致多次触发
         
@@ -393,6 +405,29 @@ class ScheduleManager {
         const weekDisplay = document.getElementById('current-week-display');
         if (weekDisplay) {
             weekDisplay.textContent = `第${this.currentWeek}周`;
+        }
+        
+        // 填充周次选择下拉框
+        const weekSelect = document.getElementById('week-select');
+        if (weekSelect) {
+            // 保存当前选中的值
+            const currentValue = weekSelect.value;
+            
+            // 清空现有选项（保留第一个"选择周次"选项）
+            weekSelect.innerHTML = '<option value="">选择周次</option>';
+            
+            // 添加第1-20周选项
+            for (let i = 1; i <= 20; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `第${i}周`;
+                if (i === this.currentWeek) {
+                    option.selected = true;
+                }
+                weekSelect.appendChild(option);
+            }
+            
+            console.log(`[renderWeekInfo] 周次选择框已填充，当前选中第${this.currentWeek}周`);
         }
     }
     
@@ -1498,9 +1533,21 @@ class ScheduleManager {
     
     // 设置当前周
     setCurrentWeek(week) {
+        if (week < 1 || week > 20) {
+            console.warn(`[setCurrentWeek] 无效的周次: ${week}`);
+            return;
+        }
+        
         this.currentWeek = week;
         this.saveData();
         this.render();
+        
+        // 更新下拉框选中状态
+        const weekSelect = document.getElementById('week-select');
+        if (weekSelect) {
+            weekSelect.value = week;
+        }
+        
         console.log(`[ScheduleManager] 设置当前周为第${week}周，日期已更新`);
     }
     
