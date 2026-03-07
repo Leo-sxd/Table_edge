@@ -537,16 +537,11 @@ class ZhengfangScheduleParser {
         const table = doc.querySelector('#kbgrid_table_0');
         if (!table) throw new Error('未找到课表表格');
         
-        const coursesFromId = this.parseByCellId(table);
-        const coursesFromRows = this.parseByRows(table);
+        // 只使用基于ID的解析，更准确
+        const courses = this.parseByCellId(table);
         
-        const courseMap = new Map();
-        [...coursesFromId, ...coursesFromRows].forEach(course => {
-            const key = `${course.day}-${course.time}-${course.name}`;
-            if (!courseMap.has(key)) courseMap.set(key, course);
-        });
-        
-        return Array.from(courseMap.values());
+        console.log(`[Parser] 解析完成，共${courses.length}门课程`);
+        return courses;
     }
     
     parseByCellId(table) {
