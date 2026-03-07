@@ -46,6 +46,33 @@ class ScheduleManager {
         console.log('[ScheduleManager] 初始化完成');
     }
     
+    // 获取当前周的日期范围
+    getWeekDates() {
+        const dates = [];
+        const now = new Date();
+        const currentDay = now.getDay(); // 0=周日, 1=周一, ...
+        
+        // 计算本周一的距离（如果今天是周日，则减去6天，否则减去今天对应的星期数-1）
+        const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
+        
+        // 获取本周一的日期
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + diffToMonday);
+        
+        // 生成周一到周日的日期
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            dates.push({
+                month: date.getMonth() + 1,
+                day: date.getDate(),
+                fullDate: date
+            });
+        }
+        
+        return dates;
+    }
+    
     // 数据迁移：修正旧数据的time属性
     migrateData() {
         let needsSave = false;
@@ -301,10 +328,17 @@ class ScheduleManager {
         // 清空现有内容
         grid.innerHTML = '';
         
-        // 生成表头
+        // 获取本周日期
+        const weekDates = this.getWeekDates();
+        
+        // 生成表头（时间列 + 7天）
         grid.innerHTML += '<div class="schedule-header time-col">时间</div>';
-        this.days.forEach(day => {
-            grid.innerHTML += `<div class="schedule-header">${day.name}</div>`;
+        this.days.forEach((day, index) => {
+            const date = weekDates[index];
+            grid.innerHTML += `<div class="schedule-header">
+                <div class="day-name">${day.name}</div>
+                <div class="day-date">${date.month}/${date.day}</div>
+            </div>`;
         });
         
         // 生成时间段和课程格子

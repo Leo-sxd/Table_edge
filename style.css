@@ -4651,3 +4651,23 @@ body.modal-open {
     background: rgba(255, 0, 100, 0.4);
     transform: scale(1.05);
 }
+
+/* 日期显示样式 */
+.schedule-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 50px;
+}
+
+.schedule-header .day-name {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.schedule-header .day-date {
+    font-size: 12px;
+    opacity: 0.9;
+    font-weight: normal;
+}
