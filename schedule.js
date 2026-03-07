@@ -232,9 +232,24 @@ class ScheduleManager {
             else if (target.id === 'prev-week-btn' || target.closest('#prev-week-btn')) {
                 this.changeWeek(-1);
             }
-            // 考试按钮
-            else if (target.id === 'exam-btn' || target.closest('#exam-btn')) {
+            // 考试标签页按钮
+            else if (target.classList.contains('schedule-tab') && target.dataset.tab === 'exam') {
                 this.toggleExamView();
+                // 更新标签页激活状态
+                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                target.classList.add('active');
+            }
+            // 本周标签页按钮
+            else if (target.classList.contains('schedule-tab') && target.dataset.tab === 'current') {
+                const examContainer = document.getElementById('exam-list-container');
+                const scheduleContainer = document.querySelector('.schedule-container');
+                if (examContainer && scheduleContainer) {
+                    examContainer.style.display = 'none';
+                    scheduleContainer.style.display = 'block';
+                }
+                // 更新标签页激活状态
+                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                target.classList.add('active');
             }
             // 点击课程格子
             else if (target.classList.contains('course-cell')) {
