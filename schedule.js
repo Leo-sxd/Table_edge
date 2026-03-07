@@ -303,54 +303,87 @@ class ScheduleManager {
         
         console.log('[Renderer] 当前周课程:', currentWeekCourses.length, '个节次');
         
-        // 扩展多节课程到所有对应的时间段
-        const expandedCourses = [];
+        // 按格子分组课程（key: day-timeSlot）
+        const cellCourses = {};
+        
         currentWeekCourses.forEach(course => {
-            // 如果课程有startPeriod和endPeriod，扩展到所有时间段
-            if (course.startPeriod && course.endPeriod && course.endPeriod > course.startPeriod) {
-                for (let p = course.startPeriod; p <= course.endPeriod; p++) {
-                    const timeSlot = Math.ceil(p / 2);
-                    expandedCourses.push({
-                        ...course,
-                        period: p,
-                        time: timeSlot,
-                        _isExpanded: true
-                    });
-                    console.log(`[Renderer] 扩展课程 "${course.name}" 第${p}节 → 时间段${timeSlot}`);
-                }
-            } else {
-                expandedCourses.push(course);
+            // 确定这个课程应该显示在哪个格子
+            let displayTimeSlot = course.time;
+            
+            // 如果课程有period，计算对应的时间段
+            if (course.period) {
+                displayTimeSlot = Math.ceil(course.period / 2);
+            }
+            
+            const cellKey = `${course.day}-${displayTimeSlot}`;
+            
+            if (!cellCourses[cellKey]) {
+                cellCourses[cellKey] = {};
+            }
+            
+            // 按课程名称分组，同一格子内的同名课程合并
+            if (!cellCourses[cellKey][course.name]) {
+                cellCourses[cellKey][course.name] = {
+                    ...course,
+                    periods: [],
+                    time: displayTimeSlot  // 确保使用计算后的时间段
+                };
+            }
+            
+            // 收集节次
+            if (course.period) {
+                cellCourses[cellKey][course.name].periods.push(course.period);
+            }
+            if (course.startPeriod && !cellCourses[cellKey][course.name].periods.includes(course.startPeriod)) {
+                cellCourses[cellKey][course.name].startPeriod = course.startPeriod;
+            }
+            if (course.endPeriod && !cellCourses[cellKey][course.name].periods.includes(course.endPeriod)) {
+                cellCourses[cellKey][course.name].endPeriod = course.endPeriod;
             }
         });
         
-        console.log('[Renderer] 扩展后课程:', expandedCourses.length, '个节次');
+        console.log('[Renderer] 格子数量:', Object.keys(cellCourses).length, '个');
         
-        // 按课程名称、星期、时间段、节次分组
-        const courseGroups = {};
-        expandedCourses.forEach(course => {
-            const key = `${course.name}-${course.day}-${course.time}-${course.period || 0}`;
-            if (!courseGroups[key]) {
-                courseGroups[key] = course;
-            }
-        });
-        
-        console.log('[Renderer] 课程组数量:', Object.keys(courseGroups).length, '个');
-        
-        // 渲染每门课程
-        Object.values(courseGroups).forEach(course => {
+        // 渲染每个格子中的课程
+        Object.entries(cellCourses).forEach(([cellKey, coursesInCell]) => {
+            const [day, timeSlot] = cellKey.split('-').map(Number);
+            
             const cell = document.querySelector(
-                `.course-cell[data-day="${course.day}"][data-time="${course.time}"]`
+                `.course-cell[data-day="${day}"][data-time="${timeSlot}"]`
             );
-            if (cell) {
+            
+            if (!cell) {
+                console.log(`[Renderer] ✗ 未找到单元格: 星期${day} 时间段${timeSlot}`);
+                return;
+            }
+            
+            // 清空格子内容（确保只渲染一次）
+            cell.innerHTML = '';
+            
+            // 渲染这个格子中的所有课程
+            Object.values(coursesInCell).forEach(course => {
                 const courseEl = document.createElement('div');
                 courseEl.className = 'course-item';
                 
+                // 去重并排序节次
+                const uniquePeriods = [...new Set(course.periods)].sort((a, b) => a - b);
+                
                 // 显示节次信息
                 let periodText = '';
-                if (course.startPeriod && course.endPeriod && course.endPeriod > course.startPeriod) {
-                    periodText = `<div class="course-periods">第${course.startPeriod}-${course.endPeriod}节</div>`;
-                } else if (course.period) {
-                    periodText = `<div class="course-periods">第${course.period}节</div>`;
+                if (uniquePeriods.length > 0) {
+                    const minPeriod = Math.min(...uniquePeriods);
+                    const maxPeriod = Math.max(...uniquePeriods);
+                    if (minPeriod === maxPeriod) {
+                        periodText = `<div class="course-periods">第${minPeriod}节</div>`;
+                    } else {
+                        periodText = `<div class="course-periods">第${minPeriod}-${maxPeriod}节</div>`;
+                    }
+                } else if (course.startPeriod && course.endPeriod) {
+                    if (course.startPeriod === course.endPeriod) {
+                        periodText = `<div class="course-periods">第${course.startPeriod}节</div>`;
+                    } else {
+                        periodText = `<div class="course-periods">第${course.startPeriod}-${course.endPeriod}节</div>`;
+                    }
                 }
                 
                 courseEl.innerHTML = `
@@ -364,13 +397,12 @@ class ScheduleManager {
                     e.stopPropagation();
                     this.editCourse(course);
                 });
+                
                 cell.appendChild(courseEl);
                 cell.classList.add('has-course');
                 
-                console.log(`[Renderer] ✓ 渲染课程 "${course.name}" 在 星期${course.day} 时间段${course.time} 第${course.period}节`);
-            } else {
-                console.log(`[Renderer] ✗ 未找到单元格: 星期${course.day} 时间段${course.time}`);
-            }
+                console.log(`[Renderer] ✓ 渲染课程 "${course.name}" 在 星期${day} 时间段${timeSlot}, 节次: ${uniquePeriods.join(',') || course.startPeriod + '-' + course.endPeriod}`);
+            });
         });
         
         console.log('[ScheduleManager] 课程渲染完成');
