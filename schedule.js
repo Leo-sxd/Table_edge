@@ -819,6 +819,73 @@ class ZhengfangScheduleParser {
         this.colToDay = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
     }
     
+    // 从课程文本中提取节数信息
+    // 支持格式："1-2节"、"3节"、"5-6节"、"(1-2节)"等
+    extractPeriodInfo(text) {
+        if (!text) return null;
+        
+        // 匹配各种节数格式
+        const patterns = [
+            /\((\d+)-(\d+)节\)/,      // (1-2节)
+            /\((\d+)节\)/,             // (3节)
+            /(\d+)-(\d+)节/,          // 1-2节
+            /(\d+)节/,                // 3节
+            /第(\d+)-(\d+)节/,        // 第1-2节
+            /第(\d+)节/               // 第3节
+        ];
+        
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                if (match[2]) {
+                    // 范围格式，如 1-2节
+                    return {
+                        startPeriod: parseInt(match[1]),
+                        endPeriod: parseInt(match[2]),
+                        isRange: true
+                    };
+                } else {
+                    // 单节格式，如 3节
+                    return {
+                        startPeriod: parseInt(match[1]),
+                        endPeriod: parseInt(match[1]),
+                        isRange: false
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    // 根据节数计算对应的时间段slot
+    // 根据用户设置的时间段配置，将节数映射到正确的slot
+    calculateTimeSlot(periodInfo, scheduleManager) {
+        if (!periodInfo) return null;
+        
+        // 获取用户设置的一天课程节数
+        const periodsPerDay = scheduleManager ? scheduleManager.periodsPerDay : 5;
+        
+        // 根据开始节数确定slot
+        // 例如：1-2节 → slot 1, 3-4节 → slot 2, 5-6节 → slot 3
+        const startPeriod = periodInfo.startPeriod;
+        
+        // 计算slot：每2节课一个slot（向上取整）
+        let timeSlot = Math.ceil(startPeriod / 2);
+        
+        // 确保不超过总slot数
+        if (timeSlot > periodsPerDay) {
+            timeSlot = periodsPerDay;
+        }
+        
+        return {
+            timeSlot: timeSlot,
+            startPeriod: periodInfo.startPeriod,
+            endPeriod: periodInfo.endPeriod,
+            duration: periodInfo.endPeriod - periodInfo.startPeriod + 1  // 课程持续节数
+        };
+    }
+    
     parse(doc) {
         const table = doc.querySelector('#kbgrid_table_0');
         if (!table) throw new Error('未找到课表表格');
@@ -930,7 +997,7 @@ class ZhengfangScheduleParser {
         return courses;
     }
     
-    parseCourseDiv(div, day, timeSlot) {
+    parseCourseDiv(div, day, defaultTimeSlot) {
         const titleSpan = div.querySelector('span.title');
         let name = titleSpan ? titleSpan.textContent.trim() : div.textContent.trim().split(/\s+/)[0];
         
@@ -940,6 +1007,21 @@ class ZhengfangScheduleParser {
         if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
         
         const text = div.textContent;
+        
+        // 提取节数信息
+        const periodInfo = this.extractPeriodInfo(text);
+        let timeSlot = defaultTimeSlot;
+        let duration = 2; // 默认2节课
+        
+        // 如果提取到节数信息，计算正确的timeSlot
+        if (periodInfo && window.scheduleManager) {
+            const slotInfo = this.calculateTimeSlot(periodInfo, window.scheduleManager);
+            if (slotInfo) {
+                timeSlot = slotInfo.timeSlot;
+                duration = slotInfo.duration;
+            }
+        }
+        
         let startWeek = 1, endWeek = 20, weekType = '';
         
         const weekMatch = text.match(/\(\d+-\d+节\)(\d+)-(\d+)周(?:\((单|双)\))?/) ||
@@ -963,7 +1045,7 @@ class ZhengfangScheduleParser {
             }
         }
         
-        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType };
+        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType, duration };
     }
     
     parseCourseText(text, day, timeSlot) {
@@ -992,7 +1074,7 @@ class ZhengfangScheduleParser {
         return courses;
     }
     
-    parseCourseBlock(block, day, timeSlot) {
+    parseCourseBlock(block, day, defaultTimeSlot) {
         let clean = block.replace(/[★☆〇■◆]/g, '').trim();
         if (!clean) return null;
         
@@ -1002,6 +1084,20 @@ class ZhengfangScheduleParser {
         const name = parts[0];
         if (!/[\u4e00-\u9fa5]/.test(name)) return null;
         if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
+        
+        // 提取节数信息
+        const periodInfo = this.extractPeriodInfo(clean);
+        let timeSlot = defaultTimeSlot;
+        let duration = 2; // 默认2节课
+        
+        // 如果提取到节数信息，计算正确的timeSlot
+        if (periodInfo && window.scheduleManager) {
+            const slotInfo = this.calculateTimeSlot(periodInfo, window.scheduleManager);
+            if (slotInfo) {
+                timeSlot = slotInfo.timeSlot;
+                duration = slotInfo.duration;
+            }
+        }
         
         let startWeek = 1, endWeek = 20, weekType = '';
         const weekMatch = clean.match(/(\d+)-(\d+)周(?:\((单|双)\))?/);
@@ -1023,7 +1119,7 @@ class ZhengfangScheduleParser {
             }
         }
         
-        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType };
+        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType, duration };
     }
 }
 
