@@ -859,6 +859,188 @@ class AIWebsiteController {
             return `document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
         }
         
+        // ========== 课程表相关指令 ==========
+        
+        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
+            // 检查是否是"今天"或"明天"
+            const isToday = cmd.includes('今天') || cmd.includes('今日');
+            const isTomorrow = cmd.includes('明天') || cmd.includes('明日');
+            
+            if (isToday || isTomorrow) {
+                // 计算目标日期
+                return `(() => {
+                    const targetDate = new Date();
+                    ${isTomorrow ? 'targetDate.setDate(targetDate.getDate() + 1);' : ''}
+                    const dayOfWeek = targetDate.getDay();
+                    const dayMap = {0: 7, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6};
+                    const targetDay = dayMap[dayOfWeek];
+                    
+                    // 切换到课程表视图
+                    const examContainer = document.getElementById('exam-list-container');
+                    const scheduleContainer = document.querySelector('.schedule-container');
+                    if (examContainer) examContainer.style.display = 'none';
+                    if (scheduleContainer) scheduleContainer.style.display = 'block';
+                    
+                    // 更新标签页状态
+                    document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                    const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                    if (currentTab) currentTab.classList.add('active');
+                    
+                    // 滚动到课程表
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    
+                    // 高亮显示目标天的课程
+                    setTimeout(() => {
+                        const dayHeaders = document.querySelectorAll('.schedule-header');
+                        if (dayHeaders[targetDay]) {
+                            dayHeaders[targetDay].style.background = 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)';
+                            setTimeout(() => {
+                                dayHeaders[targetDay].style.background = '';
+                            }, 2000);
+                        }
+                    }, 500);
+                    
+                    console.log('[AIControl] 查看${isToday ? '今天' : '明天'}课程，星期' + targetDay);
+                })();`;
+            } else {
+                // 只查看课程表，不指定日期
+                return `(() => {
+                    // 切换到课程表视图
+                    const examContainer = document.getElementById('exam-list-container');
+                    const scheduleContainer = document.querySelector('.schedule-container');
+                    if (examContainer) examContainer.style.display = 'none';
+                    if (scheduleContainer) scheduleContainer.style.display = 'block';
+                    
+                    // 更新标签页状态
+                    document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                    const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                    if (currentTab) currentTab.classList.add('active');
+                    
+                    // 滚动到课程表
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    
+                    console.log('[AIControl] 查看课程表');
+                })();`;
+            }
+        }
+        
+        // 11. 添加课程/新增课程
+        if (cmd.includes('添加课程') || cmd.includes('新增课程') || cmd.includes('新建课程')) {
+            return `(() => {
+                // 滚动到课程表区域
+                const scheduleSection = document.getElementById('schedule-section');
+                if (scheduleSection) {
+                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                // 延迟打开添加课程弹窗
+                setTimeout(() => {
+                    if (window.scheduleManager) {
+                        window.scheduleManager.openAddCourseModal();
+                    } else {
+                        // 直接触发添加课程按钮
+                        const addBtn = document.getElementById('add-course-btn');
+                        if (addBtn) addBtn.click();
+                    }
+                }, 500);
+                
+                console.log('[AIControl] 打开添加课程弹窗');
+            })();`;
+        }
+        
+        // 12. 查看考试/考试安排
+        if (cmd.includes('考试') || cmd.includes('测验')) {
+            return `(() => {
+                // 切换到考试视图
+                const examContainer = document.getElementById('exam-list-container');
+                const scheduleContainer = document.querySelector('.schedule-container');
+                if (examContainer) examContainer.style.display = 'block';
+                if (scheduleContainer) scheduleContainer.style.display = 'none';
+                
+                // 更新标签页状态
+                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
+                if (examTab) examTab.classList.add('active');
+                
+                // 滚动到课程表区域
+                const scheduleSection = document.getElementById('schedule-section');
+                if (scheduleSection) {
+                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                console.log('[AIControl] 查看考试安排');
+            })();`;
+        }
+        
+        // 13. 导入课程（批量导入）
+        if (cmd.includes('导入课程') || cmd.includes('批量导入') || cmd.includes('导入课表')) {
+            return `(() => {
+                // 滚动到课程表区域
+                const scheduleSection = document.getElementById('schedule-section');
+                if (scheduleSection) {
+                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                // 延迟触发导入课程按钮
+                setTimeout(() => {
+                    const importBtn = document.getElementById('import-schedule-btn');
+                    if (importBtn) {
+                        importBtn.click();
+                    } else {
+                        // 尝试找到文件输入框并触发
+                        const fileInput = document.getElementById('html-file-input');
+                        if (fileInput) fileInput.click();
+                    }
+                }, 500);
+                
+                console.log('[AIControl] 打开导入课程');
+            })();`;
+        }
+        
+        // 14. 查看第x周课程表
+        const weekMatch = command.match(/第\s*(\d+)\s*周/) || command.match(/(\d+)\s*周/);
+        if (weekMatch && (cmd.includes('周') || cmd.includes('星期'))) {
+            const weekNum = weekMatch[1];
+            if (weekNum >= 1 && weekNum <= 20) {
+                return `(() => {
+                    // 切换到课程表视图
+                    const examContainer = document.getElementById('exam-list-container');
+                    const scheduleContainer = document.querySelector('.schedule-container');
+                    if (examContainer) examContainer.style.display = 'none';
+                    if (scheduleContainer) scheduleContainer.style.display = 'block';
+                    
+                    // 更新标签页状态
+                    document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                    const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                    if (currentTab) currentTab.classList.add('active');
+                    
+                    // 设置周次
+                    if (window.scheduleManager) {
+                        window.scheduleManager.setCurrentWeek(${weekNum});
+                    }
+                    
+                    // 更新下拉框
+                    const weekSelect = document.getElementById('week-select');
+                    if (weekSelect) weekSelect.value = ${weekNum};
+                    
+                    // 滚动到课程表
+                    const scheduleSection = document.getElementById('schedule-section');
+                    if (scheduleSection) {
+                        scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    
+                    console.log('[AIControl] 查看第${weekNum}周课程表');
+                })();`;
+            }
+        }
+        
         // 待办事项设置 - 支持"xxxx年xx月xx日xx点xx分，xxxx"格式
         // 简化指令：直接匹配时间+内容格式
         const todoSimpleMatch = command.match(/(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})点(\d{1,2})分[，,\s]*(.+)/);
