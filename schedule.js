@@ -435,7 +435,8 @@ class ScheduleManager {
         // 按格子(星期-时间段)分组
         const cellMap = new Map();
         
-        currentWeekCourses.forEach(course => {
+        // 保存原始course索引，用于编辑时定位
+        currentWeekCourses.forEach((course, originalIndex) => {
             // 重要：确保time属性正确对应节次
             // 如果course有period属性，使用period作为time（每个节次一个slot）
             // 如果course有startPeriod和endPeriod但没有period，需要计算正确的time
@@ -466,8 +467,11 @@ class ScheduleManager {
                 }
             } else {
                 // 新课程，添加到格子
+                // 重要：保存原始course对象和索引，用于编辑
                 existingCourses.push({
                     ...course,
+                    _originalCourse: course,  // 保存原始course引用
+                    _originalIndex: this.courses.indexOf(course),  // 保存原始索引
                     time: correctTime,  // 使用修正后的time
                     periods: course.period ? [course.period] : (course.startPeriod ? [course.startPeriod] : [])
                 });
@@ -746,18 +750,38 @@ class ScheduleManager {
     
     // 打开添加课程弹窗
     openAddCourseModal(prefill = {}) {
+        console.log('[openAddCourseModal] 打开添加课程弹窗');
+        
         const modal = document.getElementById('add-course-modal');
-        if (!modal) return;
+        if (!modal) {
+            console.error('[openAddCourseModal] 未找到弹窗元素');
+            return;
+        }
+        
+        // 重置弹窗标题为"添加课程"
+        const modalTitle = modal.querySelector('.modal-header h3');
+        if (modalTitle) {
+            modalTitle.innerHTML = '<i class="fas fa-plus"></i> 添加课程';
+        }
         
         // 重置表单
-        document.getElementById('course-name').value = '';
-        document.getElementById('course-day').value = '1';
-        document.getElementById('course-period-start').value = '1';
-        document.getElementById('course-location').value = '';
-        document.getElementById('course-teacher').value = '';
-        document.getElementById('course-start-week').value = '1';
-        document.getElementById('course-end-week').value = '20';
-        document.getElementById('course-week-type').value = '';
+        const nameInput = document.getElementById('course-name');
+        const dayInput = document.getElementById('course-day');
+        const periodInput = document.getElementById('course-period-start');
+        const locationInput = document.getElementById('course-location');
+        const teacherInput = document.getElementById('course-teacher');
+        const startWeekInput = document.getElementById('course-start-week');
+        const endWeekInput = document.getElementById('course-end-week');
+        const weekTypeInput = document.getElementById('course-week-type');
+        
+        if (nameInput) nameInput.value = '';
+        if (dayInput) dayInput.value = '1';
+        if (periodInput) periodInput.value = '1';
+        if (locationInput) locationInput.value = '';
+        if (teacherInput) teacherInput.value = '';
+        if (startWeekInput) startWeekInput.value = '1';
+        if (endWeekInput) endWeekInput.value = '20';
+        if (weekTypeInput) weekTypeInput.value = '';
         
         // 预填充数据
         if (prefill.day) {
@@ -786,6 +810,7 @@ class ScheduleManager {
         }
         
         modal.style.display = 'block';
+        console.log('[openAddCourseModal] 弹窗已显示');
     }
     
     // 打开添加考试弹窗
@@ -1224,36 +1249,92 @@ class ScheduleManager {
     
     // 编辑课程
     editCourse(course) {
-        const index = this.courses.indexOf(course);
-        if (index === -1) return;
+        console.log('[editCourse] 被调用，course对象:', course);
+        
+        // 优先使用保存的原始索引，否则尝试查找
+        let index = course._originalIndex;
+        console.log('[editCourse] 原始索引:', index);
+        
+        // 如果索引无效，尝试通过对象引用查找
+        if (index === undefined || index === -1 || index >= this.courses.length) {
+            index = this.courses.indexOf(course);
+            console.log('[editCourse] 通过indexOf查找索引:', index);
+        }
+        
+        // 如果还是找不到，尝试通过course属性匹配查找
+        if (index === -1 && course.name && course.day) {
+            const period = course.period || course.time;
+            index = this.courses.findIndex(c => 
+                c.name === course.name && 
+                c.day === course.day && 
+                (c.period === period || c.time === period)
+            );
+            console.log('[editCourse] 通过属性匹配查找索引:', index);
+        }
+        
+        if (index === -1) {
+            console.error('[editCourse] 无法找到课程:', course);
+            console.error('[editCourse] 当前课程列表:', this.courses);
+            alert('无法找到该课程，请刷新页面后重试');
+            return;
+        }
+        
+        // 获取原始课程数据（优先使用保存的原始引用）
+        const originalCourse = course._originalCourse || this.courses[index];
+        console.log('[editCourse] 原始课程数据:', originalCourse);
         
         const modal = document.getElementById('add-course-modal');
-        if (!modal) return;
+        if (!modal) {
+            console.error('[editCourse] 未找到弹窗元素');
+            return;
+        }
         
-        // 填充表单
-        document.getElementById('course-name').value = course.name;
-        document.getElementById('course-day').value = course.day;
+        // 修改弹窗标题为"编辑课程"
+        const modalTitle = modal.querySelector('.modal-header h3');
+        if (modalTitle) {
+            modalTitle.innerHTML = '<i class="fas fa-edit"></i> 编辑课程';
+        }
+        
+        // 填充表单（使用原始课程数据）
+        const nameInput = document.getElementById('course-name');
+        const dayInput = document.getElementById('course-day');
+        const periodInput = document.getElementById('course-period-start');
+        const locationInput = document.getElementById('course-location');
+        const teacherInput = document.getElementById('course-teacher');
+        const startWeekInput = document.getElementById('course-start-week');
+        const endWeekInput = document.getElementById('course-end-week');
+        const weekTypeInput = document.getElementById('course-week-type');
+        
+        if (nameInput) nameInput.value = originalCourse.name || '';
+        if (dayInput) dayInput.value = originalCourse.day || 1;
+        
         // 兼容旧数据：如果course有time字段，转换为period
-        const periodValue = course.period || course.time || 1;
-        document.getElementById('course-period-start').value = periodValue;
-        document.getElementById('course-location').value = course.location || '';
-        document.getElementById('course-teacher').value = course.teacher || '';
-        document.getElementById('course-start-week').value = course.startWeek || 1;
-        document.getElementById('course-end-week').value = course.endWeek || 20;
-        document.getElementById('course-week-type').value = course.weekType || '';
+        const periodValue = originalCourse.period || originalCourse.time || 1;
+        if (periodInput) periodInput.value = periodValue;
+        
+        if (locationInput) locationInput.value = originalCourse.location || '';
+        if (teacherInput) teacherInput.value = originalCourse.teacher || '';
+        if (startWeekInput) startWeekInput.value = originalCourse.startWeek || 1;
+        if (endWeekInput) endWeekInput.value = originalCourse.endWeek || 20;
+        if (weekTypeInput) weekTypeInput.value = originalCourse.weekType || '';
         
         // 设置编辑状态
-        modal.dataset.editIndex = index;
+        modal.dataset.editIndex = index.toString();
+        
+        console.log(`[editCourse] 打开编辑弹窗，课程索引: ${index}, 名称: ${originalCourse.name}`);
         
         // 显示删除按钮（编辑模式）
         const deleteBtn = document.getElementById('delete-course-btn');
         if (deleteBtn) {
+            console.log('[editCourse] 显示删除按钮');
             deleteBtn.style.display = 'inline-flex';
             deleteBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 this.deleteCourse(index);
             };
+        } else {
+            console.error('[editCourse] 未找到删除按钮');
         }
         
         // 修改保存按钮文本为"更新"
@@ -1263,6 +1344,7 @@ class ScheduleManager {
         }
         
         modal.style.display = 'block';
+        console.log('[editCourse] 弹窗已显示');
     }
     
     // 保存考试
