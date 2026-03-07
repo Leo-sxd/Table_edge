@@ -224,8 +224,21 @@ class ScheduleManager {
             if (cell) {
                 const courseEl = document.createElement('div');
                 courseEl.className = 'course-item';
+                
+                // 根据课程时长设置高度（duration表示节数）
+                const duration = course.duration || 2;
+                // 每节课高度约100px（包括间距）
+                const height = duration * 100 - 10; // 减去间距
+                courseEl.style.height = `${height}px`;
+                
+                // 添加课程节数显示
+                const startPeriod = (course.time - 1) * 2 + 1;
+                const endPeriod = startPeriod + duration - 1;
+                const periodText = `${startPeriod}-${endPeriod}节`;
+                
                 courseEl.innerHTML = `
                     <div class="course-name">${course.name}</div>
+                    <div class="course-period">${periodText}</div>
                     ${course.location ? `<div class="course-location">${course.location}</div>` : ''}
                     ${course.startWeek !== 1 || course.endWeek !== 20 ? 
                         `<div class="course-weeks">${course.startWeek}-${course.endWeek}周</div>` : ''}
@@ -737,6 +750,13 @@ class ZhengfangScheduleParser {
         if (!/[\u4e00-\u9fa5]/.test(name)) return null;
         if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
         
+        // 提取课程时长
+        let duration = 2;
+        const periodMatch = clean.match(/(\d+)-(\d+)节/);
+        if (periodMatch) {
+            duration = parseInt(periodMatch[2]) - parseInt(periodMatch[1]) + 1;
+        }
+        
         let startWeek = 1, endWeek = 20, weekType = '';
         const weekMatch = clean.match(/(\d+)-(\d+)周(?:\((单|双)\))?/);
         if (weekMatch) {
@@ -757,7 +777,7 @@ class ZhengfangScheduleParser {
             }
         }
         
-        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType };
+        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType, duration };
     }
 }
 
