@@ -46,23 +46,26 @@ class ScheduleManager {
         console.log('[ScheduleManager] 初始化完成');
     }
     
-    // 获取当前周的日期范围
-    getWeekDates() {
+    // 获取指定周的日期范围
+    getWeekDates(targetWeek = null) {
         const dates = [];
-        const now = new Date();
-        const currentDay = now.getDay(); // 0=周日, 1=周一, ...
         
-        // 计算本周一的距离（如果今天是周日，则减去6天，否则减去今天对应的星期数-1）
-        const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
+        // 使用当前选中的周次，如果没有传入则使用 this.currentWeek
+        const week = targetWeek || this.currentWeek || 1;
         
-        // 获取本周一的日期
-        const monday = new Date(now);
-        monday.setDate(now.getDate() + diffToMonday);
+        // 获取学期开始日期（假设为2025年3月2日，第1周的开始）
+        // 可以通过用户设置来修改这个日期
+        const semesterStart = this.getSemesterStartDate();
+        
+        // 计算目标周的周一日期
+        // 第1周的周一就是学期开始日期
+        const targetMonday = new Date(semesterStart);
+        targetMonday.setDate(semesterStart.getDate() + (week - 1) * 7);
         
         // 生成周一到周日的日期
         for (let i = 0; i < 7; i++) {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + i);
+            const date = new Date(targetMonday);
+            date.setDate(targetMonday.getDate() + i);
             dates.push({
                 month: date.getMonth() + 1,
                 day: date.getDate(),
@@ -71,6 +74,38 @@ class ScheduleManager {
         }
         
         return dates;
+    }
+    
+    // 获取学期开始日期
+    getSemesterStartDate() {
+        // 尝试从本地存储获取用户设置的学期开始日期
+        const savedStartDate = localStorage.getItem('semester_start_date');
+        if (savedStartDate) {
+            return new Date(savedStartDate);
+        }
+        
+        // 默认学期开始日期：2025年3月2日（第1周周一）
+        // 用户可以通过设置修改这个日期
+        return new Date('2025-03-02');
+    }
+    
+    // 设置学期开始日期
+    setSemesterStartDate(dateString) {
+        if (!dateString) return;
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            alert('无效的日期格式');
+            return;
+        }
+        
+        // 保存到本地存储
+        localStorage.setItem('semester_start_date', dateString);
+        console.log(`[ScheduleManager] 学期开始日期已设置为: ${dateString}`);
+        
+        // 重新渲染
+        this.render();
+        alert(`学期开始日期已设置为 ${dateString}，课程表日期已更新！`);
     }
     
     // 数据迁移：修正旧数据的time属性
@@ -328,8 +363,8 @@ class ScheduleManager {
         // 清空现有内容
         grid.innerHTML = '';
         
-        // 获取本周日期
-        const weekDates = this.getWeekDates();
+        // 获取当前周的日期（根据 currentWeek 计算）
+        const weekDates = this.getWeekDates(this.currentWeek);
         
         // 生成表头（时间列 + 7天）
         grid.innerHTML += '<div class="schedule-header time-col">时间</div>';
@@ -1249,6 +1284,7 @@ class ScheduleManager {
         if (this.currentWeek > this.maxWeek) this.currentWeek = this.maxWeek;
         this.saveData();
         this.render();
+        console.log(`[ScheduleManager] 切换到第${this.currentWeek}周，日期已更新`);
     }
     
     // 设置当前周
@@ -1256,6 +1292,7 @@ class ScheduleManager {
         this.currentWeek = week;
         this.saveData();
         this.render();
+        console.log(`[ScheduleManager] 设置当前周为第${week}周，日期已更新`);
     }
     
     // 切换考试视图
