@@ -871,6 +871,33 @@ class AIWebsiteController {
             return `document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
         }
         
+        // 壁纸亮度调节 - 支持"亮度50"、"设置亮度为80"、"壁纸亮度30"等格式
+        const brightnessMatch = cmd.match(/(?:壁纸|背景)?\s*亮度\s*(?:为|设置)?\s*(\d+)/) || 
+                                cmd.match(/(?:设置|调节|调整)\s*(?:壁纸|背景)?\s*亮度\s*(?:为)?\s*(\d+)/);
+        if (brightnessMatch || cmd.includes('亮度')) {
+            let brightnessValue = 100;
+            if (brightnessMatch) {
+                brightnessValue = parseInt(brightnessMatch[1], 10);
+            }
+            // 限制范围 0-100
+            brightnessValue = Math.max(0, Math.min(100, brightnessValue));
+            
+            return `(() => {
+                if (window.settingsManager) {
+                    window.settingsManager.setWallpaperBrightness(${brightnessValue});
+                } else {
+                    // 备用方案：直接设置
+                    const brightness = ${brightnessValue} / 100;
+                    document.body.style.filter = 'brightness(' + brightness + ')';
+                    localStorage.setItem('backgroundEffectSettings', JSON.stringify({
+                        ...JSON.parse(localStorage.getItem('backgroundEffectSettings') || '{}'),
+                        wallpaperBrightness: ${brightnessValue}
+                    }));
+                }
+                console.log('[AIControl] 壁纸亮度设置为: ${brightnessValue}%');
+            })();`;
+        }
+        
         // ========== 课程表相关指令 ==========
         
         // 指令10和12在 executeLocalCommand 方法中直接执行
@@ -1562,7 +1589,8 @@ class SettingsManager {
     getDefaultSettings() {
         return {
             mouseTrail: { enabled: false },
-            screenSaver: { enabled: false, timeout: 60 }
+            screenSaver: { enabled: false, timeout: 60 },
+            wallpaperBrightness: 100
         };
     }
     
@@ -1595,6 +1623,8 @@ class SettingsManager {
         this.screenSaverTimeSlider = document.getElementById('screensaver-time-slider');
         this.screenSaverTimeInput = document.getElementById('screensaver-time-input');
         this.screenSaverTimeControl = document.getElementById('screensaver-time-control');
+        this.brightnessSlider = document.getElementById('brightness-slider');
+        this.brightnessValue = document.getElementById('brightness-value');
         this.settingsBtn = document.getElementById('settings-btn');
         this.modalOverlay = document.getElementById('settings-modal-overlay');
         this.modalBackdrop = document.getElementById('modal-backdrop');
@@ -1777,6 +1807,17 @@ class SettingsManager {
         } else {
             console.error('screenSaverToggle element not found!');
         }
+        
+        // 壁纸亮度滑块事件绑定
+        if (this.brightnessSlider) {
+            // 设置初始值
+            this.brightnessSlider.value = this.settings.wallpaperBrightness || 100;
+            
+            this.brightnessSlider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                this.setWallpaperBrightness(value);
+            });
+        }
     }
     
     bindEffectControl(controlKey, settingKey) {
@@ -1859,6 +1900,40 @@ class SettingsManager {
             
 
         }
+        
+        // 应用壁纸亮度设置
+        if (this.settings.wallpaperBrightness !== undefined) {
+            this.setWallpaperBrightness(this.settings.wallpaperBrightness, false);
+        }
+    }
+    
+    // 设置壁纸亮度
+    setWallpaperBrightness(value, save = true) {
+        // 限制范围 0-100
+        value = Math.max(0, Math.min(100, value));
+        
+        // 更新设置
+        this.settings.wallpaperBrightness = value;
+        
+        // 更新UI
+        if (this.brightnessSlider) {
+            this.brightnessSlider.value = value;
+        }
+        if (this.brightnessValue) {
+            this.brightnessValue.textContent = value + '%';
+        }
+        
+        // 应用亮度到背景 - 使用 brightness 滤镜
+        // 100 = 原图(1.0), 0 = 全黑(0.0)
+        const brightness = value / 100;
+        document.body.style.filter = `brightness(${brightness})`;
+        
+        // 保存设置
+        if (save) {
+            this.saveSettings();
+        }
+        
+        console.log('[SettingsManager] 壁纸亮度设置为:', value + '%');
     }
     
     // 单独更新粒子数量（用于滑块实时预览）
