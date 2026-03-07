@@ -279,11 +279,8 @@ class ScheduleManager {
             saveCourseBtn.addEventListener('click', () => this.saveCourse());
         }
         
-        // 保存考试按钮
-        const saveExamBtn = document.getElementById('save-exam-btn');
-        if (saveExamBtn) {
-            saveExamBtn.addEventListener('click', () => this.saveExam());
-        }
+        // 保存考试按钮的事件绑定移到 openAddExamModal 和 editExam 中
+        // 避免重复绑定导致多次触发
         
         console.log('[ScheduleManager] 事件绑定完成');
     }
@@ -691,9 +688,12 @@ class ScheduleManager {
             const saveBtn = document.getElementById('save-exam-btn');
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
-                // 移除旧的onclick并添加新的
-                saveBtn.onclick = null;
-                saveBtn.addEventListener('click', () => this.saveExam(), { once: true });
+                // 使用 onclick 而不是 addEventListener，避免重复绑定
+                saveBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.saveExam();
+                };
             }
             
             // 清除编辑标记
@@ -1071,9 +1071,12 @@ class ScheduleManager {
     
     // 保存考试
     saveExam() {
+        console.log('[saveExam] 被调用');
+        
         // 检查是否在编辑模式
         const modal = document.getElementById('add-exam-modal');
         if (modal && modal.dataset.editIndex !== undefined) {
+            console.log('[saveExam] 检测到编辑模式，调用 updateExam');
             // 在编辑模式，调用更新方法
             const index = parseInt(modal.dataset.editIndex);
             this.updateExam(index);
@@ -1090,6 +1093,18 @@ class ScheduleManager {
         
         if (!name || !date || !time) {
             alert('请填写完整的考试信息');
+            return;
+        }
+        
+        // 检查是否已存在相同的考试（防止重复提交）
+        const existingExam = this.exams.find(e => 
+            e.name === name && 
+            e.date === date && 
+            e.time === time
+        );
+        if (existingExam) {
+            console.log('[saveExam] 检测到重复考试，跳过添加');
+            alert('该考试已存在！');
             return;
         }
         
