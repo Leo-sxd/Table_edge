@@ -406,11 +406,25 @@ class ScheduleManager {
         
         // 过滤当前周的课程
         const currentWeekCourses = this.courses.filter(course => {
-            return this.currentWeek >= course.startWeek && 
-                   this.currentWeek <= course.endWeek &&
-                   (course.weekType === '' || 
-                    (course.weekType === '单周' && this.currentWeek % 2 === 1) ||
-                    (course.weekType === '双周' && this.currentWeek % 2 === 0));
+            const startWeek = course.startWeek || 1;
+            const endWeek = course.endWeek || 20;
+            const weekType = course.weekType || '';
+            
+            // 检查是否在周次范围内
+            if (this.currentWeek < startWeek || this.currentWeek > endWeek) {
+                return false;
+            }
+            
+            // 检查单双周（兼容中英文：odd/单周, even/双周）
+            if (weekType === 'odd' || weekType === '单周') {
+                return this.currentWeek % 2 === 1;
+            }
+            if (weekType === 'even' || weekType === '双周') {
+                return this.currentWeek % 2 === 0;
+            }
+            
+            // 不分单双周
+            return true;
         });
         
         console.log('[Renderer] 当前周课程:', currentWeekCourses.length, '个节次');
@@ -502,12 +516,25 @@ class ScheduleManager {
                     }
                 }
                 
+                // 格式化周次显示
+                let weekDisplay = '';
+                const startWeek = course.startWeek || 1;
+                const endWeek = course.endWeek || 20;
+                const weekType = course.weekType || '';
+                
+                if (weekType === 'odd' || weekType === '单周') {
+                    weekDisplay = '[单周]';
+                } else if (weekType === 'even' || weekType === '双周') {
+                    weekDisplay = '[双周]';
+                } else if (startWeek !== 1 || endWeek !== 20) {
+                    weekDisplay = `[${startWeek}-${endWeek}周]`;
+                }
+                
                 courseEl.innerHTML = `
                     <div class="course-name">${course.name}</div>
                     ${course.location ? `<div class="course-location">${course.location}</div>` : ''}
                     ${periodText}
-                    ${course.startWeek !== 1 || course.endWeek !== 20 ? 
-                        `<div class="course-weeks">${course.startWeek}-${course.endWeek}周</div>` : ''}
+                    ${weekDisplay ? `<div class="course-weeks">${weekDisplay}</div>` : ''}
                 `;
                 courseEl.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1086,21 +1113,37 @@ class ScheduleManager {
     saveCourse() {
         const name = document.getElementById('course-name')?.value.trim();
         const day = parseInt(document.getElementById('course-day')?.value);
-        const time = parseInt(document.getElementById('course-time')?.value);
+        const periodStart = parseInt(document.getElementById('course-period-start')?.value);
         const location = document.getElementById('course-location')?.value.trim();
+        const teacher = document.getElementById('course-teacher')?.value.trim();
         const startWeek = parseInt(document.getElementById('course-start-week')?.value) || 1;
         const endWeek = parseInt(document.getElementById('course-end-week')?.value) || 20;
         const weekType = document.getElementById('course-week-type')?.value || '';
         
-        if (!name || !day || !time) {
+        if (!name || !day || !periodStart) {
             alert('请填写完整的课程信息');
+            return;
+        }
+        
+        // 验证周次范围
+        if (startWeek > endWeek) {
+            alert('起始周不能大于终止周');
             return;
         }
         
         const modal = document.getElementById('add-course-modal');
         const editIndex = modal?.dataset.editIndex;
         
-        const course = { name, day, time, location, startWeek, endWeek, weekType };
+        const course = { 
+            name, 
+            day, 
+            period: periodStart,  // 使用节次而非time
+            location, 
+            teacher,
+            startWeek, 
+            endWeek, 
+            weekType 
+        };
         
         if (editIndex !== undefined && editIndex !== '') {
             // 编辑模式
@@ -1113,6 +1156,8 @@ class ScheduleManager {
         this.saveData();
         this.render();
         this.closeAllModals();
+        
+        alert(`课程"${name}"保存成功！`);
     }
     
     // 编辑课程
@@ -1126,11 +1171,14 @@ class ScheduleManager {
         // 填充表单
         document.getElementById('course-name').value = course.name;
         document.getElementById('course-day').value = course.day;
-        document.getElementById('course-time').value = course.time;
+        // 兼容旧数据：如果course有time字段，转换为period
+        const periodValue = course.period || course.time || 1;
+        document.getElementById('course-period-start').value = periodValue;
         document.getElementById('course-location').value = course.location || '';
-        document.getElementById('course-start-week').value = course.startWeek;
-        document.getElementById('course-end-week').value = course.endWeek;
-        document.getElementById('course-week-type').value = course.weekType;
+        document.getElementById('course-teacher').value = course.teacher || '';
+        document.getElementById('course-start-week').value = course.startWeek || 1;
+        document.getElementById('course-end-week').value = course.endWeek || 20;
+        document.getElementById('course-week-type').value = course.weekType || '';
         
         // 设置编辑状态
         modal.dataset.editIndex = index;
