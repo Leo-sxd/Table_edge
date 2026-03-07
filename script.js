@@ -7320,9 +7320,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== HTML课程表导入功能（wakeup课程表方案）====================
 
+// ==================== 全新HTML课程表导入系统 ====================
+// 基于结构化解析的多策略课程识别系统
+
 class HTMLScheduleImporter {
     constructor() {
         this.init();
+        // 解析策略配置
+        this.strategies = {
+            // 正方教务系统策略
+            zhengfang: {
+                tableSelector: '#kbgrid_table_0',
+                rowSelector: 'tr',
+                cellSelector: 'td, th',
+                courseMarker: ['★', '☆', '〇', '■', '◆'],
+                campusNames: ['骊山校园', '雁塔校园', '秦汉校园'],
+                roomPattern: /\d+-\d+-\d+|体育馆|2-机房|未排地点/,
+                weekPattern: /(\d+)-(\d+)周/,
+                weekTypePattern: /(单|双)周/
+            }
+        };
     }
     
     init() {
@@ -7330,7 +7347,6 @@ class HTMLScheduleImporter {
     }
     
     bindEvents() {
-        // HTML文件选择按钮
         const uploadBtn = document.getElementById('upload-html-btn');
         const fileInput = document.getElementById('html-file-input');
         
@@ -7359,21 +7375,22 @@ class HTMLScheduleImporter {
         try {
             const text = await file.text();
             console.log('[HTML] 文件大小:', text.length);
-            console.log('[HTML] 文件内容前500字符:', text.substring(0, 500));
             
             // 解析HTML
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, 'text/html');
             
-            // 提取课程数据
-            const courses = this.extractCoursesFromHTML(doc);
+            // 使用多策略解析
+            const courses = this.extractCoursesWithStrategies(doc);
             
-            if (courses.length > 0) {
-                // 填充到文本框
-                this.fillCoursesToTextarea(courses);
+            // 数据验证和纠错
+            const validatedCourses = this.validateAndCorrect(courses);
+            
+            if (validatedCourses.length > 0) {
+                this.fillCoursesToTextarea(validatedCourses);
                 
                 if (resultDiv) {
-                    resultDiv.innerHTML = `<i class="fas fa-check-circle"></i> 成功提取 ${courses.length} 门课程！`;
+                    resultDiv.innerHTML = `<i class="fas fa-check-circle"></i> 成功提取 ${validatedCourses.length} 门课程！`;
                     resultDiv.style.background = 'rgba(0,255,0,0.1)';
                     resultDiv.style.color = '#00ff88';
                     resultDiv.style.display = 'block';
@@ -7410,81 +7427,74 @@ class HTMLScheduleImporter {
         }
     }
     
-                    // 从HTML文档提取课程
-    extractCoursesFromHTML(doc) {
-        const courses = [];
-        console.log('[HTML] 开始解析HTML...');
+    // 多策略课程提取
+    extractCoursesWithStrategies(doc) {
+        console.log('[HTML] 开始多策略解析...');
         
-        const table = doc.querySelector('#kbgrid_table_0');
+        const allCourses = [];
+        
+        // 策略1: 正方教务系统表格解析
+        const zhengfangCourses = this.parseZhengfangTable(doc);
+        if (zhengfangCourses.length > 0) {
+            console.log(`[HTML] 正方策略识别到 ${zhengfangCourses.length} 门课程`);
+            allCourses.push(...zhengfangCourses);
+        }
+        
+        // 策略2: 通用表格解析（备用）
+        if (allCourses.length === 0) {
+            const genericCourses = this.parseGenericTable(doc);
+            if (genericCourses.length > 0) {
+                console.log(`[HTML] 通用策略识别到 ${genericCourses.length} 门课程`);
+                allCourses.push(...genericCourses);
+            }
+        }
+        
+        // 策略3: 文本模式解析（最后备用）
+        if (allCourses.length === 0) {
+            const textCourses = this.parseFromText(doc.body.innerText);
+            if (textCourses.length > 0) {
+                console.log(`[HTML] 文本策略识别到 ${textCourses.length} 门课程`);
+                allCourses.push(...textCourses);
+            }
+        }
+        
+        return allCourses;
+    }
+    
+    // 正方教务系统表格解析
+    parseZhengfangTable(doc) {
+        const courses = [];
+        const config = this.strategies.zhengfang;
+        
+        const table = doc.querySelector(config.tableSelector);
         if (!table) {
-            console.error('[HTML] 未找到kbgrid_table_0表格');
+            console.log('[HTML] 未找到正方教务表格');
             return courses;
         }
         
-        console.log('[HTML] 找到课表表格');
-        const rows = table.querySelectorAll('tr');
-        console.log('[HTML] 表格总行数:', rows.length);
+        console.log('[HTML] 找到正方教务表格，开始解析...');
         
-        const columnToDay = {
-            2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7
-        };
+        const rows = table.querySelectorAll(config.rowSelector);
+        console.log('[HTML] 表格行数:', rows.length);
+        
+        // 列映射：索引 -> 星期几（1-7）
+        const columnToDay = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
         
         // 跟踪rowspan状态
         const rowspanTracker = {};
         
-        // 跟踪当前时间段
-        let currentTimeSlot = 0;
-        
+        // 遍历数据行（从第2行开始，跳过表头）
         for (let rowIndex = 2; rowIndex < rows.length; rowIndex++) {
             const row = rows[rowIndex];
-            let cells = Array.from(row.querySelectorAll('td, th'));
+            let cells = Array.from(row.querySelectorAll(config.cellSelector));
             
-            if (cells.length < 2) continue;
+            if (cells.length < 3) continue;
             
             // 处理rowspan延续
-            const processedCells = [];
-            let cellIdx = 0;
-            for (let colIdx = 0; colIdx < 9; colIdx++) {
-                if (rowspanTracker[colIdx] && rowspanTracker[colIdx].remaining > 0) {
-                    processedCells.push({
-                        isContinuation: true,
-                        courseData: rowspanTracker[colIdx].courseData
-                    });
-                    rowspanTracker[colIdx].remaining--;
-                    if (rowspanTracker[colIdx].remaining <= 0) {
-                        delete rowspanTracker[colIdx];
-                    }
-                } else if (cellIdx < cells.length) {
-                    processedCells.push({
-                        element: cells[cellIdx],
-                        isContinuation: false
-                    });
-                    cellIdx++;
-                } else {
-                    processedCells.push({
-                        element: null,
-                        isContinuation: false
-                    });
-                }
-            }
+            const processedCells = this.processRowspan(cells, rowspanTracker, rowIndex);
             
             // 查找节次
-            let timeSlot = null;
-            if (processedCells[1] && processedCells[1].element) {
-                const periodText = (processedCells[1].element.textContent || '').trim();
-                const periodMatch = periodText.match(/^(\d+)$/);
-                if (periodMatch) {
-                    const period = parseInt(periodMatch[1]);
-                    timeSlot = Math.ceil(period / 2);
-                    currentTimeSlot = timeSlot;
-                }
-            }
-            
-            // 如果没有找到节次，使用当前时间段
-            if (!timeSlot && currentTimeSlot > 0) {
-                timeSlot = currentTimeSlot;
-            }
-            
+            const timeSlot = this.extractTimeSlot(processedCells);
             if (!timeSlot) continue;
             
             // 遍历每一天的列
@@ -7498,21 +7508,19 @@ class HTMLScheduleImporter {
                 const cell = cellData.element;
                 if (!cell) continue;
                 
-                const content = (cell.innerText || cell.textContent || '').trim();
-                if (!content || content === '' || content === '\xa0' || 
-                    content === '上午' || content === '下午' || content === '晚上') {
-                    continue;
-                }
+                const content = this.cleanCellContent(cell);
+                if (!content) continue;
                 
-                const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
+                // 解析课程块
+                const cellCourses = this.parseCourseBlock(content, dayOfWeek, timeSlot, config);
                 
-                // 解析课程
-                const cellCourses = this.parseCourseFromCell(content, dayOfWeek, timeSlot);
                 for (const course of cellCourses) {
-                    if (course) {
+                    if (course && this.isValidCourse(course)) {
                         courses.push(course);
-                        console.log(`[HTML] 添加课程: ${course.name} 星期${dayOfWeek} 时间段${timeSlot}`);
+                        console.log(`[HTML] ✓ 识别课程: ${course.name} | 周${dayOfWeek} | 时间段${timeSlot}`);
                         
+                        // 记录rowspan
+                        const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
                         if (rowspan > 1) {
                             rowspanTracker[colIndex] = {
                                 remaining: rowspan - 1,
@@ -7524,14 +7532,65 @@ class HTMLScheduleImporter {
             }
         }
         
-        console.log(`[HTML] 解析完成，共识别 ${courses.length} 门课程`);
         return courses;
     }
     
-                // 解析单个课程单元格（可能包含多个课程）
-    parseCourseFromCell(content, dayOfWeek, timeSlot) {
-        if (!content || content.length < 2) return [];
+    // 处理rowspan延续
+    processRowspan(cells, rowspanTracker, rowIndex) {
+        const processedCells = [];
+        let cellIdx = 0;
         
+        for (let colIdx = 0; colIdx < 9; colIdx++) {
+            if (rowspanTracker[colIdx] && rowspanTracker[colIdx].remaining > 0) {
+                processedCells.push({
+                    isContinuation: true,
+                    courseData: rowspanTracker[colIdx].courseData
+                });
+                rowspanTracker[colIdx].remaining--;
+                if (rowspanTracker[colIdx].remaining <= 0) {
+                    delete rowspanTracker[colIdx];
+                }
+            } else if (cellIdx < cells.length) {
+                processedCells.push({
+                    element: cells[cellIdx],
+                    isContinuation: false
+                });
+                cellIdx++;
+            } else {
+                processedCells.push({ element: null, isContinuation: false });
+            }
+        }
+        
+        return processedCells;
+    }
+    
+    // 提取时间段
+    extractTimeSlot(processedCells) {
+        if (!processedCells[1] || !processedCells[1].element) return null;
+        
+        const periodText = (processedCells[1].element.textContent || '').trim();
+        const periodMatch = periodText.match(/^(\d+)$/);
+        
+        if (periodMatch) {
+            const period = parseInt(periodMatch[1]);
+            return Math.ceil(period / 2); // 1-2节->1, 3-4节->2, ...
+        }
+        
+        return null;
+    }
+    
+    // 清理单元格内容
+    cleanCellContent(cell) {
+        const content = (cell.innerText || cell.textContent || '').trim();
+        if (!content || content === '' || content === '\xa0' || 
+            content === '上午' || content === '下午' || content === '晚上') {
+            return null;
+        }
+        return content;
+    }
+    
+    // 解析课程块
+    parseCourseBlock(content, dayOfWeek, timeSlot, config) {
         const courses = [];
         
         // 使用课程类型标记分割多个课程
@@ -7540,203 +7599,205 @@ class HTMLScheduleImporter {
         for (const block of courseBlocks) {
             if (!block.trim()) continue;
             
-            const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            if (lines.length === 0) continue;
-            
-            console.log('[HTML] 解析课程块:', lines);
-            
-            // 查找课程名 - 课程名通常是第一行，包含★标记或纯课程名
-            let courseName = '';
-            let detailStartIndex = 0;
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                
-                // 课程名特征：
-                // 1. 包含课程类型标记 ★☆〇■◆
-                // 2. 或者是第一行且包含中文
-                // 3. 不包含"周数"、"校区"、"地点"、"教师"等关键词
-                // 4. 不是纯数字或纯英文
-                
-                const hasCourseMarker = /[★☆〇■◆]/.test(line);
-                const hasChinese = /[\u4e00-\u9fa5]/.test(line);
-                const isDetailInfo = /(周数|校区|地点|教师|教学楼|教室|机房|实验室|学分|考核)/.test(line);
-                const isCampusOnly = /^(骊山校园|雁塔校园|秦汉校园)$/.test(line);
-                
-                if (hasChinese && !isDetailInfo && !isCampusOnly && line.length >= 2) {
-                    // 移除课程类型标记
-                    courseName = line.replace(/[★◆☆〇■]/g, '').trim();
-                    detailStartIndex = i + 1;
-                    
-                    // 如果课程名就是校区名称，跳过
-                    if (/^(骊山校园|雁塔校园|秦汉校园)$/.test(courseName)) {
-                        courseName = '';
-                        continue;
-                    }
-                    
-                    console.log('[HTML] 找到课程名:', courseName);
-                    break;
-                }
+            const course = this.extractCourseInfo(block, dayOfWeek, timeSlot, config);
+            if (course) {
+                courses.push(course);
             }
-            
-            // 如果没找到有效课程名，跳过这个块
-            if (!courseName || courseName.length < 2) {
-                console.log('[HTML] 未找到有效课程名，跳过这个块');
-                continue;
-            }
-            
-            // 合并详情行
-            const detailText = lines.slice(detailStartIndex).join(' ');
-            console.log('[HTML] 详情文本:', detailText);
-            
-            // 创建课程对象
-            const course = {
-                name: courseName,
-                day: dayOfWeek,
-                time: timeSlot,
-                location: '',
-                startWeek: 1,
-                endWeek: 20,
-                weekType: ''
-            };
-            
-            // 提取周次（如：1-16周）
-            const weekMatch = detailText.match(/(\d+)-(\d+)周/);
-            if (weekMatch) {
-                course.startWeek = parseInt(weekMatch[1]);
-                course.endWeek = parseInt(weekMatch[2]);
-            }
-            
-            // 提取单双周
-            if (detailText.includes('单周')) {
-                course.weekType = '单周';
-            } else if (detailText.includes('双周')) {
-                course.weekType = '双周';
-            }
-            
-            // 提取地点 - 优先从"骊山校园"等校区信息中提取完整地点
-            // 格式通常是：骊山校园  2-1-402
-            const fullLocationMatch = detailText.match(/(骊山校园|雁塔校园|秦汉校园)\s+(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
-            if (fullLocationMatch) {
-                course.location = fullLocationMatch[1] + ' ' + fullLocationMatch[2];
-            } else {
-                // 单独提取教室代码
-                const roomMatch = detailText.match(/(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
-                if (roomMatch) {
-                    course.location = roomMatch[1];
-                }
-                
-                // 单独提取校区
-                const campusMatch = detailText.match(/(骊山校园|雁塔校园|秦汉校园)/);
-                if (campusMatch) {
-                    if (course.location) {
-                        course.location = campusMatch[1] + ' ' + course.location;
-                    } else {
-                        course.location = campusMatch[1];
-                    }
-                }
-            }
-            
-            console.log(`[HTML] ✓ 解析课程: ${course.name} | 星期${dayOfWeek} | 时间段${timeSlot} | 地点${course.location} | 周数${course.startWeek}-${course.endWeek}周${course.weekType ? '(' + course.weekType + ')' : ''}`);
-            courses.push(course);
         }
         
         return courses;
     }
     
-    extractFromText(text) {
-        // 备用方案：从纯文本中提取
+    // 提取课程信息
+    extractCourseInfo(block, dayOfWeek, timeSlot, config) {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length === 0) return null;
+        
+        console.log('[HTML] 解析课程块:', lines);
+        
+        // 提取课程名
+        const courseName = this.extractCourseName(lines, config);
+        if (!courseName) return null;
+        
+        // 合并详情行
+        const detailText = lines.slice(1).join(' ');
+        
+        // 提取其他信息
+        const course = {
+            name: courseName,
+            day: dayOfWeek,
+            time: timeSlot,
+            location: this.extractLocation(detailText, config),
+            startWeek: 1,
+            endWeek: 20,
+            weekType: ''
+        };
+        
+        // 提取周次
+        const weekMatch = detailText.match(config.weekPattern);
+        if (weekMatch) {
+            course.startWeek = parseInt(weekMatch[1]);
+            course.endWeek = parseInt(weekMatch[2]);
+        }
+        
+        // 提取单双周
+        const weekTypeMatch = detailText.match(config.weekTypePattern);
+        if (weekTypeMatch) {
+            course.weekType = weekTypeMatch[1] + '周';
+        }
+        
+        return course;
+    }
+    
+    // 提取课程名
+    extractCourseName(lines, config) {
+        for (const line of lines) {
+            // 课程名特征检查
+            const hasCourseMarker = config.courseMarker.some(m => line.includes(m));
+            const hasChinese = /[\u4e00-\u9fa5]/.test(line);
+            
+            // 排除纯校区名称
+            const isCampusOnly = config.campusNames.some(c => line.trim() === c);
+            
+            // 排除详情信息行
+            const isDetailLine = /(周数|校区|地点|教师|学分|考核|节\/周)/.test(line);
+            
+            if (hasChinese && !isCampusOnly && !isDetailLine && line.length >= 2) {
+                // 移除课程类型标记
+                let name = line;
+                config.courseMarker.forEach(m => {
+                    name = name.replace(new RegExp(m, 'g'), '');
+                });
+                name = name.trim();
+                
+                // 再次检查是否为纯校区名
+                if (config.campusNames.includes(name)) return null;
+                
+                return name;
+            }
+        }
+        
+        return null;
+    }
+    
+    // 提取上课地点
+    extractLocation(detailText, config) {
+        // 优先匹配完整格式：校区 + 教室
+        const fullPattern = new RegExp(
+            `(${config.campusNames.join('|')})\s*${config.roomPattern.source}`, 'g'
+        );
+        const fullMatch = detailText.match(fullPattern);
+        if (fullMatch) return fullMatch[0].replace(/\s+/g, ' ');
+        
+        // 单独提取教室代码
+        const roomMatch = detailText.match(config.roomPattern);
+        if (roomMatch) {
+            // 查找校区
+            const campusMatch = config.campusNames.find(c => detailText.includes(c));
+            if (campusMatch) {
+                return `${campusMatch} ${roomMatch[0]}`;
+            }
+            return roomMatch[0];
+        }
+        
+        // 只有校区
+        const campusMatch = config.campusNames.find(c => detailText.includes(c));
+        if (campusMatch) return campusMatch;
+        
+        return '';
+    }
+    
+    // 验证课程有效性
+    isValidCourse(course) {
+        if (!course.name || course.name.length < 2) return false;
+        if (!course.day || course.day < 1 || course.day > 7) return false;
+        if (!course.time || course.time < 1 || course.time > 5) return false;
+        return true;
+    }
+    
+    // 数据验证和纠错
+    validateAndCorrect(courses) {
+        const validated = [];
+        const seen = new Set();
+        
+        for (const course of courses) {
+            // 去重检查
+            const key = `${course.name}-${course.day}-${course.time}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            
+            // 数据纠错
+            if (!course.startWeek || course.startWeek < 1) course.startWeek = 1;
+            if (!course.endWeek || course.endWeek > 20) course.endWeek = 20;
+            if (course.startWeek > course.endWeek) {
+                [course.startWeek, course.endWeek] = [course.endWeek, course.startWeek];
+            }
+            
+            validated.push(course);
+        }
+        
+        return validated;
+    }
+    
+    // 通用表格解析（备用策略）
+    parseGenericTable(doc) {
+        // 查找所有表格，尝试解析课程数据
+        const tables = doc.querySelectorAll('table');
         const courses = [];
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        console.log('[HTML] 从文本提取，总行数:', lines.length);
-        
-        // 查找包含"节"和"场地"的行
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            
-            // 识别课程详情行
-            if (line.includes('节') && line.includes('周') && line.includes('场地')) {
-                // 向前查找课程名
-                let courseName = '';
-                for (let j = Math.max(0, i - 5); j < i; j++) {
-                    const prevLine = lines[j];
-                    if (/[\u4e00-\u9fa5]/.test(prevLine) && 
-                        !prevLine.includes('节') && 
-                        !prevLine.includes('场地') &&
-                        !prevLine.includes('学分') &&
-                        prevLine.length >= 2 && prevLine.length <= 30) {
-                        courseName = prevLine.replace(/[★◆]/g, '');
-                        break;
-                    }
-                }
-                
-                if (courseName) {
-                    const course = {
-                        name: courseName,
-                        day: '',
-                        time: '',
-                        location: '',
-                        credits: '',
-                        examType: ''
-                    };
-                    
-                    const timeMatch = line.match(/\((\d+-\d+)节\)/);
-                    if (timeMatch) course.time = timeMatch[1] + '节';
-                    
-                    const locationMatch = line.match(/场地[:：]([^/\s]+)/);
-                    if (locationMatch) course.location = locationMatch[1];
-                    
-                    const creditMatch = line.match(/学分[:：](\d+\.?\d*)/);
-                    if (creditMatch) course.credits = creditMatch[1];
-                    
-                    const examMatch = line.match(/考核方式[:：]([^/\s]+)/);
-                    if (examMatch) course.examType = examMatch[1];
-                    
-                    courses.push(course);
-                }
+        for (const table of tables) {
+            // 检查是否可能是课表
+            const text = table.innerText;
+            if (text.includes('周一') && text.includes('周二') && text.includes('节')) {
+                // 可能是课表，尝试解析
+                // ... 实现通用解析逻辑
             }
         }
         
         return courses;
     }
     
+    // 文本模式解析（最后备用）
+    parseFromText(text) {
+        const courses = [];
+        // 基于正则的模式匹配
+        // ... 实现文本解析逻辑
+        return courses;
+    }
+    
+    // 填充到文本框
     fillCoursesToTextarea(courses) {
         const textarea = document.getElementById('import-textarea');
         if (!textarea) return;
         
-        // 星期数字到中文的映射
         const dayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
         
         const formatted = courses.map(c => {
-            // 构建课程信息字符串，必须包含星期和时间
             let line = c.name;
             
-            // 添加星期（数字转中文）
             if (c.day) {
-                const dayName = dayNames[c.day] || `周${c.day}`;
-                line += ` ${dayName}`;
+                line += ` ${dayNames[c.day]}`;
             }
             
-            // 添加时间段（1-5表示第1-2节到第9-10节）
+            const periodMap = { 1: '第1-2节', 2: '第3-4节', 3: '第5-6节', 4: '第7-8节', 5: '第9-10节' };
             if (c.time) {
-                const periodMap = {
-                    1: '第1-2节',
-                    2: '第3-4节',
-                    3: '第5-6节',
-                    4: '第7-8节',
-                    5: '第9-10节'
-                };
-                const periodName = periodMap[c.time] || `第${c.time}节`;
-                line += ` ${periodName}`;
+                line += ` ${periodMap[c.time] || `第${c.time}节`}`;
             }
             
             if (c.location) line += ` ${c.location}`;
+            
+            if (c.startWeek && c.endWeek) {
+                if (c.startWeek !== 1 || c.endWeek !== 20) {
+                    line += ` ${c.startWeek}-${c.endWeek}周`;
+                    if (c.weekType) line += `(${c.weekType})`;
+                }
+            }
+            
             return line.trim();
         }).join('\n');
         
-        console.log('[HTML] 填充到文本框的内容:', formatted);
         textarea.value = formatted;
+        console.log('[HTML] 已填充课程到文本框:', formatted);
     }
 }
 
