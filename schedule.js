@@ -909,20 +909,44 @@ class ZhengfangScheduleParser {
             const day = parseInt(match[1]);
             const period = parseInt(match[2]);
             
-            // 动态计算timeSlot：每2节课一个slot，支持任意数量的period
-            let timeSlot = this.periodToSlot[period];
-            if (!timeSlot) {
-                // 如果period不在预定义映射中，动态计算
-                timeSlot = Math.ceil(period / 2);
+            // 动态计算默认timeSlot：每2节课一个slot
+            let defaultTimeSlot = this.periodToSlot[period];
+            if (!defaultTimeSlot) {
+                defaultTimeSlot = Math.ceil(period / 2);
             }
             
             // 确保timeSlot有效（最大支持60节课，即30个slot）
-            if (timeSlot && timeSlot <= 30) {
-                courses.push(...this.parseCellContent(cell, day, timeSlot));
+            if (defaultTimeSlot && defaultTimeSlot <= 30) {
+                // 解析课程内容，parseCellContent会根据课程文本中的节数调整位置
+                const cellCourses = this.parseCellContent(cell, day, defaultTimeSlot);
+                
+                // 根据课程文本中的节数重新调整课程位置
+                cellCourses.forEach(course => {
+                    if (course) {
+                        // 从课程文本中提取节数信息并重新计算timeSlot
+                        const periodInfo = this.extractPeriodInfoFromCourse(course);
+                        if (periodInfo && window.scheduleManager) {
+                            const slotInfo = this.calculateTimeSlot(periodInfo, window.scheduleManager);
+                            if (slotInfo) {
+                                course.time = slotInfo.timeSlot;
+                                course.duration = slotInfo.duration;
+                            }
+                        }
+                        courses.push(course);
+                    }
+                });
             }
         });
         
         return courses;
+    }
+    
+    // 从课程对象中提取节数信息（用于重新计算位置）
+    extractPeriodInfoFromCourse(course) {
+        // 从课程名称或其他字段中查找节数信息
+        // 检查课程名称是否包含节数信息
+        const text = course.name || '';
+        return this.extractPeriodInfo(text);
     }
     
     parseByRows(table) {
