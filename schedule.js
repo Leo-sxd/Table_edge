@@ -334,16 +334,18 @@ class ScheduleManager {
         reader.readAsText(file);
     }
     
-    // 解析HTML课表
+    // 解析HTML课表 - 使用高精度解析器
     parseHTMLSchedule(doc) {
-        const courses = [];
-        
-        // 查找正方教务表格
-        const table = doc.querySelector('#kbgrid_table_0') || doc.querySelector('#Table1');
-        if (!table) {
-            console.log('[ScheduleManager] 未找到课表表格');
+        const parser = new ZhengfangScheduleParser();
+        try {
+            const courses = parser.parse(doc);
+            console.log(`[ScheduleManager] 成功解析 ${courses.length} 门课程`);
             return courses;
+        } catch (err) {
+            console.error('[ScheduleManager] 解析失败:', err);
+            return [];
         }
+    }
         
         const rows = table.querySelectorAll('tr');
         const colToDay = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
@@ -382,44 +384,6 @@ class ScheduleManager {
         return courses;
     }
     
-    // 解析课程块
-    parseCourseBlock(block, day, time) {
-        const lines = block.split('\n').map(l => l.trim()).filter(l => l);
-        if (lines.length === 0) return null;
-        
-        // 提取课程名
-        let name = '';
-        for (const line of lines) {
-            if (line.includes('★') || line.includes('☆')) {
-                name = line.replace(/[★☆〇■◆]/g, '').trim();
-                break;
-            }
-        }
-        if (!name) name = lines[0];
-        
-        // 验证课程名
-        if (!name || name.length < 2) return null;
-        if (!/[\u4e00-\u9fa5]/.test(name)) return null;
-        if (/^(骊山|雁塔|秦汉)校园$/.test(name)) return null;
-        
-        const detailText = lines.slice(1).join(' ');
-        
-        // 提取地点
-        const locationMatch = detailText.match(/(\d+-\d+-\d+|体育馆|2-机房|未排地点)/);
-        const location = locationMatch ? locationMatch[1] : '';
-        
-        // 提取周次
-        const weekMatch = detailText.match(/(\d+)-(\d+)周/);
-        const startWeek = weekMatch ? parseInt(weekMatch[1]) : 1;
-        const endWeek = weekMatch ? parseInt(weekMatch[2]) : 20;
-        
-        // 提取单双周
-        let weekType = '';
-        if (detailText.includes('单周')) weekType = '单周';
-        else if (detailText.includes('双周')) weekType = '双周';
-        
-        return { name, day, time, location, startWeek, endWeek, weekType };
-    }
     
     // 解析手动输入
     parseManualInput() {
@@ -589,6 +553,232 @@ class ScheduleManager {
             this.saveData();
             this.render();
         }
+    }
+}
+
+
+
+/**
+ * ============================================
+ * 高精度正方教务系统课表解析器
+ * ============================================
+ */
+class ZhengfangScheduleParser {
+    constructor() {
+        this.periodToSlot = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4, 9: 5, 10: 5 };
+        this.colToDay = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
+    }
+    
+    parse(doc) {
+        const table = doc.querySelector('#kbgrid_table_0');
+        if (!table) throw new Error('未找到课表表格');
+        
+        const coursesFromId = this.parseByCellId(table);
+        const coursesFromRows = this.parseByRows(table);
+        
+        const courseMap = new Map();
+        [...coursesFromId, ...coursesFromRows].forEach(course => {
+            const key = `${course.day}-${course.time}-${course.name}`;
+            if (!courseMap.has(key)) courseMap.set(key, course);
+        });
+        
+        return Array.from(courseMap.values());
+    }
+    
+    parseByCellId(table) {
+        const courses = [];
+        const cells = table.querySelectorAll('td[id^="1-"], td[id^="2-"], td[id^="3-"], td[id^="4-"], td[id^="5-"], td[id^="6-"], td[id^="7-"]');
+        
+        cells.forEach(cell => {
+            const match = cell.id.match(/^(\d+)-(\d+)$/);
+            if (!match) return;
+            
+            const day = parseInt(match[1]);
+            const period = parseInt(match[2]);
+            const timeSlot = this.periodToSlot[period];
+            
+            if (timeSlot) {
+                courses.push(...this.parseCellContent(cell, day, timeSlot));
+            }
+        });
+        
+        return courses;
+    }
+    
+    parseByRows(table) {
+        const courses = [];
+        const rows = table.querySelectorAll('tr');
+        const rowspanTracker = {};
+        
+        for (let rowIdx = 2; rowIdx < rows.length; rowIdx++) {
+            const cells = Array.from(rows[rowIdx].querySelectorAll('td, th'));
+            if (cells.length < 3) continue;
+            
+            const periodMatch = cells[1]?.textContent.trim().match(/^(\d+)$/);
+            if (!periodMatch) continue;
+            
+            const timeSlot = this.periodToSlot[parseInt(periodMatch[1])];
+            if (!timeSlot) continue;
+            
+            const processedCells = this.processRowspan(cells, rowspanTracker);
+            
+            for (let colIdx = 2; colIdx <= 8 && colIdx < processedCells.length; colIdx++) {
+                const day = this.colToDay[colIdx];
+                if (!day) continue;
+                
+                const cellData = processedCells[colIdx];
+                if (!cellData || cellData.isRowspan) continue;
+                
+                const cell = cellData.element;
+                const cellCourses = this.parseCellContent(cell, day, timeSlot);
+                
+                cellCourses.forEach(course => {
+                    if (course) {
+                        courses.push(course);
+                        const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
+                        if (rowspan > 1) {
+                            rowspanTracker[colIdx] = { remaining: rowspan - 1 };
+                        }
+                    }
+                });
+            }
+        }
+        
+        return courses;
+    }
+    
+    processRowspan(cells, rowspanTracker) {
+        const processed = [];
+        let cellIdx = 0;
+        
+        for (let colIdx = 0; colIdx < 9; colIdx++) {
+            if (rowspanTracker[colIdx]?.remaining > 0) {
+                processed.push({ isRowspan: true });
+                rowspanTracker[colIdx].remaining--;
+            } else if (cellIdx < cells.length) {
+                processed.push({ isRowspan: false, element: cells[cellIdx] });
+                cellIdx++;
+            } else {
+                processed.push(null);
+            }
+        }
+        
+        return processed;
+    }
+    
+    parseCellContent(cell, day, timeSlot) {
+        const courses = [];
+        const courseDivs = cell.querySelectorAll('div.timetable_con');
+        
+        if (courseDivs.length > 0) {
+            courseDivs.forEach(div => {
+                const course = this.parseCourseDiv(div, day, timeSlot);
+                if (course) courses.push(course);
+            });
+        } else {
+            const text = cell.textContent.trim();
+            if (text?.length > 5) {
+                courses.push(...this.parseCourseText(text, day, timeSlot));
+            }
+        }
+        
+        return courses;
+    }
+    
+    parseCourseDiv(div, day, timeSlot) {
+        const titleSpan = div.querySelector('span.title');
+        let name = titleSpan ? titleSpan.textContent.trim() : div.textContent.trim().split(/\s+/)[0];
+        
+        name = name.replace(/[★☆〇■◆]/g, '').trim();
+        
+        if (!name || name.length < 2 || !/[\u4e00-\u9fa5]/.test(name)) return null;
+        if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
+        
+        const text = div.textContent;
+        let startWeek = 1, endWeek = 20, weekType = '';
+        
+        const weekMatch = text.match(/\(\d+-\d+节\)(\d+)-(\d+)周(?:\((单|双)\))?/) ||
+                         text.match(/(\d+)-(\d+)周(?:\((单|双)\))?/);
+        
+        if (weekMatch) {
+            startWeek = parseInt(weekMatch[1]);
+            endWeek = parseInt(weekMatch[2]);
+            if (weekMatch[3]) weekType = weekMatch[3] === '单' ? '单周' : '双周';
+        }
+        
+        let location = '';
+        const fullLocMatch = text.match(/(骊山|雁塔|秦汉)校园\s+(\d+-\d+-\d+|\d+-机房|体育馆|未排地点)/);
+        if (fullLocMatch) {
+            location = `${fullLocMatch[1]}校园 ${fullLocMatch[2]}`;
+        } else {
+            const locMatch = text.match(/(\d+-\d+-\d+|\d+-机房|体育馆|未排地点)/);
+            if (locMatch) {
+                const campusMatch = text.match(/(骊山|雁塔|秦汉)校园/);
+                location = campusMatch ? `${campusMatch[0]} ${locMatch[1]}` : locMatch[1];
+            }
+        }
+        
+        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType };
+    }
+    
+    parseCourseText(text, day, timeSlot) {
+        const courses = [];
+        const markers = ['★', '☆', '〇', '■', '◆'];
+        const parts = text.split(new RegExp(`(${markers.map(m => '\\' + m).join('|')})`, 'g'));
+        
+        const blocks = [];
+        let current = '';
+        
+        parts.forEach(part => {
+            if (markers.includes(part)) {
+                if (current.trim()) blocks.push(current.trim());
+                current = part;
+            } else {
+                current += part;
+            }
+        });
+        if (current.trim()) blocks.push(current.trim());
+        
+        blocks.forEach(block => {
+            const course = this.parseCourseBlock(block, day, timeSlot);
+            if (course) courses.push(course);
+        });
+        
+        return courses;
+    }
+    
+    parseCourseBlock(block, day, timeSlot) {
+        let clean = block.replace(/[★☆〇■◆]/g, '').trim();
+        if (!clean) return null;
+        
+        const parts = clean.split(/\s+/);
+        if (!parts.length) return null;
+        
+        const name = parts[0];
+        if (!/[\u4e00-\u9fa5]/.test(name)) return null;
+        if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
+        
+        let startWeek = 1, endWeek = 20, weekType = '';
+        const weekMatch = clean.match(/(\d+)-(\d+)周(?:\((单|双)\))?/);
+        if (weekMatch) {
+            startWeek = parseInt(weekMatch[1]);
+            endWeek = parseInt(weekMatch[2]);
+            if (weekMatch[3]) weekType = weekMatch[3] === '单' ? '双周' : '单周';
+        }
+        
+        let location = '';
+        const fullLocMatch = clean.match(/(骊山|雁塔|秦汉)校园\s+(\d+-\d+-\d+|\d+-机房|体育馆|未排地点)/);
+        if (fullLocMatch) {
+            location = `${fullLocMatch[1]}校园 ${fullLocMatch[2]}`;
+        } else {
+            const locMatch = clean.match(/(\d+-\d+-\d+|\d+-机房|体育馆|未排地点)/);
+            if (locMatch) {
+                const campusMatch = clean.match(/(骊山|雁塔|秦汉)校园/);
+                location = campusMatch ? `${campusMatch[0]} ${locMatch[1]}` : locMatch[1];
+            }
+        }
+        
+        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType };
     }
 }
 
