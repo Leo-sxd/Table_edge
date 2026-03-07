@@ -823,40 +823,86 @@
 
         <!-- 时间设置弹窗 -->
         <div id="time-settings-modal" class="schedule-modal">
-            <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-content" style="max-width: 700px; max-height: 85vh; overflow-y: auto;">
                 <div class="modal-header">
-                    <h3><i class="fas fa-clock"></i> 课程设置</h3>
+                    <h3><i class="fas fa-clock"></i> 课程时间设置</h3>
                     <button class="modal-close" id="close-time-settings-modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <!-- 每天最大节数设置 -->
-                    <div class="form-group" style="margin-bottom: 20px; padding: 15px; background: rgba(140, 0, 255, 0.1); border-radius: 8px;">
-                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <div class="settings-section" style="margin-bottom: 25px; padding: 20px; background: rgba(140, 0, 255, 0.1); border-radius: 12px; border: 1px solid rgba(140, 0, 255, 0.3);">
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 16px; font-weight: 600;">
                             <i class="fas fa-calendar-day" style="color: #8c00ff;"></i>
-                            <span>每天最大节数</span>
+                            <span>每天课程数量</span>
                         </label>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <input type="number" id="max-periods-input" min="4" max="16" value="10" 
-                                   style="width: 80px; padding: 8px; border-radius: 6px; border: 1px solid rgba(140, 0, 255, 0.5); background: rgba(255,255,255,0.1); color: #fff; text-align: center;">
-                            <span style="color: rgba(255,255,255,0.7); font-size: 14px;">节（建议：小学6节，中学8节，大学10-12节）</span>
+                        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="number" id="max-periods-input" min="1" max="24" value="8" 
+                                       style="width: 100px; padding: 12px; border-radius: 8px; border: 2px solid rgba(140, 0, 255, 0.5); background: rgba(255,255,255,0.1); color: #fff; text-align: center; font-size: 18px; font-weight: bold;">
+                                <span style="color: #fff; font-size: 16px;">节课</span>
+                            </div>
+                            <span style="color: rgba(255,255,255,0.6); font-size: 14px;">
+                                <i class="fas fa-lightbulb" style="color: #ffd700; margin-right: 5px;"></i>
+                                建议：小学6节，中学8节，大学10-12节，最高24节
+                            </span>
+                        </div>
+                        <div id="periods-error" style="color: #ff6b6b; margin-top: 10px; font-size: 14px; display: none;">
+                            <i class="fas fa-exclamation-circle"></i> 请输入1-24之间的有效数字
                         </div>
                     </div>
                     
-                    <p class="modal-hint" style="margin-bottom: 15px; color: rgba(255,255,255,0.8);">
-                        <i class="fas fa-info-circle" style="color: #00c8ff;"></i>
-                        设置每节课的开始和结束时间：
-                    </p>
-                    <div class="time-slots-list" id="time-slots-list">
-                        <!-- 时间段列表动态生成 -->
+                    <!-- 应用到所有工作日选项 -->
+                    <div class="settings-section" style="margin-bottom: 20px; padding: 15px; background: rgba(0, 200, 255, 0.1); border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="apply-to-all-days" checked 
+                                   style="width: 20px; height: 20px; cursor: pointer;">
+                            <span style="color: #fff; font-size: 15px;">
+                                <i class="fas fa-copy" style="color: #00c8ff; margin-right: 8px;"></i>
+                                将此时间设置应用到所有工作日（周一至周日）
+                            </span>
+                        </label>
                     </div>
-                    <div class="modal-actions" style="margin-top: 20px;">
-                        <button id="save-time-settings-btn" class="schedule-btn">
+                    
+                    <!-- 时间设置列表 -->
+                    <div class="settings-section">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0;">
+                                <i class="fas fa-list-ul" style="color: #00c8ff; margin-right: 8px;"></i>
+                                课程时间安排
+                            </p>
+                            <span id="time-settings-summary" style="color: rgba(255,255,255,0.6); font-size: 13px;"></span>
+                        </div>
+                        
+                        <div class="time-slots-list" id="time-slots-list" style="max-height: 400px; overflow-y: auto;">
+                            <!-- 时间段列表动态生成 -->
+                        </div>
+                        
+                        <div id="time-conflict-error" style="color: #ff6b6b; margin-top: 15px; padding: 10px; background: rgba(255, 107, 107, 0.1); border-radius: 8px; display: none;">
+                            <i class="fas fa-exclamation-triangle"></i> <span id="conflict-message"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- 预览区域 -->
+                    <div class="settings-section" style="margin-top: 20px; padding: 15px; background: rgba(0, 255, 136, 0.1); border-radius: 8px; border: 1px solid rgba(0, 255, 136, 0.3);">
+                        <p style="color: #00ff88; font-size: 14px; margin: 0 0 10px 0;">
+                            <i class="fas fa-eye"></i> 预览
+                        </p>
+                        <div id="schedule-preview" style="color: rgba(255,255,255,0.8); font-size: 13px; line-height: 1.8;">
+                            设置完成后将显示预览
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions" style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
+                        <button id="save-time-settings-btn" class="schedule-btn" style="flex: 1; min-width: 120px;">
                             <i class="fas fa-save"></i> 保存设置
                         </button>
-                        <button id="reset-time-settings-btn" class="schedule-btn secondary">
+                        <button id="preview-settings-btn" class="schedule-btn" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #00c8ff, #0080ff);">
+                            <i class="fas fa-eye"></i> 预览效果
+                        </button>
+                        <button id="reset-time-settings-btn" class="schedule-btn secondary" style="min-width: 120px;">
                             <i class="fas fa-undo"></i> 恢复默认
                         </button>
-                        <button id="cancel-time-settings-btn" class="schedule-btn secondary">
+                        <button id="cancel-time-settings-btn" class="schedule-btn secondary" style="min-width: 100px;">
                             取消
                         </button>
                     </div>

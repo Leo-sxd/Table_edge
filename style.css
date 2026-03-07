@@ -4734,3 +4734,204 @@ body.modal-open {
         font-size: 10px;
     }
 }
+
+
+/* ============================================
+   自定义时间设置样式
+   ============================================ */
+
+/* 设置区块 */
+.settings-section {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 时间设置项 */
+.time-slot-setting-item {
+    transition: all 0.3s ease;
+}
+
+.time-slot-setting-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(140, 0, 255, 0.5) !important;
+    transform: translateX(5px);
+}
+
+/* 时间输入框 */
+.time-slot-setting-item input[type="time"] {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.time-slot-setting-item input[type="time"]:hover {
+    border-color: rgba(140, 0, 255, 0.8) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.time-slot-setting-item input[type="time"]:focus {
+    outline: none;
+    border-color: #8c00ff !important;
+    box-shadow: 0 0 0 3px rgba(140, 0, 255, 0.3);
+}
+
+/* 时长标签 */
+.duration-badge {
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+/* 错误提示 */
+#error-message {
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* 最大节数输入框 */
+#max-periods-input {
+    transition: all 0.3s ease;
+}
+
+#max-periods-input:focus {
+    outline: none;
+    border-color: #8c00ff !important;
+    box-shadow: 0 0 0 4px rgba(140, 0, 255, 0.3);
+}
+
+#max-periods-input:invalid {
+    border-color: #ff6b6b !important;
+    box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.3);
+}
+
+/* 复选框样式 */
+input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #8c00ff;
+}
+
+/* 预览区域 */
+#schedule-preview {
+    font-family: 'Courier New', monospace;
+    line-height: 2;
+}
+
+#schedule-preview strong {
+    color: #00ff88;
+    font-size: 16px;
+}
+
+/* 时间设置摘要 */
+#time-settings-summary {
+    background: rgba(0, 200, 255, 0.1);
+    padding: 5px 12px;
+    border-radius: 15px;
+    border: 1px solid rgba(0, 200, 255, 0.3);
+}
+
+/* 模态框滚动条 */
+#time-settings-modal .modal-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(140, 0, 255, 0.5) rgba(255, 255, 255, 0.1);
+}
+
+#time-settings-modal .modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#time-settings-modal .modal-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#time-settings-modal .modal-content::-webkit-scrollbar-thumb {
+    background: rgba(140, 0, 255, 0.5);
+    border-radius: 4px;
+}
+
+#time-settings-modal .modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(140, 0, 255, 0.8);
+}
+
+/* 时间列表滚动条 */
+.time-slots-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(140, 0, 255, 0.3) transparent;
+}
+
+.time-slots-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.time-slots-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.time-slots-list::-webkit-scrollbar-thumb {
+    background: rgba(140, 0, 255, 0.3);
+    border-radius: 3px;
+}
+
+/* 响应式调整 */
+@media (max-width: 600px) {
+    .time-slot-setting-item {
+        grid-template-columns: 60px 1fr 15px 1fr !important;
+        gap: 8px !important;
+    }
+    
+    .time-slot-setting-item .duration-badge {
+        grid-column: 1 / -1;
+        text-align: center;
+        margin-top: 8px;
+    }
+    
+    #time-settings-modal .modal-content {
+        max-width: 95vw !important;
+        margin: 10px;
+    }
+}
+
+/* Toast通知样式增强 */
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 15px 30px;
+    border-radius: 50px;
+    color: #fff;
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-notification.success {
+    background: linear-gradient(135deg, #00c853, #00e676);
+}
+
+.toast-notification.error {
+    background: linear-gradient(135deg, #ff1744, #ff5252);
+}
+
+.toast-notification.info {
+    background: linear-gradient(135deg, #00c8ff, #0080ff);
+}

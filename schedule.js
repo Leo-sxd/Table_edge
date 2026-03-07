@@ -18,22 +18,11 @@ class ScheduleManager {
         this.maxWeek = 20;
         
         // 时间段配置
-        // 默认单节课时间配置（可以从localStorage加载用户自定义配置）
-        this.periods = this.loadPeriodsConfig() || [
-            { id: 1, name: '第1节', startTime: '08:00', endTime: '08:50' },
-            { id: 2, name: '第2节', startTime: '09:00', endTime: '09:50' },
-            { id: 3, name: '第3节', startTime: '10:00', endTime: '10:50' },
-            { id: 4, name: '第4节', startTime: '11:00', endTime: '11:50' },
-            { id: 5, name: '第5节', startTime: '14:00', endTime: '14:50' },
-            { id: 6, name: '第6节', startTime: '15:00', endTime: '15:50' },
-            { id: 7, name: '第7节', startTime: '16:00', endTime: '16:50' },
-            { id: 8, name: '第8节', startTime: '17:00', endTime: '17:50' },
-            { id: 9, name: '第9节', startTime: '19:00', endTime: '19:50' },
-            { id: 10, name: '第10节', startTime: '20:00', endTime: '20:50' }
-        ];
+        // 默认单节课时间配置（默认8节课，可从localStorage加载用户自定义配置）
+        this.periods = this.loadPeriodsConfig() || this.generateDefaultPeriods(8);
         
-        // 每天最大节数（可配置）
-        this.maxPeriodsPerDay = this.loadMaxPeriodsConfig() || 10;
+        // 每天最大节数（可配置，默认8节，范围1-24）
+        this.maxPeriodsPerDay = this.loadMaxPeriodsConfig() || 8;
         
         // 每节课的高度（像素）
         this.periodHeight = 60;
@@ -81,6 +70,86 @@ class ScheduleManager {
     saveMaxPeriodsConfig(maxPeriods) {
         this.maxPeriodsPerDay = maxPeriods;
         localStorage.setItem('schedule_max_periods_config', maxPeriods.toString());
+    }
+    
+    // 生成默认时间段配置
+    generateDefaultPeriods(count) {
+        const periods = [];
+        // 默认时间安排：上午4节，下午4节，晚上可选
+        const defaultTimes = [
+            { start: '08:00', end: '08:50' },   // 第1节
+            { start: '08:55', end: '09:45' },   // 第2节
+            { start: '10:00', end: '10:50' },   // 第3节
+            { start: '10:55', end: '11:45' },   // 第4节
+            { start: '14:00', end: '14:50' },   // 第5节
+            { start: '14:55', end: '15:45' },   // 第6节
+            { start: '16:00', end: '16:50' },   // 第7节
+            { start: '16:55', end: '17:45' },   // 第8节
+            { start: '19:00', end: '19:50' },   // 第9节
+            { start: '19:55', end: '20:45' },   // 第10节
+            { start: '20:50', end: '21:40' },   // 第11节
+            { start: '21:45', end: '22:35' },   // 第12节
+        ];
+        
+        for (let i = 1; i <= count; i++) {
+            const time = defaultTimes[i - 1] || { start: '09:00', end: '09:50' };
+            periods.push({
+                id: i,
+                name: `第${i}节`,
+                startTime: time.start,
+                endTime: time.end
+            });
+        }
+        return periods;
+    }
+    
+    // 验证时间格式 HH:MM
+    validateTimeFormat(timeStr) {
+        const regex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+        return regex.test(timeStr);
+    }
+    
+    // 将时间字符串转换为分钟数
+    timeToMinutes(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    }
+    
+    // 验证时间段是否有冲突
+    validateTimeConflicts(periods) {
+        const errors = [];
+        
+        for (let i = 0; i < periods.length; i++) {
+            const current = periods[i];
+            
+            // 验证时间格式
+            if (!this.validateTimeFormat(current.startTime)) {
+                errors.push(`第${current.id}节开始时间格式错误`);
+            }
+            if (!this.validateTimeFormat(current.endTime)) {
+                errors.push(`第${current.id}节结束时间格式错误`);
+            }
+            
+            // 验证结束时间是否晚于开始时间
+            const startMins = this.timeToMinutes(current.startTime);
+            const endMins = this.timeToMinutes(current.endTime);
+            
+            if (startMins >= endMins) {
+                errors.push(`第${current.id}节结束时间必须晚于开始时间`);
+            }
+            
+            // 验证与相邻课程的时间冲突
+            if (i > 0) {
+                const prev = periods[i - 1];
+                const prevEndMins = this.timeToMinutes(prev.endTime);
+                
+                if (startMins < prevEndMins) {
+                    errors.push(`第${current.id}节与第${prev.id}节时间重叠`);
+                }
+            }
+        }
+        
+        return errors;
     }
     
     // 从localStorage加载数据
