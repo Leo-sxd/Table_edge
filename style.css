@@ -4636,15 +4636,26 @@ body.modal-open {
 .day-column {
     display: flex;
     flex-direction: column;
-    position: relative;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 8px;
     min-height: 600px;
+    overflow: hidden;
+}
+
+.day-column .schedule-header {
+    flex-shrink: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(140, 0, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .day-content {
     flex: 1;
     position: relative;
+    overflow-y: auto;
 }
 
 /* 课程块样式 */
@@ -4654,7 +4665,7 @@ body.modal-open {
     right: 5px;
     background: linear-gradient(135deg, rgba(140, 0, 255, 0.9) 0%, rgba(100, 0, 200, 0.95) 100%);
     border-radius: 8px;
-    padding: 8px;
+    padding: 6px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -4665,6 +4676,7 @@ body.modal-open {
     transition: all 0.3s ease;
     overflow: hidden;
     z-index: 10;
+    box-sizing: border-box;
 }
 
 .course-block:hover {

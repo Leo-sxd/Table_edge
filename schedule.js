@@ -273,10 +273,9 @@ class ScheduleManager {
     
     // 渲染课程
     renderCourses() {
-        // 清空所有课程列的内容
-        document.querySelectorAll('.day-column').forEach(col => {
-            // 保留时间标记，只清除课程块
-            const courses = col.querySelectorAll('.course-block');
+        // 清空所有day-content中的课程块
+        document.querySelectorAll('.day-content').forEach(content => {
+            const courses = content.querySelectorAll('.course-block');
             courses.forEach(c => c.remove());
         });
         
@@ -289,6 +288,9 @@ class ScheduleManager {
                     (course.weekType === '双周' && this.currentWeek % 2 === 0));
         });
         
+        console.log('[Render] 准备渲染课程:', currentWeekCourses.length);
+        console.log('[Render] 课程数据:', currentWeekCourses.map(c => `${c.name}(第${c.startPeriod}节,持续${c.duration}节)`));
+        
         // 渲染每门课程
         currentWeekCourses.forEach(course => {
             // 找到对应的星期列
@@ -298,13 +300,20 @@ class ScheduleManager {
                 return;
             }
             
+            // 找到day-content容器
+            const dayContent = dayColumn.querySelector('.day-content');
+            if (!dayContent) {
+                console.warn(`[Render] 找不到day-content，课程: ${course.name}`);
+                return;
+            }
+            
             // 创建课程块
             const courseEl = document.createElement('div');
             courseEl.className = 'course-block';
             
             // 计算位置和高度
-            const startPeriod = course.startPeriod || 1;
-            const duration = course.duration || 2;
+            const startPeriod = parseInt(course.startPeriod) || 1;
+            const duration = parseInt(course.duration) || 2;
             const endPeriod = startPeriod + duration - 1;
             
             // 根据开始节次计算top位置
@@ -333,7 +342,8 @@ class ScheduleManager {
                 this.editCourse(course);
             });
             
-            dayColumn.appendChild(courseEl);
+            dayContent.appendChild(courseEl);
+            console.log(`[Render] 已渲染: ${course.name} 星期${course.day} 第${startPeriod}节 高${height}px`);
         });
         
         console.log('[ScheduleManager] 课程渲染完成:', currentWeekCourses.length);
