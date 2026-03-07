@@ -177,6 +177,26 @@ class ScheduleManager {
         if (weekDisplay) {
             weekDisplay.textContent = `第${this.currentWeek}周`;
         }
+        
+        // 填充周次选择下拉菜单
+        const weekSelect = document.getElementById('week-select');
+        if (weekSelect) {
+            // 保存当前选中的值
+            const currentValue = weekSelect.value;
+            
+            // 清空并重新生成选项
+            weekSelect.innerHTML = '<option value="">选择周次</option>';
+            
+            for (let i = 1; i <= this.maxWeek; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `第${i}周`;
+                if (i === this.currentWeek) {
+                    option.selected = true;
+                }
+                weekSelect.appendChild(option);
+            }
+        }
     }
     
     // 渲染课程
