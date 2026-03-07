@@ -704,9 +704,21 @@ class AIWebsiteController {
             
             console.log('[AIControl] 收到指令:', command);
             
+            // 首先尝试直接执行本地指令
+            const directResult = this.executeLocalCommand(command);
+            if (directResult) {
+                console.log('[AIControl] 本地指令直接执行成功');
+                this.showStatus('指令已执行: ' + command, 'success');
+                // 清空输入
+                const input = document.getElementById('ai-control-input');
+                if (input) input.value = '';
+                return;
+            }
+            
+            // 备用：尝试解析为代码字符串
             const localResult = this.parseLocalCommand(command);
             if (localResult) {
-                console.log('[AIControl] 本地解析成功，直接执行:', localResult);
+                console.log('[AIControl] 本地解析成功，执行代码:', localResult);
                 this.executeCode(localResult, command);
                 return;
             }
@@ -861,227 +873,7 @@ class AIWebsiteController {
         
         // ========== 课程表相关指令 ==========
         
-        // 10. 查看课程/课程表/今天有什么课/明天有什么课
-        if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
-            return `(() => {
-                // 计算当前日期对应的周次
-                const now = new Date();
-                const currentDay = now.getDay(); // 0=周日, 1=周一, ...
-                const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
-                const currentMonday = new Date(now);
-                currentMonday.setDate(now.getDate() + diffToMonday);
-                
-                // 学期开始日期 - 尝试从 scheduleManager 获取，或使用默认值
-                let semesterStart;
-                if (window.scheduleManager && window.scheduleManager.semesterStartDate) {
-                    semesterStart = new Date(window.scheduleManager.semesterStartDate);
-                } else {
-                    semesterStart = new Date('2025-03-02');
-                }
-                
-                const diffTime = currentMonday.getTime() - semesterStart.getTime();
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                const currentWeek = Math.floor(diffDays / 7) + 1;
-                const validWeek = Math.max(1, Math.min(20, currentWeek));
-                
-                console.log('[AIControl] 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
-                
-                // 切换到课程表视图
-                const examContainer = document.getElementById('exam-list-container');
-                const scheduleContainer = document.querySelector('.schedule-container');
-                if (examContainer) examContainer.style.display = 'none';
-                if (scheduleContainer) scheduleContainer.style.display = 'block';
-                
-                // 更新标签页状态
-                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
-                const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
-                if (currentTab) currentTab.classList.add('active');
-                
-                // 设置周次为当前日期对应的周
-                if (window.scheduleManager) {
-                    window.scheduleManager.setCurrentWeek(validWeek);
-                }
-                
-                // 更新下拉框
-                const weekSelect = document.getElementById('week-select');
-                if (weekSelect) weekSelect.value = validWeek;
-                
-                // 更新周次显示
-                const weekDisplay = document.getElementById('current-week-display');
-                if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
-                
-                // 滚动到课程表
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
-                }
-                
-                console.log('[AIControl] 查看课程表，自动切换到第' + validWeek + '周');
-            })();`;
-        }
-        
-        // 11. 添加课程/新增课程
-        if (cmd.includes('添加课程') || cmd.includes('新增课程') || cmd.includes('新建课程')) {
-            return `(() => {
-                console.log('[AIControl] 开始执行添加课程指令');
-                
-                // 滚动到课程表区域
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
-                    console.log('[AIControl] 已滚动到课程表区域');
-                }
-                
-                // 延迟点击"添加课程"按钮
-                setTimeout(() => {
-                    console.log('[AIControl] 正在查找添加课程按钮...');
-                    const addBtn = document.getElementById('add-course-btn');
-                    console.log('[AIControl] 添加课程按钮:', addBtn);
-                    if (addBtn) {
-                        console.log('[AIControl] 找到按钮，准备点击');
-                        // 使用多种方式触发点击
-                        addBtn.click();
-                        // 同时触发 mousedown 和 mouseup 事件以确保兼容性
-                        const mousedownEvent = new MouseEvent('mousedown', { bubbles: true });
-                        const mouseupEvent = new MouseEvent('mouseup', { bubbles: true });
-                        addBtn.dispatchEvent(mousedownEvent);
-                        addBtn.dispatchEvent(mouseupEvent);
-                        console.log('[AIControl] 已点击添加课程按钮');
-                    } else {
-                        console.error('[AIControl] 未找到添加课程按钮 (id=add-course-btn)');
-                        // 尝试通过其他选择器查找
-                        const altBtn = document.querySelector('.add-course-btn, button[title="添加课程"], button:contains("添加课程")');
-                        if (altBtn) {
-                            console.log('[AIControl] 通过备用选择器找到按钮:', altBtn);
-                            altBtn.click();
-                        }
-                    }
-                }, 800);
-                
-                console.log('[AIControl] 准备添加课程');
-            })();`;
-        }
-        
-        // 12. 查看考试/考试安排
-        if (cmd.includes('考试') || cmd.includes('测验')) {
-            return `(() => {
-                // 切换到考试视图
-                const examContainer = document.getElementById('exam-list-container');
-                const scheduleContainer = document.querySelector('.schedule-container');
-                if (examContainer) examContainer.style.display = 'block';
-                if (scheduleContainer) scheduleContainer.style.display = 'none';
-                
-                // 更新标签页状态
-                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
-                const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
-                if (examTab) examTab.classList.add('active');
-                
-                // 滚动到课程表区域
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
-                }
-                
-                console.log('[AIControl] 查看考试安排');
-            })();`;
-        }
-        
-        // 13. 导入课程（批量导入）
-        if (cmd.includes('导入课程') || cmd.includes('批量导入') || cmd.includes('导入课表')) {
-            return `(() => {
-                console.log('[AIControl] 开始执行导入课程指令');
-                
-                // 滚动到课程表区域
-                const scheduleSection = document.getElementById('schedule-section');
-                if (scheduleSection) {
-                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
-                    console.log('[AIControl] 已滚动到课程表区域');
-                }
-                
-                // 延迟点击"导入课程"按钮
-                setTimeout(() => {
-                    console.log('[AIControl] 正在查找导入课程按钮...');
-                    const importBtn = document.getElementById('import-schedule-btn');
-                    console.log('[AIControl] 导入课程按钮:', importBtn);
-                    if (importBtn) {
-                        console.log('[AIControl] 找到按钮，准备点击');
-                        // 使用多种方式触发点击
-                        importBtn.click();
-                        // 同时触发 mousedown 和 mouseup 事件以确保兼容性
-                        const mousedownEvent = new MouseEvent('mousedown', { bubbles: true });
-                        const mouseupEvent = new MouseEvent('mouseup', { bubbles: true });
-                        importBtn.dispatchEvent(mousedownEvent);
-                        importBtn.dispatchEvent(mouseupEvent);
-                        console.log('[AIControl] 已点击导入课程按钮');
-                    } else {
-                        console.error('[AIControl] 未找到导入课程按钮 (id=import-schedule-btn)');
-                        // 尝试通过其他选择器查找
-                        const altBtn = document.querySelector('.import-btn, button[title="导入课程"], button:contains("导入")');
-                        if (altBtn) {
-                            console.log('[AIControl] 通过备用选择器找到按钮:', altBtn);
-                            altBtn.click();
-                        }
-                    }
-                }, 800);
-                
-                console.log('[AIControl] 准备导入课程');
-            })();`;
-        }
-        
-        // 14. 查看第x周课程表
-        const weekMatch = command.match(/第\s*(\d+)\s*周/) || command.match(/(\d+)\s*周/);
-        if (weekMatch && (cmd.includes('周') || cmd.includes('星期'))) {
-            const weekNum = parseInt(weekMatch[1], 10);
-            console.log('[AIControl] 解析到周次:', weekNum, '类型:', typeof weekNum);
-            if (weekNum >= 1 && weekNum <= 20) {
-                return `(() => {
-                    console.log('[AIControl] 开始执行查看第${weekNum}周课程表');
-                    
-                    // 切换到课程表视图
-                    const examContainer = document.getElementById('exam-list-container');
-                    const scheduleContainer = document.querySelector('.schedule-container');
-                    if (examContainer) examContainer.style.display = 'none';
-                    if (scheduleContainer) scheduleContainer.style.display = 'block';
-                    
-                    // 更新标签页状态
-                    document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
-                    const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
-                    if (currentTab) currentTab.classList.add('active');
-                    
-                    // 设置周次为第${weekNum}周
-                    if (window.scheduleManager) {
-                        window.scheduleManager.setCurrentWeek(${weekNum});
-                        console.log('[AIControl] 已调用 setCurrentWeek(${weekNum})');
-                    } else {
-                        console.error('[AIControl] window.scheduleManager 未找到');
-                    }
-                    
-                    // 更新下拉框
-                    const weekSelect = document.getElementById('week-select');
-                    if (weekSelect) {
-                        weekSelect.value = ${weekNum};
-                        console.log('[AIControl] 已更新下拉框值为 ${weekNum}');
-                    }
-                    
-                    // 更新周次显示
-                    const weekDisplay = document.getElementById('current-week-display');
-                    if (weekDisplay) {
-                        weekDisplay.textContent = '第${weekNum}周';
-                        console.log('[AIControl] 已更新周次显示为 第${weekNum}周');
-                    }
-                    
-                    // 滚动到课程表
-                    const scheduleSection = document.getElementById('schedule-section');
-                    if (scheduleSection) {
-                        scheduleSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                    
-                    console.log('[AIControl] 查看第${weekNum}周课程表完成');
-                })();`;
-            } else {
-                console.log('[AIControl] 周次超出范围:', weekNum);
-            }
-        }
+        // 指令10-14已移至 executeLocalCommand 方法中直接执行
         
         // 待办事项设置 - 支持"xxxx年xx月xx日xx点xx分，xxxx"格式
         // 简化指令：直接匹配时间+内容格式
@@ -1391,6 +1183,186 @@ class AIWebsiteController {
         }
         
         return null;
+    }
+    
+    // 直接执行本地指令（替代返回字符串的方式）
+    executeLocalCommand(command) {
+        const cmd = command.toLowerCase();
+        
+        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
+            // 计算当前日期对应的周次
+            const now = new Date();
+            const currentDay = now.getDay(); // 0=周日, 1=周一, ...
+            const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
+            const currentMonday = new Date(now);
+            currentMonday.setDate(now.getDate() + diffToMonday);
+            
+            // 学期开始日期
+            let semesterStart;
+            if (window.scheduleManager && window.scheduleManager.getSemesterStartDate) {
+                semesterStart = window.scheduleManager.getSemesterStartDate();
+            } else {
+                semesterStart = new Date('2025-03-02');
+            }
+            
+            const diffTime = currentMonday.getTime() - semesterStart.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const currentWeek = Math.floor(diffDays / 7) + 1;
+            const validWeek = Math.max(1, Math.min(20, currentWeek));
+            
+            console.log('[AIControl] 指令10 - 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
+            
+            // 切换到课程表视图
+            const examContainer = document.getElementById('exam-list-container');
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (examContainer) examContainer.style.display = 'none';
+            if (scheduleContainer) scheduleContainer.style.display = 'block';
+            
+            // 更新标签页状态
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+            const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+            if (currentTab) currentTab.classList.add('active');
+            
+            // 设置周次为当前日期对应的周
+            if (window.scheduleManager) {
+                window.scheduleManager.setCurrentWeek(validWeek);
+            }
+            
+            // 更新下拉框
+            const weekSelect = document.getElementById('week-select');
+            if (weekSelect) weekSelect.value = validWeek;
+            
+            // 更新周次显示
+            const weekDisplay = document.getElementById('current-week-display');
+            if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
+            
+            // 滚动到课程表
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            console.log('[AIControl] 指令10 - 查看课程表，自动切换到第' + validWeek + '周');
+            return true;
+        }
+        
+        // 11. 添加课程/新增课程
+        if (cmd.includes('添加课程') || cmd.includes('新增课程') || cmd.includes('新建课程')) {
+            console.log('[AIControl] 指令11 - 开始执行添加课程');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 直接打开添加课程弹窗
+            if (window.scheduleManager && window.scheduleManager.openAddCourseModal) {
+                window.scheduleManager.openAddCourseModal();
+                console.log('[AIControl] 指令11 - 已调用 openAddCourseModal');
+            } else {
+                // 备用方案：直接显示弹窗
+                const modal = document.getElementById('add-course-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    console.log('[AIControl] 指令11 - 直接显示弹窗');
+                }
+            }
+            return true;
+        }
+        
+        // 12. 查看考试/考试安排
+        if (cmd.includes('考试') || cmd.includes('测验')) {
+            // 切换到考试视图
+            const examContainer = document.getElementById('exam-list-container');
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (examContainer) examContainer.style.display = 'block';
+            if (scheduleContainer) scheduleContainer.style.display = 'none';
+            
+            // 更新标签页状态
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+            const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
+            if (examTab) examTab.classList.add('active');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            console.log('[AIControl] 指令12 - 查看考试安排');
+            return true;
+        }
+        
+        // 13. 导入课程（批量导入）
+        if (cmd.includes('导入课程') || cmd.includes('批量导入') || cmd.includes('导入课表')) {
+            console.log('[AIControl] 指令13 - 开始执行导入课程');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 直接打开导入弹窗
+            if (window.scheduleManager && window.scheduleManager.openImportModal) {
+                window.scheduleManager.openImportModal();
+                console.log('[AIControl] 指令13 - 已调用 openImportModal');
+            } else {
+                // 备用方案：直接显示弹窗
+                const modal = document.getElementById('import-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    console.log('[AIControl] 指令13 - 直接显示弹窗');
+                }
+            }
+            return true;
+        }
+        
+        // 14. 查看第x周课程表
+        const weekMatch = command.match(/第\s*(\d+)\s*周/) || command.match(/(\d+)\s*周/);
+        if (weekMatch && (cmd.includes('周') || cmd.includes('星期'))) {
+            const weekNum = parseInt(weekMatch[1], 10);
+            console.log('[AIControl] 指令14 - 解析到周次:', weekNum);
+            
+            if (weekNum >= 1 && weekNum <= 20) {
+                // 切换到课程表视图
+                const examContainer = document.getElementById('exam-list-container');
+                const scheduleContainer = document.querySelector('.schedule-container');
+                if (examContainer) examContainer.style.display = 'none';
+                if (scheduleContainer) scheduleContainer.style.display = 'block';
+                
+                // 更新标签页状态
+                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                if (currentTab) currentTab.classList.add('active');
+                
+                // 设置周次为第weekNum周
+                if (window.scheduleManager) {
+                    window.scheduleManager.setCurrentWeek(weekNum);
+                }
+                
+                // 更新下拉框
+                const weekSelect = document.getElementById('week-select');
+                if (weekSelect) weekSelect.value = weekNum;
+                
+                // 更新周次显示
+                const weekDisplay = document.getElementById('current-week-display');
+                if (weekDisplay) weekDisplay.textContent = '第' + weekNum + '周';
+                
+                // 滚动到课程表
+                const scheduleSection = document.getElementById('schedule-section');
+                if (scheduleSection) {
+                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                console.log('[AIControl] 指令14 - 查看第' + weekNum + '周课程表');
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     // 初始化语音识别
@@ -4986,6 +4958,186 @@ class DoubaoAI {
         return null;
     }
     
+    // 直接执行本地指令（替代返回字符串的方式）
+    executeLocalCommand(command) {
+        const cmd = command.toLowerCase();
+        
+        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
+            // 计算当前日期对应的周次
+            const now = new Date();
+            const currentDay = now.getDay(); // 0=周日, 1=周一, ...
+            const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
+            const currentMonday = new Date(now);
+            currentMonday.setDate(now.getDate() + diffToMonday);
+            
+            // 学期开始日期
+            let semesterStart;
+            if (window.scheduleManager && window.scheduleManager.getSemesterStartDate) {
+                semesterStart = window.scheduleManager.getSemesterStartDate();
+            } else {
+                semesterStart = new Date('2025-03-02');
+            }
+            
+            const diffTime = currentMonday.getTime() - semesterStart.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const currentWeek = Math.floor(diffDays / 7) + 1;
+            const validWeek = Math.max(1, Math.min(20, currentWeek));
+            
+            console.log('[AIControl] 指令10 - 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
+            
+            // 切换到课程表视图
+            const examContainer = document.getElementById('exam-list-container');
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (examContainer) examContainer.style.display = 'none';
+            if (scheduleContainer) scheduleContainer.style.display = 'block';
+            
+            // 更新标签页状态
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+            const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+            if (currentTab) currentTab.classList.add('active');
+            
+            // 设置周次为当前日期对应的周
+            if (window.scheduleManager) {
+                window.scheduleManager.setCurrentWeek(validWeek);
+            }
+            
+            // 更新下拉框
+            const weekSelect = document.getElementById('week-select');
+            if (weekSelect) weekSelect.value = validWeek;
+            
+            // 更新周次显示
+            const weekDisplay = document.getElementById('current-week-display');
+            if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
+            
+            // 滚动到课程表
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            console.log('[AIControl] 指令10 - 查看课程表，自动切换到第' + validWeek + '周');
+            return true;
+        }
+        
+        // 11. 添加课程/新增课程
+        if (cmd.includes('添加课程') || cmd.includes('新增课程') || cmd.includes('新建课程')) {
+            console.log('[AIControl] 指令11 - 开始执行添加课程');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 直接打开添加课程弹窗
+            if (window.scheduleManager && window.scheduleManager.openAddCourseModal) {
+                window.scheduleManager.openAddCourseModal();
+                console.log('[AIControl] 指令11 - 已调用 openAddCourseModal');
+            } else {
+                // 备用方案：直接显示弹窗
+                const modal = document.getElementById('add-course-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    console.log('[AIControl] 指令11 - 直接显示弹窗');
+                }
+            }
+            return true;
+        }
+        
+        // 12. 查看考试/考试安排
+        if (cmd.includes('考试') || cmd.includes('测验')) {
+            // 切换到考试视图
+            const examContainer = document.getElementById('exam-list-container');
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (examContainer) examContainer.style.display = 'block';
+            if (scheduleContainer) scheduleContainer.style.display = 'none';
+            
+            // 更新标签页状态
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+            const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
+            if (examTab) examTab.classList.add('active');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            console.log('[AIControl] 指令12 - 查看考试安排');
+            return true;
+        }
+        
+        // 13. 导入课程（批量导入）
+        if (cmd.includes('导入课程') || cmd.includes('批量导入') || cmd.includes('导入课表')) {
+            console.log('[AIControl] 指令13 - 开始执行导入课程');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 直接打开导入弹窗
+            if (window.scheduleManager && window.scheduleManager.openImportModal) {
+                window.scheduleManager.openImportModal();
+                console.log('[AIControl] 指令13 - 已调用 openImportModal');
+            } else {
+                // 备用方案：直接显示弹窗
+                const modal = document.getElementById('import-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    console.log('[AIControl] 指令13 - 直接显示弹窗');
+                }
+            }
+            return true;
+        }
+        
+        // 14. 查看第x周课程表
+        const weekMatch = command.match(/第\s*(\d+)\s*周/) || command.match(/(\d+)\s*周/);
+        if (weekMatch && (cmd.includes('周') || cmd.includes('星期'))) {
+            const weekNum = parseInt(weekMatch[1], 10);
+            console.log('[AIControl] 指令14 - 解析到周次:', weekNum);
+            
+            if (weekNum >= 1 && weekNum <= 20) {
+                // 切换到课程表视图
+                const examContainer = document.getElementById('exam-list-container');
+                const scheduleContainer = document.querySelector('.schedule-container');
+                if (examContainer) examContainer.style.display = 'none';
+                if (scheduleContainer) scheduleContainer.style.display = 'block';
+                
+                // 更新标签页状态
+                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                if (currentTab) currentTab.classList.add('active');
+                
+                // 设置周次为第weekNum周
+                if (window.scheduleManager) {
+                    window.scheduleManager.setCurrentWeek(weekNum);
+                }
+                
+                // 更新下拉框
+                const weekSelect = document.getElementById('week-select');
+                if (weekSelect) weekSelect.value = weekNum;
+                
+                // 更新周次显示
+                const weekDisplay = document.getElementById('current-week-display');
+                if (weekDisplay) weekDisplay.textContent = '第' + weekNum + '周';
+                
+                // 滚动到课程表
+                const scheduleSection = document.getElementById('schedule-section');
+                if (scheduleSection) {
+                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                console.log('[AIControl] 指令14 - 查看第' + weekNum + '周课程表');
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     escapeHtml(text) {
         if (typeof text !== 'string') {
             return String(text);
@@ -6214,6 +6366,186 @@ class ScheduleImporter {
         }
         
         return null;
+    }
+    
+    // 直接执行本地指令（替代返回字符串的方式）
+    executeLocalCommand(command) {
+        const cmd = command.toLowerCase();
+        
+        // 10. 查看课程/课程表/今天有什么课/明天有什么课
+        if (cmd.includes('课程') || cmd.includes('课表') || cmd.includes('什么课')) {
+            // 计算当前日期对应的周次
+            const now = new Date();
+            const currentDay = now.getDay(); // 0=周日, 1=周一, ...
+            const diffToMonday = currentDay === 0 ? -6 : -(currentDay - 1);
+            const currentMonday = new Date(now);
+            currentMonday.setDate(now.getDate() + diffToMonday);
+            
+            // 学期开始日期
+            let semesterStart;
+            if (window.scheduleManager && window.scheduleManager.getSemesterStartDate) {
+                semesterStart = window.scheduleManager.getSemesterStartDate();
+            } else {
+                semesterStart = new Date('2025-03-02');
+            }
+            
+            const diffTime = currentMonday.getTime() - semesterStart.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const currentWeek = Math.floor(diffDays / 7) + 1;
+            const validWeek = Math.max(1, Math.min(20, currentWeek));
+            
+            console.log('[AIControl] 指令10 - 计算周次:', {currentMonday: currentMonday.toISOString(), semesterStart: semesterStart.toISOString(), diffDays, currentWeek, validWeek});
+            
+            // 切换到课程表视图
+            const examContainer = document.getElementById('exam-list-container');
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (examContainer) examContainer.style.display = 'none';
+            if (scheduleContainer) scheduleContainer.style.display = 'block';
+            
+            // 更新标签页状态
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+            const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+            if (currentTab) currentTab.classList.add('active');
+            
+            // 设置周次为当前日期对应的周
+            if (window.scheduleManager) {
+                window.scheduleManager.setCurrentWeek(validWeek);
+            }
+            
+            // 更新下拉框
+            const weekSelect = document.getElementById('week-select');
+            if (weekSelect) weekSelect.value = validWeek;
+            
+            // 更新周次显示
+            const weekDisplay = document.getElementById('current-week-display');
+            if (weekDisplay) weekDisplay.textContent = '第' + validWeek + '周';
+            
+            // 滚动到课程表
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            console.log('[AIControl] 指令10 - 查看课程表，自动切换到第' + validWeek + '周');
+            return true;
+        }
+        
+        // 11. 添加课程/新增课程
+        if (cmd.includes('添加课程') || cmd.includes('新增课程') || cmd.includes('新建课程')) {
+            console.log('[AIControl] 指令11 - 开始执行添加课程');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 直接打开添加课程弹窗
+            if (window.scheduleManager && window.scheduleManager.openAddCourseModal) {
+                window.scheduleManager.openAddCourseModal();
+                console.log('[AIControl] 指令11 - 已调用 openAddCourseModal');
+            } else {
+                // 备用方案：直接显示弹窗
+                const modal = document.getElementById('add-course-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    console.log('[AIControl] 指令11 - 直接显示弹窗');
+                }
+            }
+            return true;
+        }
+        
+        // 12. 查看考试/考试安排
+        if (cmd.includes('考试') || cmd.includes('测验')) {
+            // 切换到考试视图
+            const examContainer = document.getElementById('exam-list-container');
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (examContainer) examContainer.style.display = 'block';
+            if (scheduleContainer) scheduleContainer.style.display = 'none';
+            
+            // 更新标签页状态
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+            const examTab = document.querySelector('.schedule-tab[data-tab="exam"]');
+            if (examTab) examTab.classList.add('active');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            console.log('[AIControl] 指令12 - 查看考试安排');
+            return true;
+        }
+        
+        // 13. 导入课程（批量导入）
+        if (cmd.includes('导入课程') || cmd.includes('批量导入') || cmd.includes('导入课表')) {
+            console.log('[AIControl] 指令13 - 开始执行导入课程');
+            
+            // 滚动到课程表区域
+            const scheduleSection = document.getElementById('schedule-section');
+            if (scheduleSection) {
+                scheduleSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 直接打开导入弹窗
+            if (window.scheduleManager && window.scheduleManager.openImportModal) {
+                window.scheduleManager.openImportModal();
+                console.log('[AIControl] 指令13 - 已调用 openImportModal');
+            } else {
+                // 备用方案：直接显示弹窗
+                const modal = document.getElementById('import-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    console.log('[AIControl] 指令13 - 直接显示弹窗');
+                }
+            }
+            return true;
+        }
+        
+        // 14. 查看第x周课程表
+        const weekMatch = command.match(/第\s*(\d+)\s*周/) || command.match(/(\d+)\s*周/);
+        if (weekMatch && (cmd.includes('周') || cmd.includes('星期'))) {
+            const weekNum = parseInt(weekMatch[1], 10);
+            console.log('[AIControl] 指令14 - 解析到周次:', weekNum);
+            
+            if (weekNum >= 1 && weekNum <= 20) {
+                // 切换到课程表视图
+                const examContainer = document.getElementById('exam-list-container');
+                const scheduleContainer = document.querySelector('.schedule-container');
+                if (examContainer) examContainer.style.display = 'none';
+                if (scheduleContainer) scheduleContainer.style.display = 'block';
+                
+                // 更新标签页状态
+                document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
+                const currentTab = document.querySelector('.schedule-tab[data-tab="current"]');
+                if (currentTab) currentTab.classList.add('active');
+                
+                // 设置周次为第weekNum周
+                if (window.scheduleManager) {
+                    window.scheduleManager.setCurrentWeek(weekNum);
+                }
+                
+                // 更新下拉框
+                const weekSelect = document.getElementById('week-select');
+                if (weekSelect) weekSelect.value = weekNum;
+                
+                // 更新周次显示
+                const weekDisplay = document.getElementById('current-week-display');
+                if (weekDisplay) weekDisplay.textContent = '第' + weekNum + '周';
+                
+                // 滚动到课程表
+                const scheduleSection = document.getElementById('schedule-section');
+                if (scheduleSection) {
+                    scheduleSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                console.log('[AIControl] 指令14 - 查看第' + weekNum + '周课程表');
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     // 验证课程名有效性
