@@ -815,7 +815,7 @@ class ScheduleManager {
  */
 class ZhengfangScheduleParser {
     constructor() {
-        this.periodToSlot = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4, 9: 5, 10: 5 };
+        this.periodToSlot = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4, 9: 5, 10: 5, 11: 6, 12: 6, 13: 7, 14: 7, 15: 8, 16: 8, 17: 9, 18: 9, 19: 10, 20: 10, 21: 11, 22: 11, 23: 12, 24: 12, 25: 13, 26: 13, 27: 14, 28: 14, 29: 15, 30: 15, 31: 16, 32: 16, 33: 17, 34: 17, 35: 18, 36: 18, 37: 19, 38: 19, 39: 20, 40: 20, 41: 21, 42: 21, 43: 22, 44: 22, 45: 23, 46: 23, 47: 24, 48: 24, 49: 25, 50: 25, 51: 26, 52: 26, 53: 27, 54: 27, 55: 28, 56: 28, 57: 29, 58: 29, 59: 30, 60: 30 };
         this.colToDay = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
     }
     
@@ -899,6 +899,7 @@ class ZhengfangScheduleParser {
     
     parseByCellId(table) {
         const courses = [];
+        // 获取所有以数字-数字格式ID的单元格
         const cells = table.querySelectorAll('td[id^="1-"], td[id^="2-"], td[id^="3-"], td[id^="4-"], td[id^="5-"], td[id^="6-"], td[id^="7-"]');
         
         cells.forEach(cell => {
@@ -907,9 +908,16 @@ class ZhengfangScheduleParser {
             
             const day = parseInt(match[1]);
             const period = parseInt(match[2]);
-            const timeSlot = this.periodToSlot[period];
             
-            if (timeSlot) {
+            // 动态计算timeSlot：每2节课一个slot，支持任意数量的period
+            let timeSlot = this.periodToSlot[period];
+            if (!timeSlot) {
+                // 如果period不在预定义映射中，动态计算
+                timeSlot = Math.ceil(period / 2);
+            }
+            
+            // 确保timeSlot有效（最大支持60节课，即30个slot）
+            if (timeSlot && timeSlot <= 30) {
                 courses.push(...this.parseCellContent(cell, day, timeSlot));
             }
         });
