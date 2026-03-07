@@ -496,7 +496,7 @@ class ScheduleManager {
     
     // 打开设置弹窗
     openSettingsModal() {
-        alert('课程设置功能开发中...');
+        this.openTimeSettingsModal();
     }
     
     // 关闭所有弹窗
