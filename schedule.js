@@ -201,7 +201,7 @@ class ScheduleManager {
     
     // 渲染课程
     renderCourses() {
-        // 清空所有课程格子内容，但保留格子本身
+        // 清空所有课程格子
         document.querySelectorAll('.course-cell').forEach(cell => {
             cell.innerHTML = '';
             cell.classList.remove('has-course');
@@ -216,49 +216,22 @@ class ScheduleManager {
                     (course.weekType === '双周' && this.currentWeek % 2 === 0));
         });
         
-        // 按星期几分组课程
-        const coursesByDay = {};
+        // 渲染每门课程
         currentWeekCourses.forEach(course => {
-            if (!coursesByDay[course.day]) {
-                coursesByDay[course.day] = [];
-            }
-            coursesByDay[course.day].push(course);
-        });
-        
-        // 每天独立渲染，处理重叠课程
-        Object.keys(coursesByDay).forEach(day => {
-            const dayCourses = coursesByDay[day];
-            const dayColumn = document.querySelector(`.schedule-grid > div:nth-child(${parseInt(day) + 1})`);
-            
-            if (!dayColumn) return;
-            
-            // 获取该列的所有格子
-            const cells = dayColumn.querySelectorAll('.course-cell');
-            if (cells.length === 0) return;
-            
-            // 计算每个格子的位置和高度
-            const cellHeight = cells[0].offsetHeight || 100;
-            
-            dayCourses.forEach(course => {
-                // 计算课程在列中的位置（基于时间段）
-                // time=1 -> 第0个格子, time=2 -> 第1个格子, 以此类推
-                const timeIndex = course.time - 1;
-                const targetCell = cells[timeIndex];
-                
-                if (!targetCell) {
-                    console.warn(`[Render] 找不到时间段 ${course.time} 的格子，课程: ${course.name}`);
-                    return;
-                }
-                
+            const cell = document.querySelector(
+                `.course-cell[data-day="${course.day}"][data-time="${course.time}"]`
+            );
+            if (cell) {
                 const courseEl = document.createElement('div');
                 courseEl.className = 'course-item';
                 
-                // 根据课程时长设置高度
+                // 根据课程时长设置高度（duration表示节数）
                 const duration = course.duration || 2;
-                const height = duration * cellHeight - 10;
+                // 每节课高度约100px（包括间距）
+                const height = duration * 100 - 10; // 减去间距
                 courseEl.style.height = `${height}px`;
                 
-                // 计算显示节次
+                // 添加课程节数显示
                 const startPeriod = (course.time - 1) * 2 + 1;
                 const endPeriod = startPeriod + duration - 1;
                 const periodText = `${startPeriod}-${endPeriod}节`;
@@ -270,15 +243,15 @@ class ScheduleManager {
                     ${course.startWeek !== 1 || course.endWeek !== 20 ? 
                         `<div class="course-weeks">${course.startWeek}-${course.endWeek}周</div>` : ''}
                 `;
-                
                 courseEl.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.editCourse(course);
                 });
-                
-                targetCell.appendChild(courseEl);
-                targetCell.classList.add('has-course');
-            });
+                cell.appendChild(courseEl);
+                cell.classList.add('has-course');
+            } else {
+                console.warn(`[Render] 找不到格子: day=${course.day}, time=${course.time}, 课程: ${course.name}`);
+            }
         });
         
         console.log('[ScheduleManager] 课程渲染完成:', currentWeekCourses.length);
