@@ -6438,7 +6438,32 @@ class ScheduleModule {
             console.log('[Parse] 匹配到双周');
         }
         
-            // 提取课程名 - 基于正方教务系统HTML结构
+    // 验证是否为有效课程名
+    isValidCourseName(name, config) {
+        if (!name || name.length < 2) return false;
+        
+        // 必须包含中文
+        const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+        if (!hasChinese) return false;
+        
+        // 排除纯校区名称
+        const campusNames = ['骊山校园', '雁塔校园', '秦汉校园'];
+        if (campusNames.some(c => name.trim() === c)) return false;
+        
+        // 排除详情信息行
+        const detailKeywords = ['周数', '校区', '地点', '教师', '学分', '考核', '节/周', '节', '周', '上午', '下午', '晚上'];
+        if (detailKeywords.some(k => name.includes(k))) return false;
+        
+        // 排除纯数字
+        if (/^\d+$/.test(name)) return false;
+        
+        // 排除教室代码
+        if (/^\d+-\d+-\d+$/.test(name)) return false;
+        
+        return true;
+    }
+    
+    // 提取课程名 - 基于正方教务系统HTML结构
     extractCourseName(lines, config) {
         console.log('[HTML] 尝试提取课程名，输入行:', lines);
         
@@ -6494,31 +6519,6 @@ class ScheduleModule {
         
         console.log('[HTML] 未能找到有效课程名');
         return null;
-    }
-    
-    // 验证是否为有效课程名
-    isValidCourseName(name, config) {
-        if (!name || name.length < 2) return false;
-        
-        // 必须包含中文
-        const hasChinese = /[\u4e00-\u9fa5]/.test(name);
-        if (!hasChinese) return false;
-        
-        // 排除纯校区名称
-        const campusNames = ['骊山校园', '雁塔校园', '秦汉校园'];
-        if (campusNames.some(c => name.trim() === c)) return false;
-        
-        // 排除详情信息行
-        const detailKeywords = ['周数', '校区', '地点', '教师', '学分', '考核', '节/周', '节', '周', '上午', '下午', '晚上'];
-        if (detailKeywords.some(k => name.includes(k))) return false;
-        
-        // 排除纯数字
-        if (/^\d+$/.test(name)) return false;
-        
-        // 排除教室代码
-        if (/^\d+-\d+-\d+$/.test(name)) return false;
-        
-        return true;
     }
         
         console.log('[Parse] 解析结果:', { name, day, time, location, startWeek, endWeek, weekType });
@@ -7732,7 +7732,7 @@ class HTMLScheduleImporter {
         return null;
     }
     
-        // 提取上课地点 - 只读取教室代码，第一个数字表示校区
+    // 提取上课地点 - 只读取教室代码，第一个数字表示校区
     extractLocation(detailText, config) {
         // 只提取教室代码（如：2-1-402）
         // 第一个数字2表示骊山校园，3表示雁塔校园，等等
