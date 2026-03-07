@@ -851,11 +851,15 @@ class ZhengfangScheduleParser {
         if (!/[\u4e00-\u9fa5]/.test(name)) return null;
         if (['骊山校园', '雁塔校园', '秦汉校园', '上午', '下午', '晚上'].includes(name)) return null;
         
-        // 提取课程时长
+        // 提取课程节次信息（关键：提取startPeriod和duration）
+        let startPeriod = 1;
         let duration = 2;
         const periodMatch = clean.match(/(\d+)-(\d+)节/);
         if (periodMatch) {
-            duration = parseInt(periodMatch[2]) - parseInt(periodMatch[1]) + 1;
+            startPeriod = parseInt(periodMatch[1]);
+            const endPeriod = parseInt(periodMatch[2]);
+            duration = endPeriod - startPeriod + 1;
+            console.log(`[Parser] ${name}: 第${startPeriod}-${endPeriod}节, 持续${duration}节`);
         }
         
         let startWeek = 1, endWeek = 20, weekType = '';
@@ -878,7 +882,8 @@ class ZhengfangScheduleParser {
             }
         }
         
-        return { name, day, time: timeSlot, location, startWeek, endWeek, weekType, duration };
+        // 关键：返回startPeriod和duration，不再使用timeSlot
+        return { name, day, startPeriod, duration, location, startWeek, endWeek, weekType };
     }
 }
 
