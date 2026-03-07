@@ -465,25 +465,168 @@ class ScheduleManager {
         
         examList.innerHTML = '';
         
-        this.exams.forEach((exam, index) => {
+        // 按考试日期时间排序（最近的在前）
+        const sortedExams = this.exams.map((exam, index) => ({...exam, originalIndex: index}))
+            .sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time}`);
+                const dateB = new Date(`${b.date}T${b.time}`);
+                return dateA - dateB;
+            });
+        
+        const now = new Date();
+        const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        
+        sortedExams.forEach((exam) => {
+            const examDateTime = new Date(`${exam.date}T${exam.time}`);
+            const isUrgent = examDateTime <= twoWeeksLater && examDateTime > now;
+            const isPast = examDateTime < now;
+            
             const examEl = document.createElement('div');
-            examEl.className = 'exam-item';
+            examEl.className = `exam-item ${isUrgent ? 'urgent' : ''} ${isPast ? 'past' : ''}`;
+            examEl.dataset.index = exam.originalIndex;
+            
+            // 计算剩余天数
+            const daysLeft = Math.ceil((examDateTime - now) / (1000 * 60 * 60 * 24));
+            let daysText = '';
+            if (daysLeft > 0) {
+                daysText = `还有${daysLeft}天`;
+            } else if (daysLeft === 0) {
+                daysText = '今天';
+            } else {
+                daysText = `已过期${Math.abs(daysLeft)}天`;
+            }
+            
             examEl.innerHTML = `
                 <div class="exam-info">
-                    <div class="exam-name">${exam.name}</div>
-                    <div class="exam-detail">
+                    <div class="exam-name" style="color: ${isUrgent ? '#ff4444' : '#ffffff'};">${exam.name}</div>
+                    <div class="exam-detail" style="color: #ffffff;">
                         <span><i class="fas fa-calendar"></i> ${exam.date}</span>
                         <span><i class="fas fa-clock"></i> ${exam.time}</span>
-                        <span><i class="fas fa-map-marker-alt"></i> ${exam.location}</span>
+                        ${exam.location ? `<span><i class="fas fa-map-marker-alt"></i> ${exam.location}</span>` : ''}
+                        <span class="days-left" style="color: ${isUrgent ? '#ff4444' : '#ffffff'}; font-weight: bold;">${daysText}</span>
                     </div>
+                    ${exam.note ? `<div class="exam-note" style="color: rgba(255,255,255,0.8); margin-top: 5px;"><i class="fas fa-sticky-note"></i> ${exam.note}</div>` : ''}
                 </div>
                 <div class="exam-actions">
-                    <button class="btn-edit" data-index="${index}"><i class="fas fa-edit"></i></button>
-                    <button class="btn-delete" data-index="${index}"><i class="fas fa-trash"></i></button>
+                    <button class="btn-edit" data-index="${exam.originalIndex}" title="编辑"><i class="fas fa-edit"></i></button>
+                    <button class="btn-delete" data-index="${exam.originalIndex}" title="删除"><i class="fas fa-trash"></i></button>
                 </div>
             `;
             examList.appendChild(examEl);
         });
+        
+        // 绑定编辑和删除按钮事件
+        examList.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.index);
+                this.editExam(index);
+            });
+        });
+        
+        examList.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.index);
+                this.deleteExam(index);
+            });
+        });
+    }
+    
+    // 编辑考试
+    editExam(index) {
+        const exam = this.exams[index];
+        if (!exam) return;
+        
+        // 填充表单
+        document.getElementById('exam-name').value = exam.name;
+        document.getElementById('exam-date').value = exam.date;
+        document.getElementById('exam-time').value = exam.time;
+        document.getElementById('exam-location').value = exam.location || '';
+        document.getElementById('exam-note').value = exam.note || '';
+        
+        // 设置提醒选项（如果有）
+        const reminderTimeSelect = document.getElementById('exam-reminder-time');
+        const reminderTypeSelect = document.getElementById('exam-reminder-type');
+        if (reminderTimeSelect && exam.reminderTime !== undefined) {
+            reminderTimeSelect.value = exam.reminderTime.toString();
+        }
+        if (reminderTypeSelect && exam.reminderType) {
+            reminderTypeSelect.value = exam.reminderType;
+        }
+        
+        // 打开弹窗
+        const modal = document.getElementById('add-exam-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            // 修改保存按钮为更新模式
+            const saveBtn = document.getElementById('save-exam-btn');
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> 更新';
+                saveBtn.onclick = () => this.updateExam(index);
+            }
+        }
+    }
+    
+    // 更新考试
+    updateExam(index) {
+        const name = document.getElementById('exam-name')?.value.trim();
+        const date = document.getElementById('exam-date')?.value;
+        const time = document.getElementById('exam-time')?.value;
+        const location = document.getElementById('exam-location')?.value.trim();
+        const note = document.getElementById('exam-note')?.value.trim();
+        const reminderTime = document.getElementById('exam-reminder-time')?.value || '15';
+        const reminderType = document.getElementById('exam-reminder-type')?.value || 'popup';
+        
+        if (!name || !date || !time) {
+            alert('请填写完整的考试信息');
+            return;
+        }
+        
+        // 计算提醒时间
+        const examDateTime = new Date(`${date}T${time}`);
+        const reminderMinutes = parseInt(reminderTime);
+        const reminderDateTime = new Date(examDateTime.getTime() - reminderMinutes * 60 * 1000);
+        
+        // 更新考试数据
+        this.exams[index] = { 
+            name, 
+            date, 
+            time, 
+            location,
+            note,
+            reminderTime: reminderMinutes,
+            reminderType,
+            reminderDateTime: reminderDateTime.toISOString(),
+            notified: false
+        };
+        
+        this.saveData();
+        this.render();
+        this.closeAllModals();
+        
+        // 重新设置提醒
+        this.scheduleExamReminder(this.exams[index]);
+        
+        // 恢复保存按钮
+        const saveBtn = document.getElementById('save-exam-btn');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+            saveBtn.onclick = () => this.saveExam();
+        }
+        
+        alert(`考试"${name}"已更新！`);
+    }
+    
+    // 删除考试
+    deleteExam(index) {
+        if (confirm('确定要删除这个考试吗？')) {
+            const examName = this.exams[index]?.name || '该考试';
+            this.exams.splice(index, 1);
+            this.saveData();
+            this.render();
+            alert(`考试"${examName}"已删除！`);
+        }
     }
     
     // 打开导入弹窗
