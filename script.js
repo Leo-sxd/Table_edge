@@ -782,6 +782,51 @@ class AIWebsiteController {
     parseLocalCommand(command) {
         const cmd = command.toLowerCase();
         
+        // 中文数字转阿拉伯数字函数
+        const chineseToNumber = (str) => {
+            if (!str) return null;
+            
+            // 中文数字映射
+            const chineseNums = {
+                '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
+                '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
+                '十': 10, '百': 100, '千': 1000, '万': 10000,
+                '两': 2, '俩': 2, '几': 3  // 口语化表达
+            };
+            
+            // 先尝试直接匹配阿拉伯数字
+            const arabicMatch = str.match(/(\d+)/);
+            if (arabicMatch) {
+                return parseInt(arabicMatch[1], 10);
+            }
+            
+            // 处理纯中文数字（如"五十"、"一百"）
+            let result = 0;
+            let temp = 0;
+            let lastUnit = 1;
+            
+            for (let i = 0; i < str.length; i++) {
+                const char = str[i];
+                const num = chineseNums[char];
+                
+                if (num !== undefined) {
+                    if (num >= 10) {
+                        // 是单位（十、百、千、万）
+                        if (temp === 0) temp = 1;
+                        result += temp * num;
+                        temp = 0;
+                        lastUnit = num;
+                    } else {
+                        // 是数字（0-9）
+                        temp = temp * 10 + num;
+                    }
+                }
+            }
+            
+            result += temp;
+            return result > 0 ? result : null;
+        };
+        
         // 背景图片设置
         const backgrounds = {
             '晨露之森': 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920',
@@ -871,10 +916,24 @@ class AIWebsiteController {
             return `document.body.style.backgroundImage = 'url(https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920)'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center';`;
         }
         
-        // 壁纸亮度调节 - 支持"亮度50"、"设置亮度为80"、"壁纸亮度30"等格式
-        const brightnessMatch = cmd.match(/(?:壁纸|背景)?\s*亮度\s*(?:为|设置|调到|调至|调整)?\s*(\d+)/);
+        // 壁纸亮度调节 - 支持"亮度50"、"设置亮度为八十"、"壁纸亮度三十"等格式
+        // 先尝试匹配阿拉伯数字
+        let brightnessMatch = cmd.match(/(?:壁纸|背景)?\s*亮度\s*(?:为|设置|调到|调至|调整)?\s*(\d+)/);
+        let brightnessValue = null;
+        
         if (brightnessMatch) {
-            let brightnessValue = parseInt(brightnessMatch[1], 10);
+            brightnessValue = parseInt(brightnessMatch[1], 10);
+        } else {
+            // 尝试匹配中文数字
+            const chineseMatch = cmd.match(/(?:壁纸|背景)?\s*亮度\s*(?:为|设置|调到|调至|调整)?\s*([零一二三四五六七八九十百千万两俩几]+)/);
+            if (chineseMatch) {
+                brightnessValue = chineseToNumber(chineseMatch[1]);
+            }
+        }
+        
+        if (brightnessValue !== null) {
+            // 限制范围 0-100
+            brightnessValue = Math.max(0, Math.min(100, brightnessValue));
             // 限制范围 0-100
             brightnessValue = Math.max(0, Math.min(100, brightnessValue));
             
