@@ -4588,3 +4588,137 @@ body.modal-open {
         grid-template-columns: 1fr;
     }
 }
+
+/* 新课程表布局 */
+.schedule-grid-new {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    min-height: 600px;
+}
+
+.time-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.time-slots-container {
+    flex: 1;
+    position: relative;
+}
+
+.time-slot-item {
+    height: 60px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    padding: 5px;
+}
+
+.time-slot-item .period-num {
+    font-weight: bold;
+    color: #fff;
+    font-size: 13px;
+}
+
+.time-slot-item .period-time {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.day-column {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    min-height: 600px;
+}
+
+.day-content {
+    flex: 1;
+    position: relative;
+}
+
+/* 课程块样式 */
+.course-block {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    background: linear-gradient(135deg, rgba(140, 0, 255, 0.9) 0%, rgba(100, 0, 200, 0.95) 100%);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.course-block:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 20;
+}
+
+.course-block .course-name {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    line-height: 1.2;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.course-block .course-time {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 10px;
+    margin-bottom: 2px;
+}
+
+.course-block .course-location {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 10px;
+    margin-bottom: 1px;
+}
+
+.course-block .course-weeks {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 9px;
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+    .schedule-grid-new {
+        grid-template-columns: 60px repeat(7, 1fr);
+        gap: 5px;
+        padding: 10px;
+    }
+    
+    .time-slot-item {
+        height: 50px;
+        font-size: 10px;
+    }
+    
+    .course-block {
+        left: 2px;
+        right: 2px;
+        padding: 5px;
+    }
+    
+    .course-block .course-name {
+        font-size: 10px;
+    }
+}

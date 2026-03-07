@@ -638,66 +638,44 @@
             
             <!-- 课程表容器 -->
             <div class="schedule-container">
-                <div class="schedule-grid" id="schedule-grid">
-                    <!-- 表头 -->
-                    <div class="schedule-header time-col">时间</div>
-                    <div class="schedule-header">周一</div>
-                    <div class="schedule-header">周二</div>
-                    <div class="schedule-header">周三</div>
-                    <div class="schedule-header">周四</div>
-                    <div class="schedule-header">周五</div>
-                    <div class="schedule-header">周六</div>
-                    <div class="schedule-header">周日</div>
+                <div class="schedule-grid-new" id="schedule-grid">
+                    <!-- 时间列 -->
+                    <div class="time-column">
+                        <div class="schedule-header">时间</div>
+                        <div class="time-slots-container" id="time-slots-container">
+                            <!-- 时间段由JS动态生成 -->
+                        </div>
+                    </div>
                     
-                    <!-- 第1-2节（上午） -->
-                    <div class="time-slot">08:00-09:35<br><small>第1-2节</small></div>
-                    <div class="course-cell" data-day="1" data-time="1"></div>
-                    <div class="course-cell" data-day="2" data-time="1"></div>
-                    <div class="course-cell" data-day="3" data-time="1"></div>
-                    <div class="course-cell" data-day="4" data-time="1"></div>
-                    <div class="course-cell" data-day="5" data-time="1"></div>
-                    <div class="course-cell" data-day="6" data-time="1"></div>
-                    <div class="course-cell" data-day="7" data-time="1"></div>
-                    
-                    <!-- 第3-4节（上午） -->
-                    <div class="time-slot">09:55-11:30<br><small>第3-4节</small></div>
-                    <div class="course-cell" data-day="1" data-time="2"></div>
-                    <div class="course-cell" data-day="2" data-time="2"></div>
-                    <div class="course-cell" data-day="3" data-time="2"></div>
-                    <div class="course-cell" data-day="4" data-time="2"></div>
-                    <div class="course-cell" data-day="5" data-time="2"></div>
-                    <div class="course-cell" data-day="6" data-time="2"></div>
-                    <div class="course-cell" data-day="7" data-time="2"></div>
-                    
-                    <!-- 第5-6节（下午） -->
-                    <div class="time-slot">14:00-15:35<br><small>第5-6节</small></div>
-                    <div class="course-cell" data-day="1" data-time="3"></div>
-                    <div class="course-cell" data-day="2" data-time="3"></div>
-                    <div class="course-cell" data-day="3" data-time="3"></div>
-                    <div class="course-cell" data-day="4" data-time="3"></div>
-                    <div class="course-cell" data-day="5" data-time="3"></div>
-                    <div class="course-cell" data-day="6" data-time="3"></div>
-                    <div class="course-cell" data-day="7" data-time="3"></div>
-                    
-                    <!-- 第7-8节（下午） -->
-                    <div class="time-slot">15:55-17:30<br><small>第7-8节</small></div>
-                    <div class="course-cell" data-day="1" data-time="4"></div>
-                    <div class="course-cell" data-day="2" data-time="4"></div>
-                    <div class="course-cell" data-day="3" data-time="4"></div>
-                    <div class="course-cell" data-day="4" data-time="4"></div>
-                    <div class="course-cell" data-day="5" data-time="4"></div>
-                    <div class="course-cell" data-day="6" data-time="4"></div>
-                    <div class="course-cell" data-day="7" data-time="4"></div>
-                    
-                    <!-- 第9-10节（晚上） -->
-                    <div class="time-slot">19:00-20:35<br><small>第9-10节</small></div>
-                    <div class="course-cell" data-day="1" data-time="5"></div>
-                    <div class="course-cell" data-day="2" data-time="5"></div>
-                    <div class="course-cell" data-day="3" data-time="5"></div>
-                    <div class="course-cell" data-day="4" data-time="5"></div>
-                    <div class="course-cell" data-day="5" data-time="5"></div>
-                    <div class="course-cell" data-day="6" data-time="5"></div>
-                    <div class="course-cell" data-day="7" data-time="5"></div>
+                    <!-- 周一到周日列 -->
+                    <div class="day-column" data-day="1">
+                        <div class="schedule-header">周一</div>
+                        <div class="day-content"></div>
+                    </div>
+                    <div class="day-column" data-day="2">
+                        <div class="schedule-header">周二</div>
+                        <div class="day-content"></div>
+                    </div>
+                    <div class="day-column" data-day="3">
+                        <div class="schedule-header">周三</div>
+                        <div class="day-content"></div>
+                    </div>
+                    <div class="day-column" data-day="4">
+                        <div class="schedule-header">周四</div>
+                        <div class="day-content"></div>
+                    </div>
+                    <div class="day-column" data-day="5">
+                        <div class="schedule-header">周五</div>
+                        <div class="day-content"></div>
+                    </div>
+                    <div class="day-column" data-day="6">
+                        <div class="schedule-header">周六</div>
+                        <div class="day-content"></div>
+                    </div>
+                    <div class="day-column" data-day="7">
+                        <div class="schedule-header">周日</div>
+                        <div class="day-content"></div>
+                    </div>
                 </div>
             </div>
             
