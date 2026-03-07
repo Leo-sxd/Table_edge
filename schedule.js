@@ -301,17 +301,44 @@ class ScheduleManager {
                     (course.weekType === '双周' && this.currentWeek % 2 === 0));
         });
         
-        // 渲染每门课程
+        // 按课程名称、星期、时间段分组，合并同一课程的多节显示
+        const courseGroups = {};
         currentWeekCourses.forEach(course => {
+            const key = `${course.name}-${course.day}-${course.time}`;
+            if (!courseGroups[key]) {
+                courseGroups[key] = {
+                    ...course,
+                    periods: []
+                };
+            }
+            if (course.period) {
+                courseGroups[key].periods.push(course.period);
+            }
+        });
+        
+        // 渲染每门课程（合并后的）
+        Object.values(courseGroups).forEach(course => {
             const cell = document.querySelector(
                 `.course-cell[data-day="${course.day}"][data-time="${course.time}"]`
             );
             if (cell) {
                 const courseEl = document.createElement('div');
                 courseEl.className = 'course-item';
+                
+                // 如果有多个节次，显示节次范围
+                let periodText = '';
+                if (course.periods && course.periods.length > 1) {
+                    const minPeriod = Math.min(...course.periods);
+                    const maxPeriod = Math.max(...course.periods);
+                    periodText = `<div class="course-periods">第${minPeriod}-${maxPeriod}节</div>`;
+                } else if (course.period) {
+                    periodText = `<div class="course-periods">第${course.period}节</div>`;
+                }
+                
                 courseEl.innerHTML = `
                     <div class="course-name">${course.name}</div>
                     ${course.location ? `<div class="course-location">${course.location}</div>` : ''}
+                    ${periodText}
                     ${course.startWeek !== 1 || course.endWeek !== 20 ? 
                         `<div class="course-weeks">${course.startWeek}-${course.endWeek}周</div>` : ''}
                 `;
@@ -324,7 +351,7 @@ class ScheduleManager {
             }
         });
         
-        console.log('[ScheduleManager] 课程渲染完成:', currentWeekCourses.length);
+        console.log('[ScheduleManager] 课程渲染完成:', currentWeekCourses.length, '个节次');
     }
     
     // 渲染考试
@@ -917,22 +944,38 @@ class ZhengfangScheduleParser {
             
             // 确保timeSlot有效（最大支持60节课，即30个slot）
             if (defaultTimeSlot && defaultTimeSlot <= 30) {
-                // 解析课程内容，parseCellContent会根据课程文本中的节数调整位置
+                // 解析课程内容
                 const cellCourses = this.parseCellContent(cell, day, defaultTimeSlot);
                 
-                // 根据课程文本中的节数重新调整课程位置
+                // 处理每个课程，根据节数信息拆分为多个单节课程
                 cellCourses.forEach(course => {
                     if (course) {
-                        // 从课程文本中提取节数信息并重新计算timeSlot
+                        // 从课程文本中提取节数信息
                         const periodInfo = this.extractPeriodInfoFromCourse(course);
+                        
                         if (periodInfo && window.scheduleManager) {
-                            const slotInfo = this.calculateTimeSlot(periodInfo, window.scheduleManager);
-                            if (slotInfo) {
-                                course.time = slotInfo.timeSlot;
-                                course.duration = slotInfo.duration;
+                            // 为每个节次创建单独的课程对象
+                            for (let p = periodInfo.startPeriod; p <= periodInfo.endPeriod; p++) {
+                                // 计算该节次对应的timeSlot
+                                const timeSlot = Math.ceil(p / 2);
+                                
+                                // 创建课程副本，每个节次一个
+                                const periodCourse = {
+                                    ...course,
+                                    time: timeSlot,
+                                    period: p,  // 记录具体节次
+                                    startPeriod: periodInfo.startPeriod,
+                                    endPeriod: periodInfo.endPeriod,
+                                    isMultiPeriod: periodInfo.startPeriod !== periodInfo.endPeriod
+                                };
+                                
+                                courses.push(periodCourse);
+                                console.log(`[Parser] 课程"${course.name}"第${p}节 → 时间段${timeSlot}`);
                             }
+                        } else {
+                            // 未识别到节数信息，使用默认位置
+                            courses.push(course);
                         }
-                        courses.push(course);
                     }
                 });
             }
