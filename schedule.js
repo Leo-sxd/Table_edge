@@ -39,9 +39,38 @@ class ScheduleManager {
     
     init() {
         this.loadData();
+        this.migrateData();  // 数据迁移
         this.bindEvents();
         this.render();
         console.log('[ScheduleManager] 初始化完成');
+    }
+    
+    // 数据迁移：修正旧数据的time属性
+    migrateData() {
+        let needsSave = false;
+        
+        this.courses.forEach(course => {
+            // 检查是否需要迁移
+            // 如果course有period但time不等于period，需要修正
+            if (course.period && course.time !== course.period) {
+                console.log(`[Migrate] 修正课程 "${course.name}" 的time: ${course.time} → ${course.period}`);
+                course.time = course.period;
+                needsSave = true;
+            }
+            // 如果course有startPeriod但没有period，使用startPeriod作为time
+            else if (course.startPeriod && !course.period && course.time !== course.startPeriod) {
+                console.log(`[Migrate] 修正课程 "${course.name}" 的time: ${course.time} → ${course.startPeriod}`);
+                course.time = course.startPeriod;
+                needsSave = true;
+            }
+        });
+        
+        if (needsSave) {
+            this.saveData();
+            console.log('[Migrate] 数据迁移完成，已保存');
+        } else {
+            console.log('[Migrate] 无需数据迁移');
+        }
     }
     
     // 从localStorage加载数据
@@ -303,13 +332,28 @@ class ScheduleManager {
         });
         
         console.log('[Renderer] 当前周课程:', currentWeekCourses.length, '个节次');
+        console.log('[Renderer] 课程数据示例:', currentWeekCourses.slice(0, 3).map(c => 
+            `${c.name}: day=${c.day}, time=${c.time}, period=${c.period}, startPeriod=${c.startPeriod}, endPeriod=${c.endPeriod}`
+        ));
         
         // 按格子(星期-时间段)分组
         const cellMap = new Map();
         
         currentWeekCourses.forEach(course => {
-            // 使用课程实际的时间段（已由parseByCellId计算好）
-            const cellKey = `${course.day}-${course.time}`;
+            // 重要：确保time属性正确对应节次
+            // 如果course有period属性，使用period作为time（每个节次一个slot）
+            // 如果course有startPeriod和endPeriod但没有period，需要计算正确的time
+            let correctTime = course.time;
+            
+            if (course.period) {
+                // 有具体节次，使用节次作为time
+                correctTime = course.period;
+            } else if (course.startPeriod) {
+                // 只有起始节，使用起始节作为time
+                correctTime = course.startPeriod;
+            }
+            
+            const cellKey = `${course.day}-${correctTime}`;
             
             if (!cellMap.has(cellKey)) {
                 cellMap.set(cellKey, []);
@@ -328,7 +372,8 @@ class ScheduleManager {
                 // 新课程，添加到格子
                 existingCourses.push({
                     ...course,
-                    periods: course.period ? [course.period] : []
+                    time: correctTime,  // 使用修正后的time
+                    periods: course.period ? [course.period] : (course.startPeriod ? [course.startPeriod] : [])
                 });
             }
         });
@@ -356,7 +401,7 @@ class ScheduleManager {
                 // 排序并去重节次
                 const sortedPeriods = [...new Set(course.periods)].sort((a, b) => a - b);
                 
-                // 显示节次信息
+                // 显示节次信息 - 确保与左侧节次标签对应
                 let periodText = '';
                 if (sortedPeriods.length > 0) {
                     const minPeriod = sortedPeriods[0];
@@ -365,6 +410,13 @@ class ScheduleManager {
                         periodText = `<div class="course-periods">第${minPeriod}节</div>`;
                     } else {
                         periodText = `<div class="course-periods">第${minPeriod}-${maxPeriod}节</div>`;
+                    }
+                } else if (course.startPeriod && course.endPeriod) {
+                    // 使用startPeriod和endPeriod显示
+                    if (course.startPeriod === course.endPeriod) {
+                        periodText = `<div class="course-periods">第${course.startPeriod}节</div>`;
+                    } else {
+                        periodText = `<div class="course-periods">第${course.startPeriod}-${course.endPeriod}节</div>`;
                     }
                 }
                 
@@ -383,7 +435,7 @@ class ScheduleManager {
                 cell.appendChild(courseEl);
                 cell.classList.add('has-course');
                 
-                console.log(`[Renderer] ✓ 渲染 "${course.name}" 在 星期${day} 时间段${timeSlot}, 节次: ${sortedPeriods.join(',')}`);
+                console.log(`[Renderer] ✓ 渲染 "${course.name}" 在 星期${day} 第${timeSlot}节, 节次范围: ${sortedPeriods.join(',') || course.startPeriod + '-' + course.endPeriod}`);
             });
         });
         
