@@ -99,6 +99,9 @@ class ScheduleManager {
     // 根据节数生成时间段配置
     generateTimeSlots(count) {
         const slots = [];
+        // 尝试加载自定义时间配置
+        const customTimes = this.loadCustomTimeConfig();
+        
         // 默认时间模板（每节课45分钟，课间休息根据时段调整）
         const defaultTimes = [
             { start: '08:00', end: '08:45' },   // 第1节
@@ -118,7 +121,8 @@ class ScheduleManager {
         ];
         
         for (let i = 1; i <= count; i++) {
-            const time = defaultTimes[i - 1] || { 
+            // 优先使用自定义时间，否则使用默认时间
+            const time = (customTimes && customTimes[i - 1]) || defaultTimes[i - 1] || { 
                 start: `${8 + Math.floor((i-1)/2)}:${(i%2===1)?'00':'30'}`, 
                 end: `${8 + Math.floor((i-1)/2)}:${(i%2===1)?'45':'15'}` 
             };
@@ -129,6 +133,29 @@ class ScheduleManager {
             });
         }
         return slots;
+    }
+    
+    // 加载自定义时间配置
+    loadCustomTimeConfig() {
+        try {
+            const config = localStorage.getItem('schedule_custom_times');
+            if (config) {
+                return JSON.parse(config);
+            }
+        } catch (e) {
+            console.error('[ScheduleManager] 加载自定义时间失败:', e);
+        }
+        return null;
+    }
+    
+    // 保存自定义时间配置
+    saveCustomTimeConfig(times) {
+        try {
+            localStorage.setItem('schedule_custom_times', JSON.stringify(times));
+            console.log('[ScheduleManager] 自定义时间已保存');
+        } catch (e) {
+            console.error('[ScheduleManager] 保存自定义时间失败:', e);
+        }
     }
     
     // 绑定事件
@@ -371,6 +398,33 @@ class ScheduleManager {
     
     // 打开设置弹窗
     openSettingsModal() {
+        const choice = prompt(
+            `课程设置菜单：\n` +
+            `1. 设置一天课程节数（当前：${this.periodsPerDay}节）\n` +
+            `2. 设置每节课时间\n` +
+            `3. 恢复默认时间设置\n\n` +
+            `请输入选项（1/2/3）：`
+        );
+        
+        if (choice === null) return; // 用户取消
+        
+        switch(choice.trim()) {
+            case '1':
+                this.setPeriodsPerDay();
+                break;
+            case '2':
+                this.openTimeSettings();
+                break;
+            case '3':
+                this.resetTimeSettings();
+                break;
+            default:
+                alert('无效的选项，请输入1、2或3');
+        }
+    }
+    
+    // 设置一天课程节数
+    setPeriodsPerDay() {
         const count = prompt(`当前一天课程节数：${this.periodsPerDay}节\n请输入新的一天课程节数（1-60）：`, this.periodsPerDay);
         
         if (count === null) return; // 用户取消
@@ -394,6 +448,138 @@ class ScheduleManager {
         this.render();
         
         alert(`设置成功！一天课程节数已改为${newCount}节`);
+    }
+    
+    // 打开时间设置界面
+    openTimeSettings() {
+        let html = `<div style="text-align:left;max-height:400px;overflow-y:auto;">`;
+        html += `<h3 style="margin-bottom:15px;">设置每节课时间（24小时制）</h3>`;
+        
+        this.timeSlots.forEach((slot, index) => {
+            const [start, end] = slot.time.split('-');
+            html += `<div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">`;
+            html += `<span style="width:60px;">${slot.name}</span>`;
+            html += `<input type="time" id="time-start-${index}" value="${start}" style="padding:5px;">`;
+            html += `<span>至</span>`;
+            html += `<input type="time" id="time-end-${index}" value="${end}" style="padding:5px;">`;
+            html += `</div>`;
+        });
+        
+        html += `</div>`;
+        
+        // 创建自定义弹窗
+        const modal = document.createElement('div');
+        modal.id = 'time-settings-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+            <div style="
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                border: 1px solid rgba(140, 0, 255, 0.3);
+                color: #fff;
+            ">
+                ${html}
+                <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+                    <button id="cancel-time-btn" style="
+                        padding: 10px 20px;
+                        background: rgba(255,255,255,0.1);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        color: #fff;
+                        border-radius: 8px;
+                        cursor: pointer;
+                    ">取消</button>
+                    <button id="save-time-btn" style="
+                        padding: 10px 20px;
+                        background: linear-gradient(135deg, #8c00ff, #00c8ff);
+                        border: none;
+                        color: #fff;
+                        border-radius: 8px;
+                        cursor: pointer;
+                    ">保存</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 绑定事件
+        document.getElementById('cancel-time-btn').onclick = () => {
+            modal.remove();
+        };
+        
+        document.getElementById('save-time-btn').onclick = () => {
+            const customTimes = [];
+            let hasError = false;
+            
+            this.timeSlots.forEach((slot, index) => {
+                const start = document.getElementById(`time-start-${index}`).value;
+                const end = document.getElementById(`time-end-${index}`).value;
+                
+                if (!start || !end) {
+                    alert(`第${index + 1}节的时间不能为空！`);
+                    hasError = true;
+                    return;
+                }
+                
+                // 验证结束时间是否晚于开始时间
+                if (start >= end) {
+                    alert(`第${index + 1}节的结束时间必须晚于开始时间！`);
+                    hasError = true;
+                    return;
+                }
+                
+                customTimes.push({ start, end });
+            });
+            
+            if (hasError) return;
+            
+            // 保存自定义时间
+            this.saveCustomTimeConfig(customTimes);
+            
+            // 重新生成时间段
+            this.timeSlots = this.generateTimeSlots(this.periodsPerDay);
+            
+            // 重新渲染
+            this.render();
+            
+            modal.remove();
+            alert('时间设置已保存！');
+        };
+        
+        // 点击背景关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        };
+    }
+    
+    // 恢复默认时间设置
+    resetTimeSettings() {
+        if (!confirm('确定要恢复默认时间设置吗？这将清除所有自定义时间。')) {
+            return;
+        }
+        
+        localStorage.removeItem('schedule_custom_times');
+        this.timeSlots = this.generateTimeSlots(this.periodsPerDay);
+        this.render();
+        
+        alert('已恢复默认时间设置！');
     }
     
     // 关闭所有弹窗
