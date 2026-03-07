@@ -750,8 +750,14 @@ class ScheduleManager {
         if (!modal) return;
         
         // 重置表单
-        const form = document.getElementById('add-course-form');
-        if (form) form.reset();
+        document.getElementById('course-name').value = '';
+        document.getElementById('course-day').value = '1';
+        document.getElementById('course-period-start').value = '1';
+        document.getElementById('course-location').value = '';
+        document.getElementById('course-teacher').value = '';
+        document.getElementById('course-start-week').value = '1';
+        document.getElementById('course-end-week').value = '20';
+        document.getElementById('course-week-type').value = '';
         
         // 预填充数据
         if (prefill.day) {
@@ -759,12 +765,25 @@ class ScheduleManager {
             if (daySelect) daySelect.value = prefill.day;
         }
         if (prefill.time) {
-            const timeSelect = document.getElementById('course-time');
-            if (timeSelect) timeSelect.value = prefill.time;
+            const periodSelect = document.getElementById('course-period-start');
+            if (periodSelect) periodSelect.value = prefill.time;
         }
         
         // 清除编辑状态
         modal.dataset.editIndex = '';
+        
+        // 隐藏删除按钮（添加模式）
+        const deleteBtn = document.getElementById('delete-course-btn');
+        if (deleteBtn) {
+            deleteBtn.style.display = 'none';
+            deleteBtn.onclick = null;
+        }
+        
+        // 恢复保存按钮文本为"保存"
+        const saveBtn = document.getElementById('save-course-btn');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+        }
         
         modal.style.display = 'block';
     }
@@ -985,6 +1004,30 @@ class ScheduleManager {
         alert('已恢复默认时间设置！');
     }
     
+    // 删除课程
+    deleteCourse(index) {
+        if (index < 0 || index >= this.courses.length) {
+            alert('课程不存在');
+            return;
+        }
+        
+        const course = this.courses[index];
+        const confirmDelete = confirm(`确定要删除课程"${course.name}"吗？
+
+星期${course.day} 第${course.period || course.time || '?'}节
+地点：${course.location || '未设置'}
+
+此操作不可恢复！`);
+        
+        if (confirmDelete) {
+            this.courses.splice(index, 1);
+            this.saveData();
+            this.render();
+            this.closeAllModals();
+            alert(`课程"${course.name}"已删除！`);
+        }
+    }
+    
     // 关闭所有弹窗
     closeAllModals() {
         document.querySelectorAll('.schedule-modal').forEach(modal => {
@@ -998,10 +1041,29 @@ class ScheduleManager {
         }
         
         // 重置保存按钮
-        const saveBtn = document.getElementById('save-exam-btn');
-        if (saveBtn) {
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
-            saveBtn.onclick = null;
+        const saveExamBtn = document.getElementById('save-exam-btn');
+        if (saveExamBtn) {
+            saveExamBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+            saveExamBtn.onclick = null;
+        }
+        
+        // 重置课程弹窗状态
+        const courseModal = document.getElementById('add-course-modal');
+        if (courseModal) {
+            delete courseModal.dataset.editIndex;
+        }
+        
+        // 隐藏课程删除按钮
+        const deleteCourseBtn = document.getElementById('delete-course-btn');
+        if (deleteCourseBtn) {
+            deleteCourseBtn.style.display = 'none';
+            deleteCourseBtn.onclick = null;
+        }
+        
+        // 恢复课程保存按钮文本
+        const saveCourseBtn = document.getElementById('save-course-btn');
+        if (saveCourseBtn) {
+            saveCourseBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
         }
     }
     
@@ -1182,6 +1244,23 @@ class ScheduleManager {
         
         // 设置编辑状态
         modal.dataset.editIndex = index;
+        
+        // 显示删除按钮（编辑模式）
+        const deleteBtn = document.getElementById('delete-course-btn');
+        if (deleteBtn) {
+            deleteBtn.style.display = 'inline-flex';
+            deleteBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.deleteCourse(index);
+            };
+        }
+        
+        // 修改保存按钮文本为"更新"
+        const saveBtn = document.getElementById('save-course-btn');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 更新';
+        }
         
         modal.style.display = 'block';
     }

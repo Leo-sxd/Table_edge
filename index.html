@@ -794,15 +794,17 @@
                         <label>教师（可选）</label>
                         <input type="text" id="course-teacher" placeholder="如：张老师">
                     </div>
-                    <div class="modal-actions" style="justify-content: center;">
+                    <div class="modal-actions" style="justify-content: center; gap: 10px;">
                         <button id="save-course-btn" class="schedule-btn">
                             <i class="fas fa-save"></i> 保存
+                        </button>
+                        <button id="delete-course-btn" class="schedule-btn" style="display: none; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);">
+                            <i class="fas fa-trash"></i> 删除
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        
 
         <!-- 时间设置弹窗 -->
         <div id="time-settings-modal" class="schedule-modal">
