@@ -40,6 +40,13 @@
         </button>
     </div>
     
+    <!-- 收藏网站按钮 -->
+    <div class="favorites-container">
+        <button class="favorites-btn" id="favorites-btn" title="收藏网站">
+            <i class="fas fa-star"></i>
+        </button>
+    </div>
+    
     <!-- 全屏设置模态框 -->
     <div class="settings-modal-overlay" id="settings-modal-overlay">
         <div class="settings-modal" id="settings-modal">
@@ -983,5 +990,63 @@
         // 设置PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+
+    <!-- 收藏网站功能界面 -->
+    <div class="favorites-overlay" id="favorites-overlay">
+        <div class="favorites-header">
+            <h2 class="favorites-title">⭐ 收藏网站</h2>
+            <button class="favorites-exit-btn" id="favorites-exit-btn" title="退出">
+                <i class="fas fa-times"></i> 退出
+            </button>
+        </div>
+        <div class="favorites-content">
+            <!-- 时间显示区域 -->
+            <div class="fav-time-display">
+                <div class="fav-time-container">
+                    <div class="fav-time-main">
+                        <span id="fav-current-time">00:00:00</span>
+                        <span class="fav-time-period" id="fav-time-period">AM</span>
+                    </div>
+                    <div class="fav-date-info" id="fav-current-date">2024年1月1日 星期一</div>
+                    <div class="fav-lunar-info" id="fav-lunar-date">农历正月初一</div>
+                    <div class="fav-festival-info" id="fav-festival-info">春节</div>
+                </div>
+            </div>
+            
+            <!-- 搜索栏 -->
+            <div class="fav-search-container">
+                <input id="fav-search-input" class="fav-search-input" type="text" placeholder="我们的征途是星辰大海">
+                <div class="fav-search-tip">⌕ 搜索</div>
+            </div>
+            
+            <!-- 分类导航 -->
+            <div class="fav-category-nav">
+                <button class="fav-category-btn active" data-category="all">全部</button>
+                <button class="fav-category-btn" data-category="website">网址导航</button>
+                <button class="fav-category-btn" data-category="ai">AI工具</button>
+                <button class="fav-category-btn" data-category="Agent">AI代理</button>
+                <button class="fav-category-btn" data-category="API">API平台</button>
+                <button class="fav-category-btn" data-category="programming">编程开发</button>
+                <button class="fav-category-btn" data-category="information">信息查询</button>
+                <button class="fav-category-btn" data-category="academic">学术研究</button>
+                <button class="fav-category-btn" data-category="mailbox">线上邮箱</button>
+                <button class="fav-category-btn" data-category="education">在线学习</button>
+                <button class="fav-category-btn" data-category="english">英语学习</button>
+                <button class="fav-category-btn" data-category="tools">科学工具</button>
+                <button class="fav-category-btn" data-category="maps">地理信息</button>
+                <button class="fav-category-btn" data-category="finance">金融财经</button>
+                <button class="fav-category-btn" data-category="computer">电脑设置</button>
+                <button class="fav-category-btn" data-category="web">网页开发</button>
+                <button class="fav-category-btn" data-category="games">闲趣益智</button>
+                <button class="fav-category-btn" data-category="administration">西科网络</button>
+            </div>
+            
+            <!-- 书签内容区域 -->
+            <div class="fav-bookmarks-area" id="fav-bookmarks-area">
+                <!-- 动态加载书签 -->
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
