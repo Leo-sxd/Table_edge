@@ -40,13 +40,6 @@
         </button>
     </div>
     
-    <!-- 收藏网站按钮 -->
-    <div class="favorites-container">
-        <button class="favorites-btn" id="favorites-btn" title="收藏网站">
-            <i class="fas fa-star"></i>
-        </button>
-    </div>
-    
     <!-- 全屏设置模态框 -->
     <div class="settings-modal-overlay" id="settings-modal-overlay">
         <div class="settings-modal" id="settings-modal">
@@ -694,14 +687,15 @@
                         <p style="color: #a0e5ff; margin-bottom: 15px; font-size: 14px; text-align: center;">
                             <i class="fas fa-file-code" style="color: #00c8ff; font-size: 28px;"></i><br><br>
                             <strong>从HTML文件导入（推荐）</strong><br>
-                            <span style="font-size: 12px; color: rgba(255,255,255,0.7);">目前课程表仅支持正方教务系统，敬请谅解</span>
+                            <span style="font-size: 12px; color: rgba(255,255,255,0.7);">参考wakeup课程表方案</span>
                         </p>
                         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.6;">
                             <strong>操作步骤：</strong><br>
                             1. 在浏览器登录教务系统<br>
                             2. 进入"个人课表查询"页面<br>
                             3. 按 <kbd>Ctrl+S</kbd> 保存网页<br>
-                            4. 上传保存的HTML文件
+                            4. 选择"网页，完整"格式<br>
+                            5. 上传保存的HTML文件
                         </div>
                         <input type="file" id="html-file-input" accept=".html,.htm" style="display: none;">
                         <button id="upload-html-btn" class="schedule-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #00c8ff 0%, #0099cc 100%);">
@@ -990,63 +984,5 @@
         // 设置PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
-
-    <!-- 收藏网站功能界面 -->
-    <div class="favorites-overlay" id="favorites-overlay">
-        <div class="favorites-header">
-            <h2 class="favorites-title">⭐ 收藏网站</h2>
-            <button class="favorites-exit-btn" id="favorites-exit-btn" title="退出">
-                <i class="fas fa-times"></i> 退出
-            </button>
-        </div>
-        <div class="favorites-content">
-            <!-- 时间显示区域 -->
-            <div class="fav-time-display">
-                <div class="fav-time-container">
-                    <div class="fav-time-main">
-                        <span id="fav-current-time">00:00:00</span>
-                        <span class="fav-time-period" id="fav-time-period">AM</span>
-                    </div>
-                    <div class="fav-date-info" id="fav-current-date">2024年1月1日 星期一</div>
-                    <div class="fav-lunar-info" id="fav-lunar-date">农历正月初一</div>
-                    <div class="fav-festival-info" id="fav-festival-info">春节</div>
-                </div>
-            </div>
-            
-            <!-- 搜索栏 -->
-            <div class="fav-search-container">
-                <input id="fav-search-input" class="fav-search-input" type="text" placeholder="我们的征途是星辰大海">
-                <div class="fav-search-tip">⌕ 搜索</div>
-            </div>
-            
-            <!-- 分类导航 -->
-            <div class="fav-category-nav">
-                <button class="fav-category-btn active" data-category="all">全部</button>
-                <button class="fav-category-btn" data-category="website">网址导航</button>
-                <button class="fav-category-btn" data-category="ai">AI工具</button>
-                <button class="fav-category-btn" data-category="Agent">AI代理</button>
-                <button class="fav-category-btn" data-category="API">API平台</button>
-                <button class="fav-category-btn" data-category="programming">编程开发</button>
-                <button class="fav-category-btn" data-category="information">信息查询</button>
-                <button class="fav-category-btn" data-category="academic">学术研究</button>
-                <button class="fav-category-btn" data-category="mailbox">线上邮箱</button>
-                <button class="fav-category-btn" data-category="education">在线学习</button>
-                <button class="fav-category-btn" data-category="english">英语学习</button>
-                <button class="fav-category-btn" data-category="tools">科学工具</button>
-                <button class="fav-category-btn" data-category="maps">地理信息</button>
-                <button class="fav-category-btn" data-category="finance">金融财经</button>
-                <button class="fav-category-btn" data-category="computer">电脑设置</button>
-                <button class="fav-category-btn" data-category="web">网页开发</button>
-                <button class="fav-category-btn" data-category="games">闲趣益智</button>
-                <button class="fav-category-btn" data-category="administration">西科网络</button>
-            </div>
-            
-            <!-- 书签内容区域 -->
-            <div class="fav-bookmarks-area" id="fav-bookmarks-area">
-                <!-- 动态加载书签 -->
-            </div>
-        </div>
-    </div>
-
 </body>
 </html>
