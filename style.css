@@ -4776,52 +4776,58 @@ body.modal-open {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.6);
     z-index: 1000;
     overflow-y: auto;
 }
 
 .favorite-modal-content {
-    background-color: #1a1a2e;
+    background-color: rgba(255, 255, 255, 0.2);
     margin: 5% auto;
-    padding: 20px;
-    border-radius: 10px;
+    padding: 30px;
+    border-radius: 15px;
     width: 90%;
     max-width: 1200px;
     position: relative;
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border-left: 5px solid #8400ff;
 }
 
 .favorite-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #333;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #8400ff;
 }
 
 .favorite-modal-header h2 {
-    color: #00ffff;
+    color: #ffffff;
     font-size: 24px;
     margin: 0;
+    font-weight: 500;
 }
 
 .favorite-close-btn {
     background: none;
     border: none;
-    color: #00ffff;
+    color: #ffffff;
     font-size: 24px;
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: all 0.3s ease;
+    padding: 5px;
+    border-radius: 50%;
 }
 
 .favorite-close-btn:hover {
-    color: #ff6b6b;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
 }
 
 .favorite-modal-body {
-    color: #fff;
+    color: #ffffff;
 }
 
 /* 分类导航样式 */
@@ -4831,15 +4837,16 @@ body.modal-open {
     gap: 10px;
     margin-bottom: 30px;
     padding: 15px;
-    background-color: #16213e;
-    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
 }
 
 .category-btn {
     padding: 8px 16px;
-    border: 1px solid #00ffff;
-    background-color: transparent;
-    color: #00ffff;
+    border: 1px solid #8400ff;
+    background-color: rgba(132, 0, 255, 0.1);
+    color: #ffffff;
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -4847,14 +4854,16 @@ body.modal-open {
 }
 
 .category-btn:hover {
-    background-color: rgba(0, 255, 255, 0.2);
+    background-color: rgba(132, 0, 255, 0.3);
     transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(132, 0, 255, 0.3);
 }
 
 .category-btn.active {
-    background-color: #00ffff;
-    color: #1a1a2e;
+    background-color: #8400ff;
+    color: white;
     font-weight: bold;
+    box-shadow: 0 3px 10px rgba(132, 0, 255, 0.5);
 }
 
 /* 分类容器样式 */
@@ -4865,19 +4874,27 @@ main {
 }
 
 .category-container {
-    background-color: #16213e;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+}
+
+.category-container:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
 .category-title {
-    color: #00ffff;
+    color: #ffffff;
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 20px;
-    border-bottom: 2px solid #00ffff;
+    border-bottom: 2px solid #8400ff;
     padding-bottom: 10px;
+    font-weight: 500;
 }
 
 /* 书签网格样式 */
@@ -4891,24 +4908,26 @@ main {
     display: flex;
     align-items: center;
     padding: 15px;
-    background-color: #1a1a2e;
-    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
     text-decoration: none;
-    color: #fff;
+    color: #ffffff;
     transition: all 0.3s ease;
-    border: 1px solid #333;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
 }
 
 .bookmark:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
-    border-color: #00ffff;
+    box-shadow: 0 5px 15px rgba(132, 0, 255, 0.3);
+    border-color: #8400ff;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .bookmark-icon {
     width: 50px;
     height: 50px;
-    background-color: #0f3460;
+    background-color: rgba(132, 0, 255, 0.2);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -4916,8 +4935,8 @@ main {
     font-weight: bold;
     font-size: 18px;
     margin-right: 15px;
-    color: #00ffff;
-    border: 1px solid #00ffff;
+    color: #ffffff;
+    border: 1px solid #8400ff;
 }
 
 .bookmark-info {
@@ -4928,12 +4947,12 @@ main {
     font-size: 16px;
     font-weight: bold;
     margin-bottom: 5px;
-    color: #fff;
+    color: #ffffff;
 }
 
 .bookmark-url {
     font-size: 14px;
-    color: #aaa;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 /* 响应式设计 */
@@ -4941,6 +4960,7 @@ main {
     .favorite-modal-content {
         width: 95%;
         margin: 10% auto;
+        padding: 20px;
     }
     
     .bookmarks-grid {
@@ -4961,3 +4981,4 @@ main {
         font-size: 20px;
     }
 }
+
