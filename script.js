@@ -6526,3 +6526,82 @@ class ScheduleImporter {
 document.addEventListener('DOMContentLoaded', () => {
     window.scheduleImporter = new ScheduleImporter();
 });
+
+// 收藏网站弹窗功能
+class FavoriteModal {
+    constructor() {
+        this.modal = document.getElementById('favorite-modal');
+        this.closeBtn = document.getElementById('favorite-close-btn');
+        this.favoriteButton = document.querySelector('a[href="https://leo-sxd.github.io/favorite_file.github.io/"]');
+        this.categoryButtons = document.querySelectorAll('.category-btn');
+        this.categoryContainers = document.querySelectorAll('.category-container');
+        
+        this.init();
+    }
+    
+    init() {
+        // 阻止收藏网站按钮的默认跳转行为
+        if (this.favoriteButton) {
+            this.favoriteButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showModal();
+            });
+        }
+        
+        // 关闭弹窗
+        if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', () => {
+                this.hideModal();
+            });
+        }
+        
+        // 点击弹窗外部关闭
+        if (this.modal) {
+            this.modal.addEventListener('click', (e) => {
+                if (e.target === this.modal) {
+                    this.hideModal();
+                }
+            });
+        }
+        
+        // 分类按钮点击事件
+        this.categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                this.filterCategories(button.dataset.category);
+                
+                // 更新活动按钮状态
+                this.categoryButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+            });
+        });
+    }
+    
+    showModal() {
+        if (this.modal) {
+            this.modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    hideModal() {
+        if (this.modal) {
+            this.modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
+    
+    filterCategories(category) {
+        this.categoryContainers.forEach(container => {
+            if (category === 'all' || container.dataset.category === category) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        });
+    }
+}
+
+// 初始化收藏网站弹窗
+window.addEventListener('DOMContentLoaded', () => {
+    new FavoriteModal();
+});

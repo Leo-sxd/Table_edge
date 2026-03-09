@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    整合后的样式文件 - style.css
    包含：主样式 + 诗句模块样式
    ============================================ */
@@ -4766,4 +4766,198 @@ body.modal-open {
     color: #888;
     margin-top: 10px;
     line-height: 1.5;
+}
+
+/* 收藏网站弹窗样式 */
+.favorite-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.favorite-modal-content {
+    background-color: #1a1a2e;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 1200px;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+}
+
+.favorite-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+}
+
+.favorite-modal-header h2 {
+    color: #00ffff;
+    font-size: 24px;
+    margin: 0;
+}
+
+.favorite-close-btn {
+    background: none;
+    border: none;
+    color: #00ffff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.favorite-close-btn:hover {
+    color: #ff6b6b;
+}
+
+.favorite-modal-body {
+    color: #fff;
+}
+
+/* 分类导航样式 */
+.category-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+    padding: 15px;
+    background-color: #16213e;
+    border-radius: 8px;
+}
+
+.category-btn {
+    padding: 8px 16px;
+    border: 1px solid #00ffff;
+    background-color: transparent;
+    color: #00ffff;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.category-btn:hover {
+    background-color: rgba(0, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.category-btn.active {
+    background-color: #00ffff;
+    color: #1a1a2e;
+    font-weight: bold;
+}
+
+/* 分类容器样式 */
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.category-container {
+    background-color: #16213e;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.category-title {
+    color: #00ffff;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 20px;
+    border-bottom: 2px solid #00ffff;
+    padding-bottom: 10px;
+}
+
+/* 书签网格样式 */
+.bookmarks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.bookmark {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background-color: #1a1a2e;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #fff;
+    transition: all 0.3s ease;
+    border: 1px solid #333;
+}
+
+.bookmark:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+    border-color: #00ffff;
+}
+
+.bookmark-icon {
+    width: 50px;
+    height: 50px;
+    background-color: #0f3460;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    margin-right: 15px;
+    color: #00ffff;
+    border: 1px solid #00ffff;
+}
+
+.bookmark-info {
+    flex: 1;
+}
+
+.bookmark-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+.bookmark-url {
+    font-size: 14px;
+    color: #aaa;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .favorite-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .bookmarks-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    
+    .category-nav {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .bookmarks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .favorite-modal-header h2 {
+        font-size: 20px;
+    }
 }
