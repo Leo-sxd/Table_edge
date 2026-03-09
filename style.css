@@ -4767,3 +4767,329 @@ body.modal-open {
     margin-top: 10px;
     line-height: 1.5;
 }
+
+/* ============================================
+   收藏网站弹窗样式
+   ============================================ */
+
+/* 弹窗遮罩层 */
+.favorite-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 30, 0.95);
+    z-index: 10000;
+    overflow-y: auto;
+}
+
+.favorite-modal.active {
+    display: block;
+}
+
+/* 弹窗内容容器 */
+.favorite-modal-content {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a2a 0%, #1a1a3a 100%);
+    position: relative;
+}
+
+/* 弹窗头部 */
+.favorite-modal-header {
+    position: sticky;
+    top: 0;
+    background: rgba(20, 20, 40, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(65, 105, 225, 0.3);
+    z-index: 10001;
+}
+
+.favorite-modal-header h2 {
+    font-size: 1.8rem;
+    background: linear-gradient(90deg, #4169e1, #8a2be2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 0;
+}
+
+.favorite-close-btn {
+    background: rgba(255, 0, 0, 0.2);
+    border: 1px solid rgba(255, 0, 0, 0.5);
+    color: #ff8080;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.favorite-close-btn:hover {
+    background: rgba(255, 0, 0, 0.4);
+    transform: rotate(90deg);
+}
+
+/* 弹窗主体 */
+.favorite-modal-body {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 时间显示区域 */
+.fav-time-display {
+    background: rgba(20, 20, 40, 0.7);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px auto 30px;
+    max-width: 600px;
+    border: 1px solid rgba(65, 105, 225, 0.3);
+    box-shadow: 0 0 20px rgba(65, 105, 225, 0.2);
+    text-align: center;
+}
+
+.fav-time-main {
+    font-size: 3rem;
+    font-weight: 300;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, #e0e0ff, #a0a0ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.fav-time-period {
+    font-size: 1.2rem;
+    margin-left: 10px;
+    color: #8a2be2;
+}
+
+.fav-date-info {
+    font-size: 1.1rem;
+    color: #a0a0ff;
+    margin-bottom: 5px;
+}
+
+.fav-lunar-info {
+    font-size: 0.95rem;
+    color: #8080cc;
+    opacity: 0.9;
+}
+
+.fav-festival-info {
+    font-size: 0.95rem;
+    color: #ff8080;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+/* 搜索栏 */
+.fav-search-container {
+    max-width: 680px;
+    margin: 18px auto 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(20, 20, 40, 0.75);
+    border: 1px solid rgba(65, 105, 225, 0.35);
+    border-radius: 28px;
+    box-shadow: 0 0 12px rgba(65, 105, 225, 0.15);
+}
+
+.fav-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e0e0ff;
+    font-size: 1rem;
+    padding: 6px 10px;
+}
+
+.fav-search-input::placeholder {
+    color: #a0a0ff;
+    opacity: 0.7;
+}
+
+.fav-search-tip {
+    font-size: 0.9rem;
+    color: #a0a0ff;
+    opacity: 0.6;
+    padding-right: 6px;
+    white-space: nowrap;
+}
+
+/* 分类导航 */
+.fav-category-nav {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.fav-category-btn {
+    background: rgba(30, 30, 60, 0.7);
+    border: 1px solid rgba(65, 105, 225, 0.3);
+    color: #e0e0ff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.fav-category-btn:hover,
+.fav-category-btn.active {
+    background: rgba(65, 105, 225, 0.3);
+    border-color: rgba(138, 43, 226, 0.6);
+    box-shadow: 0 0 10px rgba(65, 105, 225, 0.3);
+}
+
+/* 分类容器 */
+.fav-category-container {
+    margin-bottom: 40px;
+}
+
+.fav-category-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(65, 105, 225, 0.3);
+    display: flex;
+    align-items: center;
+    color: #e0e0ff;
+}
+
+.fav-category-title::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #4169e1;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+/* 书签网格 */
+.fav-bookmarks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+/* 书签卡片 */
+.fav-bookmark {
+    background: rgba(20, 20, 40, 0.7);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(65, 105, 225, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.fav-bookmark::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(65, 105, 225, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.fav-bookmark:hover {
+    transform: translateY(-5px);
+    border-color: rgba(138, 43, 226, 0.6);
+    box-shadow: 0 8px 25px rgba(65, 105, 225, 0.3);
+    background: rgba(30, 30, 60, 0.9);
+}
+
+.fav-bookmark:hover::before {
+    left: 100%;
+}
+
+/* 图标样式 */
+.fav-bookmark-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(30, 30, 60, 0.8);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #4169e1;
+    border: 1px solid rgba(65, 105, 225, 0.5);
+    box-shadow: 0 0 10px rgba(65, 105, 225, 0.2);
+    flex-shrink: 0;
+}
+
+/* 书签信息 */
+.fav-bookmark-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.fav-bookmark-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #e0e0ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fav-bookmark-url {
+    font-size: 0.85rem;
+    color: #a0a0ff;
+    opacity: 0.8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .fav-category-nav {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .fav-time-main {
+        font-size: 2.2rem;
+    }
+    
+    .fav-bookmark {
+        padding: 15px;
+    }
+    
+    .fav-bookmarks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .favorite-modal-header h2 {
+        font-size: 1.4rem;
+    }
+}

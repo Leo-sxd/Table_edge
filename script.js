@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================
  * 整合后的JavaScript文件 - script.js
  * 包含：粒子效果 + 主脚本 + 诗句模块
@@ -6526,3 +6526,363 @@ class ScheduleImporter {
 document.addEventListener('DOMContentLoaded', () => {
     window.scheduleImporter = new ScheduleImporter();
 });
+
+// ============================================
+// �ղ���վ��������
+// ============================================
+
+// �ղ���վ����
+const favoriteWebsitesData = {
+    website: [
+        { name: 'Bing�����', url: 'https://cn.bing.com/', desc: '΢����������', icon: 'BI' },
+        { name: '�ȸ����������ҪVPN��', url: 'https://www.google.com/', desc: '΢����������', icon: 'GE' }
+    ],
+    ai: [
+        { name: 'kimi', url: 'https://www.kimi.com/', desc: '��֮����', icon: 'km' },
+        { name: '����AI', url: 'https://metaso.cn/', desc: 'META SOTA', icon: 'MT' },
+        { name: 'VLink', url: 'https://vlink.cc/mosha', desc: '�����Ƚ�AI����վ', icon: 'VL' },
+        { name: '����AI', url: 'https://node2.jimgen.com/pastel/#/carlist', desc: 'ChatGPT���� - һվʽAI����', icon: 'AI' },
+        { name: 'EasyChat����ҪVPN��', url: 'https://origin.eqing.tech/', desc: '��򵥵�ChatGPTʹ�÷�ʽ', icon: 'EQ' },
+        { name: 'ChatGPT-5', url: 'https://share.zhangsan.cool/?model=gpt-5-1', desc: '�����ܡ�����١���ʵ�õ�ģ�ͣ�����ǿ��˼������', icon: 'Ct' },
+        { name: '��ѶԪ��', url: 'https://yuanbao.tencent.com/chat/naQivTmsDa', desc: '�������AI����', icon: 'TX' },
+        { name: 'DeepSeek', url: 'https://chat.deepseek.com/sign_in', desc: '���ɹ������������', icon: 'DS' },
+        { name: 'ǧ��', url: 'https://www.qianwen.com/', desc: 'ͨ��ǧ��', icon: 'QW' },
+        { name: '����', url: 'https://www.doubao.com/chat/', desc: '�ֽ���������AI��������', icon: 'DB' },
+        { name: '����AI', url: 'https://jimeng.jianying.com/ai-tool/home/', desc: 'AI����ƽ̨', icon: 'JM' },
+        { name: '��������', url: 'https://chatglm.cn/main/alltoolsdetail?lang=zh', desc: '��������������', icon: 'ZP' },
+        { name: '���ſ���', url: 'https://www.zhangqiaokeyan.com/ai/journalthesis.html', desc: 'һվʽ����ƽ̨', icon: 'ZQ' }
+    ],
+    Agent: [
+        { name: '����', url: 'https://open.feishu.cn/?lang=zh-CN', desc: 'ȫ��Ŀ���������ʵ������', icon: 'fs' },
+        { name: 'n8n', url: 'https://n8n.io/', desc: '�����˹����ܹ��������Զ��������Ŷ�', icon: 'N' },
+        { name: 'SkyWork����ҪVPN��', url: 'https://skywork.ai/', desc: '����Agentƽ̨', icon: 'SW' }
+    ],
+    API: [
+        { name: 'DeepSeek API����ƽ̨', url: 'https://platform.deepseek.com/api_keys', desc: '����ƽ̨', icon: 'DS' },
+        { name: '���������ߺ�̨', url: 'https://open-dev.dingtalk.com/', desc: '���Ϸḻ�Ŀ�������������', icon: 'DG' },
+        { name: 'QQ����ƽ̨', url: 'https://q.qq.com/#/apps', desc: '��Ԫ����������Ӯ', icon: 'QQ' }
+    ],
+    programming: [
+        { name: 'GitHub', url: 'https://github.com/Leo-sxd', desc: '�����й���Э��ƽ̨', icon: 'GH' },
+        { name: '���', url: 'https://www.luogu.com.cn/', desc: '�������ѧ����ƽ̨', icon: 'LG' }
+    ],
+    information: [
+        { name: 'IP��ѯ', url: 'https://ip.cn/', desc: '��Ϣ��ѯƽ̨', icon: 'IP' }
+    ],
+    academic: [
+        { name: '֪��', url: 'https://www.cnki.net/', desc: '�й�ѧ����Դƽ̨', icon: 'ZW' },
+        { name: '����', url: 'https://www.bohrium.com/', desc: 'AI for Science����ƽ̨', icon: 'BR' },
+        { name: 'web of science', url: 'https://webofscience.clarivate.cn/', desc: 'Your trusted path to discovery', icon: 'ws' }
+    ],
+    mailbox: [
+        { name: 'QQ����', url: 'https://wx.mail.qq.com/', desc: '��ȫ���ȶ������١���ݵ���ѵ�������', icon: 'QQ' }
+    ],
+    education: [
+        { name: 'YouTube����ҪVPN��', url: 'https://www.youtube.com/', desc: 'YouTube', icon: 'Y' },
+        { name: '֪��', url: 'https://www.zhihu.com/', desc: '���ָ��������', icon: '֪' },
+        { name: '��������', url: 'https://www.bilibili.com/', desc: 'BiliBili', icon: 'BL' },
+        { name: '����', url: 'https://www.douyin.com/', desc: '��¼��������', icon: '��' },
+        { name: 'ѧϰͨ', url: 'https://v8.chaoxing.com/', desc: '����', icon: 'MC' },
+        { name: '�й���ѧMOOC', url: 'https://www.icourse163.org/', desc: '�������߿γ�ƽ̨', icon: 'MC' },
+        { name: '�����', url: 'https://www.yuketang.cn/v2/web/index', desc: '�ǻ۽�ѧ�������', icon: '��' },
+        { name: '�ǻ���', url: 'https://www.zhihuishu.com/', desc: '���߽���ƽ̨', icon: 'ZH' }
+    ],
+    english: [
+        { name: 'WE Write', url: 'https://wewrite.sflep.com/', desc: '������������', icon: 'WE' },
+        { name: 'UУ԰', url: 'https://sso.unipus.cn/', desc: '����ѧϰƽ̨', icon: 'U' },
+        { name: 'Ӣ���ʶ�', url: 'https://www.entts.com/', desc: '���߷������', icon: 'EN' },
+        { name: '�ѹ�����', url: 'https://fanyi.sogou.com/text', desc: '���ܷ���ר��', icon: '����' }
+    ],
+    tools: [
+        { name: 'wolframalpha', url: 'https://www.wolframalpha.com/', desc: '����������', icon: 'WA' },
+        { name: 'ͼ�μ�����', url: 'https://www.geogebra.org/graphing', desc: 'GeoGebra��ѧ����', icon: 'GE' },
+        { name: '3D������', url: 'https://www.geogebra.org/3d?lang=zh-TW', desc: 'GeoGebra 3D����', icon: '3D' },
+        { name: '���ֵ۹�', url: 'https://zh.numberempire.com/', desc: '��ѧ������', icon: '��' },
+        { name: 'Matrix calculator', url: 'https://matrixcalc.org/zh-CN/', desc: '���Դ��������', icon: '��' },
+        { name: 'SPSSPRO', url: 'https://www.spsspro.com/', desc: '�������ݷ���ƽ̨', icon: 'SP' },
+        { name: '�������δ�ʦ', url: 'https://brucelee1024.github.io/descriptive-geometry-master/', desc: '����ʽ��ά���ӻ�ѧϰƽ̨', icon: 'GM' },
+        { name: 'mechanicalc', url: 'https://mechanicalc.com/', desc: 'Quick and intuitive calculations', icon: 'MC' },
+        { name: 'skyciv', url: 'https://skyciv.com/free-beam-calculator/', desc: 'Reaction, Shear Force, etc', icon: 'SC' },
+        { name: '������ѧ', url: 'https://brucelee1024.github.io/MechMat_Lab/', desc: '���ӻ�ʵ����', icon: '��' },
+        { name: '�ṹ��ѧ', url: 'https://brucelee1024.github.io/structmech-lab/', desc: '����ʵ����', icon: '��' },
+        { name: '�ṹ��ʦ', url: 'https://brucelee1024.github.io/structure-analysis/', desc: '���ܾ���λ�Ʒ������', icon: '��' },
+        { name: '������ѹʵ����', url: 'https://brucelee1024.github.io/Engineering-Virtual-Lab/', desc: 'Virtual Material Testing Platform', icon: '��' }
+    ],
+    maps: [
+        { name: '���ǵ�ͼ', url: 'https://m.earthol.com/', desc: '��������', icon: '��ͼ' },
+        { name: '�ߵµ�ͼ', url: 'https://www.amap.com', desc: '������λ�÷���', icon: 'AM' }
+    ],
+    finance: [
+        { name: 'ͬ��˳', url: 'https://www.10jqka.com.cn/', desc: '�ƾ���Ϣƽ̨', icon: '��' }
+    ],
+    computer: [
+        { name: 'NVIDIA�ٷ�����', url: 'https://www.nvidia.cn/drivers/lookup/', desc: 'NVIDIA����', icon: 'NV' }
+    ],
+    web: [
+        { name: 'HTMLģ��', url: 'https://htmlrev.com/free-html-templates.html', desc: 'HTMLrev��ҳǰ����Դ', icon: 'Web' },
+        { name: '��ҳ��ͼ', url: 'https://www.xml-sitemaps.com/', desc: 'xml-sitemaps', icon: '��' },
+        { name: 'Webmasters Tools-Bing', url: 'https://www.bing.com/webmasters/about', desc: 'Microsoft Bing', icon: 'UR' },
+        { name: '�����Ʒ�����', url: 'https://free.aliyun.com/', desc: '�����Ʒ�����ƽ̨', icon: 'BL' },
+        { name: '�����ư���API', url: 'https://bailian.console.aliyun.com/', desc: 'API����ƽ̨', icon: 'BL' }
+    ],
+    games: [
+        { name: '�й�����', url: 'https://chinesechess.hongton.com/', desc: '����', icon: 'Web' },
+        { name: '101Χ��', url: 'https://www.101weiqi.com/', desc: '���߶���', icon: 'Web' }
+    ],
+    administration: [
+        { name: '��ѧ������Ϣ����ƽ̨', url: 'http://59.74.174.150/jwglxt/', desc: '�����Ƽ���ѧ����ϵͳ', icon: 'Web' },
+        { name: '�����Ƽ���ѧͼ���', url: 'https://lib.xust.edu.cn/', desc: '����ͼ��������', icon: 'Web' },
+        { name: '���ƽ�ѧ����ƽ̨', url: 'http://ixk.xust.edu.cn/EIP', desc: '���ƴ��ѧ����ϵͳ', icon: 'Web' }
+    ]
+};
+
+// ũ���ͽ�������
+const lunarMonths = ['��', '��', '��', '��', '��', '��', '��', '��', '��', 'ʮ', '��', '��'];
+const lunarDays = ['��һ', '����', '����', '����', '����', '����', '����', '����', '����', '��ʮ',
+                  'ʮһ', 'ʮ��', 'ʮ��', 'ʮ��', 'ʮ��', 'ʮ��', 'ʮ��', 'ʮ��', 'ʮ��', '��ʮ',
+                  'إһ', 'إ��', 'إ��', 'إ��', 'إ��', 'إ��', 'إ��', 'إ��', 'إ��', '��ʮ'];
+
+const festivals = {
+    '0101': 'Ԫ��', '0110': '�й����񾯲��', '0210': '���������', '0214': '���˽�',
+    '0301': '���ʺ�����', '0305': 'ѧ�׷������', '0308': '��Ů��', '0312': 'ֲ����',
+    '0314': '������ѧ��', '0321': '����ɭ����', '0401': '���˽�', '0405': '������',
+    '0407': '����������', '0412': '���˿ռ���й�����', '0422': '���������',
+    '0423': '���������', '0424': '�й�������', '0501': '�Ͷ���', '0504': '�����',
+    '0512': 'ȫ�����ּ�����', '0517': '���������', '0518': '���ʲ������',
+    '0519': '�й�������', '0520': '���������', '0522': '���������������',
+    '0530': 'ȫ���Ƽ���������', '0531': '����������', '0601': '��ͯ��',
+    '0605': '���绷����', '0623': '���ʰ���ƥ����', '0626': '���������',
+    '0701': '�����ڣ���ۻع�', '0711': '�й�������', '0730': '����������',
+    '0801': '������', '0812': '���������', '0903': '�й�������ս��ʤ��������',
+    '0910': '��ʦ��', '0916': '���ʳ����㱣����', '0918': '������ʷ���ᱲ��ǿ',
+    '0921': '���ʺ�ƽ��', '0927': '����������', '0930': '��ʿ������',
+    '1001': '�����', '1024': '���Ϲ���', '1025': '̨��⸴�����գ�����Ԯ��������',
+    '1031': '��ʥ��', '1108': '�й�������', '1110': '���������',
+    '1117': '���ʴ�ѧ����', '1204': '�����ܷ���', '1213': '�Ͼ�����ɱ�����߹��ҹ�����',
+    '1220': '���Żع������', '1224': 'ƽ��ҹ', '1225': 'ʥ����'
+};
+
+const lunarFestivals = {
+    '���³�һ': '����', '����ʮ��': 'Ԫ����', '���³���': '�����',
+    '���³���': '��Ϧ', '����ʮ��': '��Ԫ��', '����ʮ��': '�����',
+    '���³���': '�����', '���³���': '���˽�', '����إ��': 'С��', '������ʮ': '��Ϧ'
+};
+
+// �ղ���վ������
+class FavoriteModal {
+    constructor() {
+        this.modal = document.getElementById('favorite-modal');
+        this.closeBtn = document.getElementById('favorite-close-btn');
+        this.openBtn = document.getElementById('favorite-btn');
+        this.categoriesWrapper = document.getElementById('fav-categories-wrapper');
+        this.searchInput = document.getElementById('fav-search-input');
+        this.categoryBtns = document.querySelectorAll('.fav-category-btn');
+        this.activeCategory = 'all';
+        
+        this.init();
+    }
+    
+    init() {
+        // �󶨴򿪰�ť�¼�
+        if (this.openBtn) {
+            this.openBtn.addEventListener('click', () => this.open());
+        }
+        
+        // �󶨹رհ�ť�¼�
+        if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', () => this.close());
+        }
+        
+        // ��������ⲿ�ر�
+        if (this.modal) {
+            this.modal.addEventListener('click', (e) => {
+                if (e.target === this.modal) {
+                    this.close();
+                }
+            });
+        }
+        
+        // �󶨷��ఴť�¼�
+        this.categoryBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.categoryBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.activeCategory = btn.dataset.category;
+                this.renderCategories();
+                this.applySearch(this.searchInput.value);
+            });
+        });
+        
+        // �������¼�
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', () => {
+                this.applySearch(this.searchInput.value);
+            });
+        }
+        
+        // ��ʼ��ʱ����ʾ
+        this.updateTime();
+        setInterval(() => this.updateTime(), 1000);
+        
+        // ESC���رյ���
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
+                this.close();
+            }
+        });
+    }
+    
+    open() {
+        if (this.modal) {
+            this.modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            this.renderCategories();
+        }
+    }
+    
+    close() {
+        if (this.modal) {
+            this.modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // ����ʱ����ʾ
+    updateTime() {
+        const now = new Date();
+        const timeElement = document.getElementById('fav-current-time');
+        const periodElement = document.getElementById('fav-time-period');
+        const dateElement = document.getElementById('fav-current-date');
+        const lunarElement = document.getElementById('fav-lunar-date');
+        const festivalElement = document.getElementById('fav-festival-info');
+        
+        if (!timeElement) return;
+        
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const period = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        
+        timeElement.textContent = `${hours}:${minutes}:${seconds}`;
+        periodElement.textContent = period;
+        
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+        dateElement.textContent = now.toLocaleDateString('zh-CN', options);
+        
+        // ����ũ��
+        const lunarInfo = this.calculateLunar(now);
+        lunarElement.textContent = `ũ��${lunarInfo}`;
+        
+        // ��ȡ����
+        const festival = this.getFestival(now, lunarInfo);
+        festivalElement.textContent = festival || '';
+    }
+    
+    // ����ũ�����򻯰棩
+    calculateLunar(date) {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const lunarMonth = lunarMonths[(month - 1) % 12];
+        const lunarDay = lunarDays[(day - 1) % 30];
+        return `${lunarMonth}��${lunarDay}`;
+    }
+    
+    // ��ȡ����
+    getFestival(date, lunarInfo) {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const key = `${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}`;
+        
+        if (lunarFestivals[lunarInfo]) {
+            return lunarFestivals[lunarInfo];
+        }
+        return festivals[key] || '';
+    }
+    
+    // ��Ⱦ��������
+    renderCategories() {
+        if (!this.categoriesWrapper) return;
+        
+        let html = '';
+        
+        if (this.activeCategory === 'all') {
+            // ��Ⱦ���з���
+            for (const [category, websites] of Object.entries(favoriteWebsitesData)) {
+                html += this.renderCategorySection(category, websites);
+            }
+        } else {
+            // ��Ⱦָ������
+            const websites = favoriteWebsitesData[this.activeCategory] || [];
+            html += this.renderCategorySection(this.activeCategory, websites);
+        }
+        
+        this.categoriesWrapper.innerHTML = html;
+    }
+    
+    // ��Ⱦ������������
+    renderCategorySection(category, websites) {
+        if (!websites || websites.length === 0) return '';
+        
+        const categoryNames = {
+            website: '��ַ����', ai: 'AI����', Agent: 'AI����', API: 'APIƽ̨',
+            programming: '��̿���', information: '��Ϣ��ѯ', academic: 'ѧ���о�',
+            mailbox: '��������', education: '����ѧϰ', english: 'Ӣ��ѧϰ',
+            tools: '��ѧ����', maps: '������Ϣ', finance: '���ڲƾ�',
+            computer: '��������', web: '��ҳ����', games: '��Ȥ����',
+            administration: '��������'
+        };
+        
+        let bookmarksHtml = websites.map(site => `
+            <a href="${site.url}" class="fav-bookmark" target="_blank">
+                <div class="fav-bookmark-icon">${site.icon}</div>
+                <div class="fav-bookmark-info">
+                    <div class="fav-bookmark-name">${site.name}</div>
+                    <div class="fav-bookmark-url">${site.desc}</div>
+                </div>
+            </a>
+        `).join('');
+        
+        return `
+            <div class="fav-category-container" data-category="${category}">
+                <h2 class="fav-category-title">${categoryNames[category] || category}</h2>
+                <div class="fav-bookmarks-grid">
+                    ${bookmarksHtml}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Ӧ������
+    applySearch(keyword) {
+        const q = keyword.trim().toLowerCase();
+        
+        if (!q) {
+            this.renderCategories();
+            return;
+        }
+        
+        // �������з���
+        let html = '';
+        for (const [category, websites] of Object.entries(favoriteWebsitesData)) {
+            const matchedSites = websites.filter(site => 
+                site.name.toLowerCase().includes(q) ||
+                site.desc.toLowerCase().includes(q) ||
+                site.url.toLowerCase().includes(q)
+            );
+            
+            if (matchedSites.length > 0) {
+                html += this.renderCategorySection(category, matchedSites);
+            }
+        }
+        
+        this.categoriesWrapper.innerHTML = html || '<p style="text-align: center; color: #a0a0ff; padding: 40px;">δ�ҵ�ƥ�����վ</p>';
+    }
+}
+
+// ��ʼ���ղ���վ����
+document.addEventListener('DOMContentLoaded', () => {
+    window.favoriteModal = new FavoriteModal();
+});
+
+
