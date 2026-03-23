@@ -4982,3 +4982,163 @@ main {
     }
 }
 
+
+/* 音乐按钮容器 - 位于设置按钮正下方 */
+.music-container {
+    position: fixed;
+    top: 75px; /* 20px + 45px按钮高度 + 10px间距 */
+    right: 20px;
+    z-index: 10000;
+}
+
+/* 音乐按钮 - 与设置按钮样式一致 */
+.music-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    background: #8c00ff;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(100, 0, 255, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.music-btn:hover {
+    background: #8c00ff;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(100, 0, 255, 0.6);
+}
+
+.music-btn.active {
+    transform: scale(0.95);
+}
+
+/* 音乐模态框遮罩层 */
+.music-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.music-modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 音乐模态框 - 与设置模态框样式一致 */
+.music-modal {
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.music-modal-overlay.show .music-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* 音乐模态框头部 - 与设置模态框一致 */
+.music-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: #8c00ff;
+    color: white;
+    flex-shrink: 0;
+}
+
+.music-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.close-music {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.close-music:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+/* 音乐模态框内容区域 */
+.music-modal-content {
+    flex: 1;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* QQ音乐iframe */
+#qq-music-iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    border: none;
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+    .music-container {
+        top: 70px;
+        right: 15px;
+    }
+    
+    .music-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    .music-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .music-modal-header {
+        padding: 15px 20px;
+    }
+    
+    .music-modal-header h2 {
+        font-size: 18px;
+    }
+    
+    #qq-music-iframe {
+        min-height: 400px;
+    }
+}

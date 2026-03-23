@@ -6605,3 +6605,54 @@ class FavoriteModal {
 window.addEventListener('DOMContentLoaded', () => {
     new FavoriteModal();
 });
+
+
+// 音乐播放器功能
+class MusicPlayer {
+    constructor() {
+        this.musicBtn = document.getElementById('music-btn');
+        this.musicModalOverlay = document.getElementById('music-modal-overlay');
+        this.closeMusicBtn = document.getElementById('close-music');
+        this.qqMusicIframe = document.getElementById('qq-music-iframe');
+        this.init();
+    }
+    init() {
+        if (!this.musicBtn || !this.musicModalOverlay) return;
+        this.musicBtn.addEventListener('click', () => this.openMusicModal());
+        if (this.closeMusicBtn) {
+            this.closeMusicBtn.addEventListener('click', () => this.closeMusicModal());
+        }
+        if (this.musicModalOverlay) {
+            this.musicModalOverlay.addEventListener('click', (e) => {
+                if (e.target === this.musicModalOverlay) {
+                    this.closeMusicModal();
+                }
+            });
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.musicModalOverlay.classList.contains('show')) {
+                this.closeMusicModal();
+            }
+        });
+    }
+    openMusicModal() {
+        if (this.musicModalOverlay) {
+            this.musicModalOverlay.classList.add('show');
+            this.musicBtn.classList.add('active');
+            document.body.classList.add('modal-open');
+            if (this.qqMusicIframe && !this.qqMusicIframe.src) {
+                this.qqMusicIframe.src = 'https://y.qq.com/';
+            }
+        }
+    }
+    closeMusicModal() {
+        if (this.musicModalOverlay) {
+            this.musicModalOverlay.classList.remove('show');
+            this.musicBtn.classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
+    }
+}
+window.addEventListener('DOMContentLoaded', () => {
+    window.musicPlayer = new MusicPlayer();
+});
